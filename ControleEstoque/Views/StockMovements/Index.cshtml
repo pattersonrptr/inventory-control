@@ -1,0 +1,81 @@
+@model IEnumerable<StockMovement>
+@{
+    ViewData["Title"] = "Stock Movement History";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0"><i class="bi bi-clock-history"></i> Stock Movement History</h1>
+    <div class="d-flex gap-2">
+        <a asp-action="Entry" class="btn btn-success">
+            <i class="bi bi-arrow-down-circle"></i> New Entry
+        </a>
+        <a asp-action="Exit" class="btn btn-danger">
+            <i class="bi bi-arrow-up-circle"></i> New Exit
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date</th>
+                    <th>Product</th>
+                    <th>Type</th>
+                    <th class="text-end">Qty.</th>
+                    <th>Reason / Supplier</th>
+                    <th class="text-end">Unit Cost</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Date.ToString("MM/dd/yyyy")</td>
+                        <td class="fw-semibold">@item.Product?.Name</td>
+                        <td>
+                            @if (item.Type == MovementType.Entry)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-arrow-down-circle"></i> Entry</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-arrow-up-circle"></i> Exit</span>
+                            }
+                        </td>
+                        <td class="text-end fw-bold">@item.Quantity</td>
+                        <td class="text-muted">
+                            @if (item.Type == MovementType.Entry)
+                            {
+                                @(item.Supplier?.Name ?? "—")
+                            }
+                            else
+                            {
+                                @(item.ExitReason is not null
+                                    ? item.ExitReason.ToString()
+                                    : "—")
+                            }
+                        </td>
+                        <td class="text-end text-muted">
+                            @(item.UnitCost.HasValue
+                                ? item.UnitCost.Value.ToString("C")
+                                : "—")
+                        </td>
+                        <td class="text-muted small">@(item.Notes ?? "—")</td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                            No stock movements recorded.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

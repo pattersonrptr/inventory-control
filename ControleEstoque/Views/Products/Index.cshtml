@@ -1,0 +1,119 @@
+@model IEnumerable<Product>
+@{
+    ViewData["Title"] = "Products";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0"><i class="bi bi-box-seam"></i> Products</h1>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> New Product
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Supplier</th>
+                    <th class="text-end">Cost Price</th>
+                    <th class="text-end">Selling Price</th>
+                    <th class="text-center">Stock</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr class="@(item.IsBelowMinimumStock ? "table-warning" : "")">
+                        <td class="fw-semibold">
+                            @item.Name
+                            @if (item.IsBelowMinimumStock)
+                            {
+                                <span class="badge bg-danger ms-1" title="Below minimum stock">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                </span>
+                            }
+                        </td>
+                        <td class="text-muted">@item.Category?.Name</td>
+                        <td class="text-muted">@item.Supplier?.Name</td>
+                        <td class="text-end">@item.CostPrice.ToString("C")</td>
+                        <td class="text-end">@item.SellingPrice.ToString("C")</td>
+                        <td class="text-center fw-bold @(item.IsBelowMinimumStock ? "text-danger" : "")">
+                            @item.CurrentStock
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="Details" asp-route-id="@item.Id"
+                               class="btn btn-sm btn-outline-secondary" title="Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@item.Id"
+                               class="btn btn-sm btn-outline-primary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@item.Id"
+                               class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            @if (ViewBag.IntegrationEnabled == true && item.ExternalId == null)
+                            {
+                                <button class="btn btn-sm btn-outline-success"
+                                        title="Push to Store"
+                                        onclick="pushProduct(@item.Id, this)">
+                                    <i class="bi bi-cloud-upload"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                            No products registered.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (ViewBag.IntegrationEnabled == true)
+{
+    <div id="pushToast" class="toast align-items-center border-0 position-fixed bottom-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true" style="z-index:1100">
+        <div class="d-flex">
+            <div id="pushToastBody" class="toast-body fw-semibold"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <script>
+        async function pushProduct(productId, btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+            try {
+                const res = await fetch(`/api/sync/push-product/${productId}`, { method: 'POST' });
+                const data = await res.json();
+                showPushToast(res.ok, data.message ?? (res.ok ? 'Pushed.' : 'Failed.'));
+                if (res.ok) btn.closest('tr').querySelector('.btn-outline-success')?.remove();
+            } catch (e) {
+                showPushToast(false, 'Request failed: ' + e.message);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-cloud-upload"></i>';
+            }
+        }
+
+        function showPushToast(success, message) {
+            const toastEl = document.getElementById('pushToast');
+            const toastBody = document.getElementById('pushToastBody');
+            toastEl.classList.remove('bg-success', 'bg-danger', 'text-white');
+            toastEl.classList.add(success ? 'bg-success' : 'bg-danger', 'text-white');
+            toastBody.textContent = message;
+            bootstrap.Toast.getOrCreateInstance(toastEl).show();
+        }
+    </script>
+}

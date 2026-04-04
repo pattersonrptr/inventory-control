@@ -1,0 +1,123 @@
+@model MonthlyReportViewModel
+@{
+    ViewData["Title"] = "Monthly Report";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0"><i class="bi bi-calendar-month"></i> Monthly Report</h1>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Monthly" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="month" class="form-label fw-semibold">Month</label>
+                <select id="month" name="month" class="form-select">
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        var monthName = new DateTime(2000, m, 1).ToString("MMMM");
+                        <option value="@m" selected="@(m == Model.Month)">@monthName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="year" class="form-label fw-semibold">Year</label>
+                <input id="year" name="year" type="number" class="form-control"
+                       value="@Model.Year" min="2000" max="2099" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h4 class="mb-3 text-capitalize">
+    <i class="bi bi-bar-chart"></i> Results: @Model.MonthName
+</h4>
+
+@if (!Model.Items.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        No stock movements recorded in @Model.MonthName.
+    </div>
+}
+else
+{
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card text-center text-white bg-success">
+                <div class="card-body">
+                    <div class="small text-white-50">Total Entries</div>
+                    <div class="display-5 fw-bold">@Model.TotalEntries</div>
+                    <div class="small">units</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center text-white bg-danger">
+                <div class="card-body">
+                    <div class="small text-white-50">Total Exits</div>
+                    <div class="display-5 fw-bold">@Model.TotalExits</div>
+                    <div class="small">units</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center text-white @(Model.TotalEntries >= Model.TotalExits ? "bg-primary" : "bg-warning")">
+                <div class="card-body">
+                    <div class="small text-white-50">Period Balance</div>
+                    <div class="display-5 fw-bold">@(Model.TotalEntries - Model.TotalExits)</div>
+                    <div class="small">units</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header fw-bold">Breakdown by Product</div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Product</th>
+                        <th class="text-center text-success">Entries</th>
+                        <th class="text-center text-danger">Exits</th>
+                        <th class="text-center">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@item.ProductName</td>
+                            <td class="text-center text-success fw-bold">+@item.TotalEntries</td>
+                            <td class="text-center text-danger fw-bold">-@item.TotalExits</td>
+                            <td class="text-center">
+                                @if (item.Balance >= 0)
+                                {
+                                    <span class="badge bg-success">+@item.Balance</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">@item.Balance</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="table-secondary fw-bold">
+                    <tr>
+                        <td>TOTAL</td>
+                        <td class="text-center text-success">+@Model.TotalEntries</td>
+                        <td class="text-center text-danger">-@Model.TotalExits</td>
+                        <td class="text-center">@(Model.TotalEntries - Model.TotalExits)</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}

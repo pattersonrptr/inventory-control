@@ -1,0 +1,41 @@
+## Binaries and build output
+bin/
+obj/
+*.user
+.vs/
+
+## Published output
+publish/
+
+## NuGet packages
+*.nupkg
+packages/
+!packages/build/
+
+## Logs
+*.log
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## SQLite local database (generated in development)
+*.db
+*.db-shm
+*.db-wal
+
+## Secrets and configuration files
+**/appsettings.json
+**/appsettings.Production.json
+**/appsettings.Local.json
+secrets.json
+
+## Rider
+.idea/
+
+## VS Code
+.vscode/
+
+## dotnet tools
+.config/dotnet-tools.json
+

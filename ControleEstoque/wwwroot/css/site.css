@@ -1,0 +1,23 @@
+body {
+    font-size: 0.95rem;
+}
+
+.navbar-brand {
+    font-size: 1.1rem;
+    letter-spacing: 0.3px;
+}
+
+.table th {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+footer {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
