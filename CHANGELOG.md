@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- PR template at `.github/PULL_REQUEST_TEMPLATE.md` with standardized description and checklist
+- Workflow rules in copilot instructions: pre-commit documentation checks, branch protection, release process
+- Semantic versioning release process documented in copilot instructions
+
 ## [1.0.0] - 2026-04-03
 
 ### Added
