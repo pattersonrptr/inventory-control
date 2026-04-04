@@ -1,6 +1,19 @@
+<div align="center">
+
 # Inventory Control
 
-A web-based inventory management system built with **ASP.NET Core MVC (.NET 10)** and **Entity Framework Core**. Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemshop.com.br/)) for real-time stock synchronization.
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-MVC-512BD4?logo=dotnet&logoColor=white)](https://learn.microsoft.com/aspnet/core/)
+[![EF Core](https://img.shields.io/badge/EF%20Core-10.0-512BD4?logo=dotnet&logoColor=white)](https://learn.microsoft.com/ef/core/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/pattersonrptr/inventory-control)](https://github.com/pattersonrptr/inventory-control/releases)
+
+A web-based inventory management system built with **ASP.NET Core MVC (.NET 10)** and **Entity Framework Core**.
+Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemshop.com.br/)) for real-time stock synchronization.
+
+</div>
+
+---
 
 ## Features
 
