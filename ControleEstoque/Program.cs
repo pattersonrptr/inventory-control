@@ -69,3 +69,6 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+// Make the auto-generated Program class accessible to integration tests
+public partial class Program { }
