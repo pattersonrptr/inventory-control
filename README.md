@@ -78,6 +78,20 @@ Copy `appsettings.example.json` to `appsettings.json` and update the values:
 
 > **Never commit `appsettings.json`** — it is listed in `.gitignore`. Use `appsettings.example.json` as a template.
 
+### Docker
+
+```bash
+# Build and run with Docker Compose
+docker compose up -d
+
+# The app will be available at http://localhost:8080
+
+# Stop the container
+docker compose down
+```
+
+The SQLite database is persisted in a Docker volume (`app-data`), so data survives container restarts.
+
 ## Architecture
 
 ```

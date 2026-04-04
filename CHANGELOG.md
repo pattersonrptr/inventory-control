@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PR template at `.github/PULL_REQUEST_TEMPLATE.md` with standardized description and checklist
 - Workflow rules in copilot instructions: pre-commit documentation checks, branch protection, release process
 - Semantic versioning release process documented in copilot instructions
+- Docker support: `Dockerfile` (multi-stage build), `docker-compose.yml`, `.dockerignore`
 - Test suite with xUnit: unit tests (models, repositories, services, view models), integration tests (controllers via WebApplicationFactory), and E2E workflow tests
 - `ControleEstoque.Tests` project with Moq and InMemory database support
 

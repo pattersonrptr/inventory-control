@@ -1,0 +1,17 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-control
+    ports:
+      - "8080:8080"
+    volumes:
+      - app-data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/estoque.db
+    restart: unless-stopped
+
+volumes:
+  app-data:
