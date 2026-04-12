@@ -24,10 +24,21 @@ builder.Services.AddRequestLocalization(opts =>
 });
 
 // EF Core configuration.
-// Development: local SQLite (no server dependency).
-// Production: add the desired provider to .csproj and swap UseSqlite below.
+// Provider is selected at runtime based on the connection string format:
+//   - PostgreSQL: "Host=..." (production / Docker)
+//   - SQLite:     "Data Source=..." (local development fallback)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+var usePostgres = connectionString.StartsWith("Host=", StringComparison.OrdinalIgnoreCase)
+               || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)
+               || connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase);
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (usePostgres)
+        options.UseNpgsql(connectionString);
+    else
+        options.UseSqlite(connectionString);
+});
 
 // Dependency injection for repositories
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -67,6 +78,14 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Apply pending migrations automatically on startup (relational providers only)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    if (db.Database.IsRelational())
+        db.Database.Migrate();
+}
 
 app.Run();
 

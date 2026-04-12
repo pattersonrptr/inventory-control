@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test suite with xUnit: unit tests (models, repositories, services, view models), integration tests (controllers via WebApplicationFactory), and E2E workflow tests
 - `ControleEstoque.Tests` project with Moq and InMemory database support
 
+### Changed
+
+- Switched database from SQLite to **PostgreSQL** as the primary production/Docker provider
+- `docker-compose.yml` now includes a `postgres:16-alpine` service with health check; app waits for the DB to be healthy before starting
+- `Program.cs` selects the EF Core provider at runtime based on the connection string format (`Host=` → Npgsql, `Data Source=` → SQLite fallback for local dev)
+- Migrations automatically applied on startup via `db.Database.Migrate()`
+- Regenerated EF Core migrations for PostgreSQL; old SQLite migrations removed
+- `appsettings.example.json` updated with PostgreSQL connection string template
+- Upgraded `Microsoft.EntityFrameworkCore.*` packages from 10.0.3 to 10.0.4
+- Added `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.1
+
 ## [1.0.0] - 2026-04-03
 
 ### Added

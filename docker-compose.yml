@@ -1,17 +1,35 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: inventory-db
+    environment:
+      POSTGRES_DB: estoque
+      POSTGRES_USER: estoque
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-estoque}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U estoque -d estoque"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    image: pattersonrptr/inventory-control:2.0
     container_name: inventory-control
     ports:
       - "8080:8080"
-    volumes:
-      - app-data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/estoque.db
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=estoque;Username=estoque;Password=${DB_PASSWORD:-estoque}
     restart: unless-stopped
 
 volumes:
-  app-data:
+  db-data:

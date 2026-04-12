@@ -3,40 +3,45 @@
 This directory is created automatically by Entity Framework Core after you run
 `dotnet ef migrations add <MigrationName>`.
 
-## How to Generate and Apply Migrations
+The project uses **PostgreSQL** in production/Docker and SQLite as a fallback for
+local development without Docker.
 
-### Prerequisites
-- .NET 10 SDK installed
-- Target database available (SQLite for dev, or your chosen provider)
-- Connection string configured in `appsettings.json`
+## Applying Migrations
 
-### Steps
+Migrations are applied automatically on startup via `db.Database.Migrate()` in
+`Program.cs`. No manual `dotnet ef database update` is needed when running via
+`docker-compose up`.
 
-```bash
-# 1. Restore NuGet packages
-dotnet restore
+## Generating New Migrations
 
-# 2. Generate the initial migration
-dotnet ef migrations add Initial
+The provider is selected at runtime based on the connection string. To generate
+PostgreSQL-compatible migrations, set the connection string env var before running
+`dotnet ef migrations add`:
 
-# 3. Apply to the database
-dotnet ef database update
+### Windows (PowerShell)
+
+```powershell
+$env:ConnectionStrings__DefaultConnection = "Host=localhost;Port=5432;Database=estoque;Username=estoque;Password=estoque"
+dotnet ef migrations add <MigrationName> --project ControleEstoque/ControleEstoque.csproj
 ```
 
-### Switching Database Providers
+### Linux / macOS
 
-To use PostgreSQL instead of SQLite, for example:
+```bash
+ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=estoque;Username=estoque;Password=estoque" \
+  dotnet ef migrations add <MigrationName> --project ControleEstoque/ControleEstoque.csproj
+```
 
-1. Add the provider package to `.csproj`:
-   ```xml
-   <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.*" />
-   ```
+`dotnet ef migrations add` does **not** require a running database; it only needs
+the provider to be configured to generate the correct SQL. Use
+`dotnet ef database update` (or `docker-compose up`) to apply migrations to an
+actual database.
 
-2. In `Program.cs`, replace `UseSqlite` with `UseNpgsql`.
+## Local Development Without Docker
 
-3. Update the connection string in `appsettings.json`:
-   ```
-   "DefaultConnection": "Host=localhost;Database=estoque;Username=<YOUR_USER>;Password=<YOUR_PASSWORD>"
-   ```
+For quick local development you can still use SQLite by keeping the default
+`appsettings.Development.json` connection string (`Data Source=estoque.db`).
+The app will detect the format and use the SQLite provider automatically.
 
-4. Regenerate the migrations (old ones are provider-specific).
+> Note: SQLite migrations must be regenerated separately if needed. Migrations
+> in this folder are generated for PostgreSQL.
