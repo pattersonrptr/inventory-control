@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Stock entry/exit returning 500 error on PostgreSQL due to `DateTime` with `Kind=Unspecified` being rejected by Npgsql; enabled legacy timestamp behavior to accept local dates from HTML form inputs
+
 ## [2.0.0] - 2026-04-12
 
 ### Added
