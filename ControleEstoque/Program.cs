@@ -3,6 +3,10 @@ using ControleEstoque.Repositories;
 using ControleEstoque.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
+// Allow DateTime with Kind=Unspecified to be sent to PostgreSQL without requiring UTC conversion.
+// This is needed because HTML date inputs and DateTime.Today produce Unspecified-kind values.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews(options =>
