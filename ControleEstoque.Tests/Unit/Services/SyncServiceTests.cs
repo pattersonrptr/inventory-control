@@ -14,6 +14,7 @@ public class SyncServiceTests
     private readonly Mock<IProductRepository> _productRepoMock = new();
     private readonly Mock<IStockMovementRepository> _movementRepoMock = new();
     private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
+    private readonly Mock<IProcessedOrderRepository> _processedOrderRepoMock = new();
     private readonly IntegrationConfig _config = new() { Enabled = true, Platform = "test-platform" };
     private readonly SyncService _sut;
 
@@ -24,6 +25,7 @@ public class SyncServiceTests
             _productRepoMock.Object,
             _movementRepoMock.Object,
             _categoryRepoMock.Object,
+            _processedOrderRepoMock.Object,
             _config,
             Mock.Of<ILogger<SyncService>>());
     }
@@ -111,10 +113,12 @@ public class SyncServiceTests
     {
         var product = TestDataBuilder.CreateProduct(currentStock: 50, externalId: "ext-1");
         _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { product });
+        _processedOrderRepoMock.Setup(r => r.ExistsAsync("ORD-1")).ReturnsAsync(false);
 
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-1",
+            Status = "closed",
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {
@@ -122,14 +126,17 @@ public class SyncServiceTests
             }
         };
 
-        await _sut.ProcessOrderAsync(order);
+        var result = await _sut.ProcessOrderAsync(order);
 
+        Assert.True(result);
         _movementRepoMock.Verify(r => r.AddAsync(It.Is<StockMovement>(m =>
             m.ProductId == product.Id &&
             m.Type == MovementType.Exit &&
             m.Quantity == 3 &&
             m.ExitReason == ExitReason.Sale)), Times.Once);
         _productRepoMock.Verify(r => r.UpdateStockAsync(product.Id, 47), Times.Once);
+        _processedOrderRepoMock.Verify(r => r.AddAsync(It.Is<ProcessedOrder>(po =>
+            po.ExternalOrderId == "ORD-1" && po.Status == "closed")), Times.Once);
     }
 
     [Fact]
@@ -137,10 +144,12 @@ public class SyncServiceTests
     {
         var product = TestDataBuilder.CreateProduct(currentStock: 2, externalId: "ext-1");
         _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { product });
+        _processedOrderRepoMock.Setup(r => r.ExistsAsync("ORD-1")).ReturnsAsync(false);
 
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-1",
+            Status = "closed",
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {
@@ -157,10 +166,12 @@ public class SyncServiceTests
     public async Task ProcessOrderAsync_NoMatchingProduct_SkipsItem()
     {
         _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Product>());
+        _processedOrderRepoMock.Setup(r => r.ExistsAsync("ORD-1")).ReturnsAsync(false);
 
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-1",
+            Status = "closed",
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {
@@ -200,5 +211,82 @@ public class SyncServiceTests
 
         Assert.Equal("ext-new", localCategory.ExternalId);
         _storeMock.Verify(s => s.CreateCategoryAsync("New"), Times.Once);
+    }
+
+    [Fact]
+    public async Task ProcessOrderAsync_AlreadyProcessed_SkipsAndReturnsFalse()
+    {
+        _processedOrderRepoMock.Setup(r => r.ExistsAsync("ORD-1")).ReturnsAsync(true);
+
+        var order = new ExternalOrder
+        {
+            ExternalOrderId = "ORD-1",
+            Status = "closed",
+            CreatedAt = DateTime.UtcNow,
+            Items = new List<ExternalOrderItem>
+            {
+                new() { ExternalProductId = "ext-1", Quantity = 5, UnitPrice = 10.00m }
+            }
+        };
+
+        var result = await _sut.ProcessOrderAsync(order);
+
+        Assert.False(result);
+        _movementRepoMock.Verify(r => r.AddAsync(It.IsAny<StockMovement>()), Times.Never);
+        _processedOrderRepoMock.Verify(r => r.AddAsync(It.IsAny<ProcessedOrder>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("open")]
+    [InlineData("cancelled")]
+    [InlineData("pending")]
+    public async Task ProcessOrderAsync_UnpaidStatus_SkipsAndReturnsFalse(string status)
+    {
+        _processedOrderRepoMock.Setup(r => r.ExistsAsync("ORD-1")).ReturnsAsync(false);
+
+        var order = new ExternalOrder
+        {
+            ExternalOrderId = "ORD-1",
+            Status = status,
+            CreatedAt = DateTime.UtcNow,
+            Items = new List<ExternalOrderItem>
+            {
+                new() { ExternalProductId = "ext-1", Quantity = 5, UnitPrice = 10.00m }
+            }
+        };
+
+        var result = await _sut.ProcessOrderAsync(order);
+
+        Assert.False(result);
+        _movementRepoMock.Verify(r => r.AddAsync(It.IsAny<StockMovement>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData("closed")]
+    [InlineData("packed")]
+    [InlineData("shipped")]
+    public async Task ProcessOrderAsync_PaidStatus_ProcessesOrder(string status)
+    {
+        var product = TestDataBuilder.CreateProduct(currentStock: 50, externalId: "ext-1");
+        _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { product });
+        _processedOrderRepoMock.Setup(r => r.ExistsAsync("ORD-1")).ReturnsAsync(false);
+
+        var order = new ExternalOrder
+        {
+            ExternalOrderId = "ORD-1",
+            Status = status,
+            CreatedAt = DateTime.UtcNow,
+            Items = new List<ExternalOrderItem>
+            {
+                new() { ExternalProductId = "ext-1", Quantity = 3, UnitPrice = 25.00m }
+            }
+        };
+
+        var result = await _sut.ProcessOrderAsync(order);
+
+        Assert.True(result);
+        _movementRepoMock.Verify(r => r.AddAsync(It.IsAny<StockMovement>()), Times.Once);
+        _processedOrderRepoMock.Verify(r => r.AddAsync(It.Is<ProcessedOrder>(po =>
+            po.ExternalOrderId == "ORD-1")), Times.Once);
     }
 }

@@ -109,13 +109,17 @@ public class SyncController : ControllerBase
             return Ok(new { message = $"No orders found since {sinceDate:O}." });
 
         int processed = 0;
+        int skipped = 0;
         int failed = 0;
         foreach (var order in orderList)
         {
             try
             {
-                await _syncService.ProcessOrderAsync(order);
-                processed++;
+                var wasProcessed = await _syncService.ProcessOrderAsync(order);
+                if (wasProcessed)
+                    processed++;
+                else
+                    skipped++;
             }
             catch (Exception ex)
             {
@@ -124,7 +128,7 @@ public class SyncController : ControllerBase
             }
         }
 
-        return Ok(new { message = $"Processed {processed} order(s) since {sinceDate:O}.", failed });
+        return Ok(new { message = $"Processed {processed} order(s) since {sinceDate:O}. Skipped {skipped}.", failed });
     }
 
     /// <summary>

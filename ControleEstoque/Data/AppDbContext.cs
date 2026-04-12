@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<ProcessedOrder> ProcessedOrders => Set<ProcessedOrder>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -73,6 +74,14 @@ public class AppDbContext : DbContext
                   .HasForeignKey(m => m.SupplierId)
                   .OnDelete(DeleteBehavior.SetNull)
                   .IsRequired(false);
+        });
+
+        modelBuilder.Entity<ProcessedOrder>(entity =>
+        {
+            entity.HasKey(po => po.Id);
+            entity.Property(po => po.ExternalOrderId).IsRequired().HasMaxLength(200);
+            entity.Property(po => po.Status).IsRequired().HasMaxLength(50);
+            entity.HasIndex(po => po.ExternalOrderId).IsUnique();
         });
     }
 }

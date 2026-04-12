@@ -13,11 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brazilian date format (`dd/MM/yyyy`) and currency format (`R$` with comma decimal separator)
 - jQuery Validation override to accept comma as decimal separator in form inputs
 - Sticky footer using CSS flexbox so the footer always stays at the bottom of the page
+- `ProcessedOrders` table to track which external orders have already been synced, preventing duplicate stock deductions
 
 ### Fixed
 
 - Stock entry/exit returning 500 error on PostgreSQL due to `DateTime` with `Kind=Unspecified` being rejected by Npgsql; enabled legacy timestamp behavior to accept local dates from HTML form inputs
 - Added EF Core migration (`LegacyTimestampBehavior`) to change `StockMovements.Date` column from `timestamp with time zone` to `timestamp without time zone`, matching the new legacy timestamp behavior
+- Order sync now filters by payment status (`closed`, `packed`, `shipped`), preventing stock deduction for unpaid or cancelled orders
+- Order sync deduplication: the same external order is never processed twice, even across polling cycles or manual syncs
 
 ## [2.0.0] - 2026-04-12
 

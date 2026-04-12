@@ -58,14 +58,18 @@ public class OrderSyncBackgroundService : BackgroundService
             var orders = await store.GetOrdersAsync(since);
 
             int processed = 0;
+            int skipped = 0;
             int failed = 0;
             foreach (var order in orders)
             {
                 if (stoppingToken.IsCancellationRequested) break;
                 try
                 {
-                    await syncService.ProcessOrderAsync(order);
-                    processed++;
+                    var wasProcessed = await syncService.ProcessOrderAsync(order);
+                    if (wasProcessed)
+                        processed++;
+                    else
+                        skipped++;
                 }
                 catch (Exception ex)
                 {
@@ -77,8 +81,8 @@ public class OrderSyncBackgroundService : BackgroundService
             }
 
             _logger.LogInformation(
-                "OrderSyncBackgroundService: completed. Processed={Processed}, Failed={Failed}.",
-                processed, failed);
+                "OrderSyncBackgroundService: completed. Processed={Processed}, Skipped={Skipped}, Failed={Failed}.",
+                processed, skipped, failed);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
