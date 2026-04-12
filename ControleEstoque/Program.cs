@@ -27,7 +27,11 @@ builder.Services.AddRequestLocalization(opts =>
 // Provider is selected at runtime based on the connection string format:
 //   - PostgreSQL: "Host=..." (production / Docker)
 //   - SQLite:     "Data Source=..." (local development fallback)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' is not configured. " +
+        "Set the environment variable ConnectionStrings__DefaultConnection " +
+        "or add it to appsettings.json.");
 var usePostgres = connectionString.StartsWith("Host=", StringComparison.OrdinalIgnoreCase)
                || connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)
                || connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase);
