@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-12
+
 ### Added
 
 - PR template at `.github/PULL_REQUEST_TEMPLATE.md` with standardized description and checklist
@@ -52,5 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSRF protection on all form-based POST/PUT/DELETE actions
 - No raw SQL — all queries through EF Core with LINQ
 
-[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/pattersonrptr/inventory-control/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/pattersonrptr/inventory-control/releases/tag/v1.0.0
