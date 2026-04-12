@@ -107,6 +107,7 @@
                 const res = await fetch(url, { method: 'POST' });
                 const data = await res.json();
                 showToast(res.ok, data.message ?? (res.ok ? 'Concluído.' : 'Falhou.'));
+                if (res.ok) await refreshRecentMovements();
             } catch (e) {
                 showToast(false, 'Falha na requisição: ' + e.message);
             } finally {
@@ -114,6 +115,30 @@
                 spinner.classList.add('d-none');
                 icon.classList.remove('d-none');
             }
+        }
+
+        async function refreshRecentMovements() {
+            try {
+                const res = await fetch('/api/movements/recent');
+                if (!res.ok) return;
+                const movements = await res.json();
+                const tbody = document.getElementById('recentMovementsBody');
+                if (!tbody) return;
+                if (movements.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                        Nenhuma movimentação de estoque registrada.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = movements.map(m => `<tr>
+                    <td>${m.date}</td>
+                    <td>${m.product ?? ''}</td>
+                    <td>${m.type === 'entry'
+                        ? '<span class="badge bg-success"><i class="bi bi-arrow-down-circle"></i> Entrada</span>'
+                        : '<span class="badge bg-danger"><i class="bi bi-arrow-up-circle"></i> Saída</span>'}</td>
+                    <td class="text-end fw-bold">${m.quantity}</td>
+                </tr>`).join('');
+            } catch { /* silent */ }
         }
 
         function syncOrders() {
@@ -156,7 +181,7 @@
                     <th class="text-end">Quantidade</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="recentMovementsBody">
                 @{
                     var recentMovements = ViewBag.RecentMovements as List<ControleEstoque.Models.StockMovement>;
                 }
