@@ -11,6 +11,7 @@ public class NuvemshopOrder
     public string Status { get; set; } = string.Empty;
 
     [JsonPropertyName("created_at")]
+    [JsonConverter(typeof(NuvemshopDateTimeConverter))]
     public DateTime CreatedAt { get; set; }
 
     [JsonPropertyName("products")]
