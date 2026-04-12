@@ -48,7 +48,8 @@ public class SyncWorkflowTests
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-500",
-            Status = "closed",
+            Status = "open",
+            PaymentStatus = "paid",
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {

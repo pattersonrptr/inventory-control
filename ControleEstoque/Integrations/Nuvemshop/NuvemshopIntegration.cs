@@ -108,6 +108,7 @@ public class NuvemshopIntegration : IStoreIntegration
     {
         ExternalOrderId = o.Id.ToString(),
         Status = o.Status,
+        PaymentStatus = o.PaymentStatus,
         CreatedAt = o.CreatedAt,
         Items = o.Products.Select(p => new ExternalOrderItem
         {
