@@ -176,15 +176,34 @@ public class SyncService
     }
 
     /// <summary>
+    /// Payment statuses that indicate a refund and should trigger stock reversal.
+    /// </summary>
+    private static readonly HashSet<string> RefundedPaymentStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "refunded", "voided"
+    };
+
+    /// <summary>
     /// Processes an incoming order from the external store: records a stock exit
     /// movement for each line item. Skips orders that have already been processed
     /// or that do not have a confirmed payment status.
+    /// If a previously processed order is now refunded/voided, reverses the stock
+    /// by creating entry movements.
     /// </summary>
     public async Task<bool> ProcessOrderAsync(ExternalOrder order)
     {
-        // Deduplication: skip if already processed
-        if (await _processedOrderRepo.ExistsAsync(order.ExternalOrderId))
+        // Check if order was already processed
+        var existingRecord = await _processedOrderRepo.GetByExternalOrderIdAsync(order.ExternalOrderId);
+
+        if (existingRecord is not null)
         {
+            // Check for refund: previously confirmed payment now refunded/voided
+            if (ConfirmedPaymentStatuses.Contains(existingRecord.PaymentStatus)
+                && RefundedPaymentStatuses.Contains(order.PaymentStatus))
+            {
+                return await ProcessRefundAsync(order, existingRecord);
+            }
+
             _logger.LogInformation(
                 "Order {OrderId} already processed. Skipping.",
                 order.ExternalOrderId);
@@ -212,10 +231,7 @@ public class SyncService
 
         foreach (var item in order.Items)
         {
-            // Match by ExternalId or SKU
-            var product = localProducts.FirstOrDefault(p =>
-                p.ExternalId == item.ExternalProductId ||
-                (!string.IsNullOrEmpty(p.Sku) && p.Sku == item.Sku));
+            var product = FindMatchingProduct(localProducts, item);
 
             if (product is null)
             {
@@ -257,9 +273,66 @@ public class SyncService
         {
             ExternalOrderId = order.ExternalOrderId,
             Status = order.Status,
+            PaymentStatus = order.PaymentStatus,
             ProcessedAt = DateTime.Now
         });
 
         return true;
+    }
+
+    /// <summary>
+    /// Reverses stock for a previously processed order that has been refunded/voided.
+    /// Creates entry movements to restore the stock for each line item.
+    /// </summary>
+    private async Task<bool> ProcessRefundAsync(ExternalOrder order, ProcessedOrder existingRecord)
+    {
+        _logger.LogInformation(
+            "Order {OrderId} was refunded (payment_status changed from '{OldStatus}' to '{NewStatus}'). Reversing stock.",
+            order.ExternalOrderId, existingRecord.PaymentStatus, order.PaymentStatus);
+
+        var localProducts = await _productRepo.GetAllAsync();
+
+        foreach (var item in order.Items)
+        {
+            var product = FindMatchingProduct(localProducts, item);
+
+            if (product is null)
+            {
+                _logger.LogWarning(
+                    "Refund {OrderId}: no local product matched externalProductId={ExternalProductId} / sku={Sku}. Item skipped.",
+                    order.ExternalOrderId, item.ExternalProductId, item.Sku);
+                continue;
+            }
+
+            var movement = new StockMovement
+            {
+                ProductId = product.Id,
+                Type = MovementType.Entry,
+                Quantity = item.Quantity,
+                Date = DateTime.Now,
+                UnitCost = item.UnitPrice,
+                Notes = $"Refund for order {order.ExternalOrderId} from external store"
+            };
+
+            await _movementRepo.AddAsync(movement);
+            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock + item.Quantity);
+
+            _logger.LogInformation(
+                "Reversed {Quantity} unit(s) of {ProductName} for refunded order {OrderId}.",
+                item.Quantity, product.Name, order.ExternalOrderId);
+        }
+
+        // Update the processed order record with the new payment status
+        existingRecord.PaymentStatus = order.PaymentStatus;
+        await _processedOrderRepo.UpdateAsync(existingRecord);
+
+        return true;
+    }
+
+    private static Product? FindMatchingProduct(IEnumerable<Product> localProducts, ExternalOrderItem item)
+    {
+        return localProducts.FirstOrDefault(p =>
+            p.ExternalId == item.ExternalProductId ||
+            (!string.IsNullOrEmpty(p.Sku) && p.Sku == item.Sku));
     }
 }
