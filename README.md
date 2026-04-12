@@ -75,8 +75,11 @@ Copy `appsettings.example.json` to `appsettings.json` and update the values:
 | `Integration:Platform` | Integration platform (`nuvemshop`) |
 | `Integration:StoreId` | Your store ID |
 | `Integration:AccessToken` | API access token (keep secret!) |
+| `Integration:OrderSyncIntervalMinutes` | Auto-sync orders interval in minutes (default: `15`) |
 
 > **Never commit `appsettings.json`** — it is listed in `.gitignore`. Use `appsettings.example.json` as a template.
+>
+> **Docker / TrueNAS**: use environment variables with `__` instead of `:` (e.g. `Integration__OrderSyncIntervalMinutes=15`).
 
 ### Docker
 

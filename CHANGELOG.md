@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard "Movimentações Recentes" table auto-refreshes after any sync button click (new `/api/movements/recent` endpoint)
 - `ProcessedOrders` table to track which external orders have already been synced, preventing duplicate stock deductions
 - Refund/return stock reversal: when a previously paid order is refunded or voided on the external store, stock is automatically restored via entry movements
+- Documented `Integration:OrderSyncIntervalMinutes` in `appsettings.example.json` and README (env var: `Integration__OrderSyncIntervalMinutes`)
 
 ### Fixed
 
