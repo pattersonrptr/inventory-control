@@ -7,43 +7,43 @@ public class Product
 {
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "The name is required.")]
-    [StringLength(200, ErrorMessage = "The name must be at most 200 characters.")]
-    [Display(Name = "Name")]
+    [Required(ErrorMessage = "O nome é obrigatório.")]
+    [StringLength(200, ErrorMessage = "O nome deve ter no máximo 200 caracteres.")]
+    [Display(Name = "Nome")]
     public string Name { get; set; } = string.Empty;
 
-    [StringLength(500, ErrorMessage = "The description must be at most 500 characters.")]
-    [Display(Name = "Description")]
+    [StringLength(500, ErrorMessage = "A descrição deve ter no máximo 500 caracteres.")]
+    [Display(Name = "Descrição")]
     public string? Description { get; set; }
 
-    [Required(ErrorMessage = "The cost price is required.")]
+    [Required(ErrorMessage = "O preço de custo é obrigatório.")]
     [Column(TypeName = "decimal(10,2)")]
-    [Range(0.01, double.MaxValue, ErrorMessage = "The cost price must be greater than zero.")]
-    [Display(Name = "Cost Price")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "O preço de custo deve ser maior que zero.")]
+    [Display(Name = "Preço de Custo")]
     [DataType(DataType.Currency)]
     public decimal CostPrice { get; set; }
 
-    [Required(ErrorMessage = "The selling price is required.")]
+    [Required(ErrorMessage = "O preço de venda é obrigatório.")]
     [Column(TypeName = "decimal(10,2)")]
-    [Range(0.01, double.MaxValue, ErrorMessage = "The selling price must be greater than zero.")]
-    [Display(Name = "Selling Price")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "O preço de venda deve ser maior que zero.")]
+    [Display(Name = "Preço de Venda")]
     [DataType(DataType.Currency)]
     public decimal SellingPrice { get; set; }
 
-    [Display(Name = "Current Stock")]
+    [Display(Name = "Estoque Atual")]
     public int CurrentStock { get; set; }
 
-    [Range(0, int.MaxValue, ErrorMessage = "The minimum stock cannot be negative.")]
-    [Display(Name = "Minimum Stock")]
+    [Range(0, int.MaxValue, ErrorMessage = "O estoque mínimo não pode ser negativo.")]
+    [Display(Name = "Estoque Mínimo")]
     public int MinimumStock { get; set; }
 
-    [Required(ErrorMessage = "The category is required.")]
-    [Display(Name = "Category")]
+    [Required(ErrorMessage = "A categoria é obrigatória.")]
+    [Display(Name = "Categoria")]
     public int CategoryId { get; set; }
     public Category Category { get; set; } = null!;
 
-    [Required(ErrorMessage = "The supplier is required.")]
-    [Display(Name = "Supplier")]
+    [Required(ErrorMessage = "O fornecedor é obrigatório.")]
+    [Display(Name = "Fornecedor")]
     public int SupplierId { get; set; }
     public Supplier Supplier { get; set; } = null!;
 
@@ -54,12 +54,12 @@ public class Product
 
     // ID of this product in an external store
     [StringLength(200)]
-    [Display(Name = "External ID")]
+    [Display(Name = "ID Externo")]
     public string? ExternalId { get; set; }
 
     // Which platform the ExternalId comes from (e.g. "nuvemshop", "shopify")
     [StringLength(50)]
-    [Display(Name = "External ID Source")]
+    [Display(Name = "Origem do ID Externo")]
     public string? ExternalIdSource { get; set; }
 
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();

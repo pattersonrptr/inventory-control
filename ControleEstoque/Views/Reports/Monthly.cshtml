@@ -1,17 +1,17 @@
 @model MonthlyReportViewModel
 @{
-    ViewData["Title"] = "Monthly Report";
+    ViewData["Title"] = "Relatório Mensal";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0"><i class="bi bi-calendar-month"></i> Monthly Report</h1>
+    <h1 class="mb-0"><i class="bi bi-calendar-month"></i> Relatório Mensal</h1>
 </div>
 
 <div class="card mb-4">
     <div class="card-body">
         <form method="get" asp-action="Monthly" class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label for="month" class="form-label fw-semibold">Month</label>
+                <label for="month" class="form-label fw-semibold">Mês</label>
                 <select id="month" name="month" class="form-select">
                     @for (int m = 1; m <= 12; m++)
                     {
@@ -21,13 +21,13 @@
                 </select>
             </div>
             <div class="col-md-3">
-                <label for="year" class="form-label fw-semibold">Year</label>
+                <label for="year" class="form-label fw-semibold">Ano</label>
                 <input id="year" name="year" type="number" class="form-control"
                        value="@Model.Year" min="2000" max="2099" />
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-search"></i> Search
+                    <i class="bi bi-search"></i> Pesquisar
                 </button>
             </div>
         </form>
@@ -35,14 +35,14 @@
 </div>
 
 <h4 class="mb-3 text-capitalize">
-    <i class="bi bi-bar-chart"></i> Results: @Model.MonthName
+    <i class="bi bi-bar-chart"></i> Resultados: @Model.MonthName
 </h4>
 
 @if (!Model.Items.Any())
 {
     <div class="alert alert-info">
         <i class="bi bi-info-circle"></i>
-        No stock movements recorded in @Model.MonthName.
+        Nenhuma movimentação de estoque registrada em @Model.MonthName.
     </div>
 }
 else
@@ -51,42 +51,42 @@ else
         <div class="col-md-4">
             <div class="card text-center text-white bg-success">
                 <div class="card-body">
-                    <div class="small text-white-50">Total Entries</div>
+                    <div class="small text-white-50">Total de Entradas</div>
                     <div class="display-5 fw-bold">@Model.TotalEntries</div>
-                    <div class="small">units</div>
+                    <div class="small">unidades</div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card text-center text-white bg-danger">
                 <div class="card-body">
-                    <div class="small text-white-50">Total Exits</div>
+                    <div class="small text-white-50">Total de Saídas</div>
                     <div class="display-5 fw-bold">@Model.TotalExits</div>
-                    <div class="small">units</div>
+                    <div class="small">unidades</div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card text-center text-white @(Model.TotalEntries >= Model.TotalExits ? "bg-primary" : "bg-warning")">
                 <div class="card-body">
-                    <div class="small text-white-50">Period Balance</div>
+                    <div class="small text-white-50">Saldo do Período</div>
                     <div class="display-5 fw-bold">@(Model.TotalEntries - Model.TotalExits)</div>
-                    <div class="small">units</div>
+                    <div class="small">unidades</div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header fw-bold">Breakdown by Product</div>
+        <div class="card-header fw-bold">Detalhamento por Produto</div>
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th>Product</th>
-                        <th class="text-center text-success">Entries</th>
-                        <th class="text-center text-danger">Exits</th>
-                        <th class="text-center">Balance</th>
+                        <th>Produto</th>
+                        <th class="text-center text-success">Entradas</th>
+                        <th class="text-center text-danger">Saídas</th>
+                        <th class="text-center">Saldo</th>
                     </tr>
                 </thead>
                 <tbody>

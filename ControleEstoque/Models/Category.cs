@@ -6,23 +6,23 @@ public class Category
 {
     public int Id { get; set; }
 
-    [Required(ErrorMessage = "The name is required.")]
-    [StringLength(100, ErrorMessage = "The name must be at most 100 characters.")]
-    [Display(Name = "Name")]
+    [Required(ErrorMessage = "O nome é obrigatório.")]
+    [StringLength(100, ErrorMessage = "O nome deve ter no máximo 100 caracteres.")]
+    [Display(Name = "Nome")]
     public string Name { get; set; } = string.Empty;
 
-    [StringLength(500, ErrorMessage = "The description must be at most 500 characters.")]
-    [Display(Name = "Description")]
+    [StringLength(500, ErrorMessage = "A descrição deve ter no máximo 500 caracteres.")]
+    [Display(Name = "Descrição")]
     public string? Description { get; set; }
 
     // ID of this category in an external store
     [StringLength(200)]
-    [Display(Name = "External ID")]
+    [Display(Name = "ID Externo")]
     public string? ExternalId { get; set; }
 
     // Which platform the ExternalId comes from (e.g. "nuvemshop", "shopify")
     [StringLength(50)]
-    [Display(Name = "External ID Source")]
+    [Display(Name = "Origem do ID Externo")]
     public string? ExternalIdSource { get; set; }
 
     public ICollection<Product> Products { get; set; } = new List<Product>();

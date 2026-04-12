@@ -18,6 +18,6 @@ public class HomeControllerTests : IClassFixture<WebAppFactory>
 
         response.EnsureSuccessStatusCode();
         var content = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Inventory Control", content);
+        Assert.Contains("Controle de Estoque", content);
     }
 }

@@ -26,7 +26,7 @@ public class CategoriesController : Controller
         if (!ModelState.IsValid) return View(category);
 
         await _repository.AddAsync(category);
-        TempData["Success"] = "Category created successfully!";
+        TempData["Success"] = "Categoria criada com sucesso!";
         return RedirectToAction(nameof(Index));
     }
 
@@ -45,7 +45,7 @@ public class CategoriesController : Controller
         if (!ModelState.IsValid) return View(category);
 
         await _repository.UpdateAsync(category);
-        TempData["Success"] = "Category updated successfully!";
+        TempData["Success"] = "Categoria atualizada com sucesso!";
         return RedirectToAction(nameof(Index));
     }
 
@@ -63,11 +63,11 @@ public class CategoriesController : Controller
         try
         {
             await _repository.DeleteAsync(id);
-            TempData["Success"] = "Category deleted successfully!";
+            TempData["Success"] = "Categoria excluída com sucesso!";
         }
         catch (DbUpdateException)
         {
-            TempData["Error"] = "Cannot delete this category because there are products linked to it.";
+            TempData["Error"] = "Não é possível excluir esta categoria porque existem produtos vinculados a ela.";
         }
         return RedirectToAction(nameof(Index));
     }

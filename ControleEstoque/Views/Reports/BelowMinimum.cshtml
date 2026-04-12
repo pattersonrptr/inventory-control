@@ -1,27 +1,27 @@
 @model IEnumerable<Product>
 @{
-    ViewData["Title"] = "Products Below Minimum Stock";
+    ViewData["Title"] = "Produtos Abaixo do Estoque Mínimo";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">
-        <i class="bi bi-exclamation-triangle text-warning"></i> Products Below Minimum Stock
+        <i class="bi bi-exclamation-triangle text-warning"></i> Produtos Abaixo do Estoque Mínimo
     </h1>
-    <span class="badge bg-danger fs-6">@Model.Count() product(s)</span>
+    <span class="badge bg-danger fs-6">@Model.Count() produto(s)</span>
 </div>
 
 @if (!Model.Any())
 {
     <div class="alert alert-success">
         <i class="bi bi-check-circle-fill"></i>
-        <strong>All good!</strong> No products are below the minimum stock level at this time.
+        <strong>Tudo certo!</strong> Nenhum produto está abaixo do estoque mínimo no momento.
     </div>
 }
 else
 {
     <div class="alert alert-warning">
         <i class="bi bi-exclamation-triangle-fill"></i>
-        The products below need restocking. Please contact the corresponding suppliers.
+        Os produtos abaixo precisam de reposição. Entre em contato com os fornecedores correspondentes.
     </div>
 
     <div class="card">
@@ -29,13 +29,13 @@ else
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th>Product</th>
-                        <th>Category</th>
-                        <th>Supplier</th>
-                        <th class="text-center">Current Stock</th>
-                        <th class="text-center">Minimum Stock</th>
-                        <th class="text-center">Deficit</th>
-                        <th class="text-end">Action</th>
+                        <th>Produto</th>
+                        <th>Categoria</th>
+                        <th>Fornecedor</th>
+                        <th class="text-center">Estoque Atual</th>
+                        <th class="text-center">Estoque Mínimo</th>
+                        <th class="text-center">Déficit</th>
+                        <th class="text-end">Ação</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -54,7 +54,7 @@ else
                             <td class="text-end">
                                 <a asp-controller="StockMovements" asp-action="Entry"
                                    class="btn btn-sm btn-success">
-                                    <i class="bi bi-arrow-down-circle"></i> Record Entry
+                                    <i class="bi bi-arrow-down-circle"></i> Registrar Entrada
                                 </a>
                             </td>
                         </tr>

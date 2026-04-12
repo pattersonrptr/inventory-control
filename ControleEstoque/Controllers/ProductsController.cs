@@ -56,7 +56,7 @@ public class ProductsController : Controller
         }
 
         await _productRepo.AddAsync(product);
-        TempData["Success"] = "Product created successfully!";
+        TempData["Success"] = "Produto criado com sucesso!";
         return RedirectToAction(nameof(Index));
     }
 
@@ -80,7 +80,7 @@ public class ProductsController : Controller
         }
 
         await _productRepo.UpdateAsync(product);
-        TempData["Success"] = "Product updated successfully!";
+        TempData["Success"] = "Produto atualizado com sucesso!";
         return RedirectToAction(nameof(Index));
     }
 
@@ -98,11 +98,11 @@ public class ProductsController : Controller
         try
         {
             await _productRepo.DeleteAsync(id);
-            TempData["Success"] = "Product deleted successfully!";
+            TempData["Success"] = "Produto excluído com sucesso!";
         }
         catch (DbUpdateException)
         {
-            TempData["Error"] = "Cannot delete this product because there are stock movements linked to it.";
+            TempData["Error"] = "Não é possível excluir este produto porque existem movimentações de estoque vinculadas a ele.";
         }
         return RedirectToAction(nameof(Index));
     }

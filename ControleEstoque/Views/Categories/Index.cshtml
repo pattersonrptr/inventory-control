@@ -1,12 +1,12 @@
 @model IEnumerable<Category>
 @{
-    ViewData["Title"] = "Categories";
+    ViewData["Title"] = "Categorias";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0"><i class="bi bi-tags"></i> Categories</h1>
+    <h1 class="mb-0"><i class="bi bi-tags"></i> Categorias</h1>
     <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> New Category
+        <i class="bi bi-plus-circle"></i> Nova Categoria
     </a>
 </div>
 
@@ -16,10 +16,10 @@
             <thead class="table-dark">
                 <tr>
                     <th>#</th>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th class="text-center">Products</th>
-                    <th class="text-end">Actions</th>
+                    <th>Nome</th>
+                    <th>Descrição</th>
+                    <th class="text-center">Produtos</th>
+                    <th class="text-end">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -34,11 +34,11 @@
                         </td>
                         <td class="text-end">
                             <a asp-action="Edit" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-outline-primary" title="Edit">
+                               class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             <a asp-action="Delete" asp-route-id="@item.Id"
-                               class="btn btn-sm btn-outline-danger" title="Delete">
+                               class="btn btn-sm btn-outline-danger" title="Excluir">
                                 <i class="bi bi-trash"></i>
                             </a>
                         </td>
@@ -49,7 +49,7 @@
                     <tr>
                         <td colspan="5" class="text-center text-muted py-4">
                             <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                            No categories registered.
+                            Nenhuma categoria cadastrada.
                         </td>
                     </tr>
                 }

@@ -4,15 +4,15 @@ namespace ControleEstoque.Models;
 
 public enum ExitReason
 {
-    [Display(Name = "Sale")]
+    [Display(Name = "Venda")]
     Sale = 1,
 
-    [Display(Name = "Loss")]
+    [Display(Name = "Perda")]
     Loss = 2,
 
-    [Display(Name = "Return")]
+    [Display(Name = "Devolução")]
     Return = 3,
 
-    [Display(Name = "Other")]
+    [Display(Name = "Outro")]
     Other = 4
 }

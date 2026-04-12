@@ -1,31 +1,31 @@
 @model Product
 @{
-    ViewData["Title"] = "Delete Product";
+    ViewData["Title"] = "Excluir Produto";
 }
 
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card border-danger">
             <div class="card-header bg-danger text-white">
-                <h4 class="mb-0"><i class="bi bi-trash"></i> Confirm Deletion</h4>
+                <h4 class="mb-0"><i class="bi bi-trash"></i> Confirmar Exclusão</h4>
             </div>
             <div class="card-body">
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle-fill"></i>
-                    Are you sure you want to delete the product <strong>@Model.Name</strong>?
-                    This action cannot be undone.
+                    Tem certeza que deseja excluir o produto <strong>@Model.Name</strong>?
+                    Esta ação não pode ser desfeita.
                 </div>
 
                 <dl class="row">
-                    <dt class="col-sm-4">Name</dt>
+                    <dt class="col-sm-4">Nome</dt>
                     <dd class="col-sm-8">@Model.Name</dd>
-                    <dt class="col-sm-4">Description</dt>
+                    <dt class="col-sm-4">Descrição</dt>
                     <dd class="col-sm-8">@(Model.Description ?? "—")</dd>
-                    <dt class="col-sm-4">Category</dt>
+                    <dt class="col-sm-4">Categoria</dt>
                     <dd class="col-sm-8">@Model.Category?.Name</dd>
-                    <dt class="col-sm-4">Supplier</dt>
+                    <dt class="col-sm-4">Fornecedor</dt>
                     <dd class="col-sm-8">@Model.Supplier?.Name</dd>
-                    <dt class="col-sm-4">Current Stock</dt>
+                    <dt class="col-sm-4">Estoque Atual</dt>
                     <dd class="col-sm-8">@Model.CurrentStock</dd>
                 </dl>
 
@@ -33,10 +33,10 @@
                     <input type="hidden" asp-for="Id" />
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-danger">
-                            <i class="bi bi-trash"></i> Confirm Deletion
+                            <i class="bi bi-trash"></i> Confirmar Exclusão
                         </button>
                         <a asp-action="Index" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Cancel
+                            <i class="bi bi-x-circle"></i> Cancelar
                         </a>
                     </div>
                 </form>
