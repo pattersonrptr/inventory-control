@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brazilian date format (`dd/MM/yyyy`) and currency format (`R$` with comma decimal separator)
 - jQuery Validation override to accept comma as decimal separator in form inputs
 - Sticky footer using CSS flexbox so the footer always stays at the bottom of the page
+- Dashboard "Movimentações Recentes" table auto-refreshes after any sync button click (new `/api/movements/recent` endpoint)
 - `ProcessedOrders` table to track which external orders have already been synced, preventing duplicate stock deductions
 - Refund/return stock reversal: when a previously paid order is refunded or voided on the external store, stock is automatically restored via entry movements
 
