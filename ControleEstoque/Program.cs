@@ -53,6 +53,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+builder.Services.AddScoped<IProcessedOrderRepository, ProcessedOrderRepository>();
 
 // Conditional registration of the e-commerce integration layer
 var integrationConfig = builder.Configuration

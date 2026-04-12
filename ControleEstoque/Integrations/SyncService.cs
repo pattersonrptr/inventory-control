@@ -15,14 +15,24 @@ public class SyncService
     private readonly IProductRepository _productRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ICategoryRepository _categoryRepo;
+    private readonly IProcessedOrderRepository _processedOrderRepo;
     private readonly IntegrationConfig _config;
     private readonly ILogger<SyncService> _logger;
+
+    /// <summary>
+    /// Order statuses that indicate confirmed payment and should trigger stock deduction.
+    /// </summary>
+    private static readonly HashSet<string> PaidStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "closed", "packed", "shipped"
+    };
 
     public SyncService(
         IStoreIntegration store,
         IProductRepository productRepo,
         IStockMovementRepository movementRepo,
         ICategoryRepository categoryRepo,
+        IProcessedOrderRepository processedOrderRepo,
         IntegrationConfig config,
         ILogger<SyncService> logger)
     {
@@ -30,6 +40,7 @@ public class SyncService
         _productRepo = productRepo;
         _movementRepo = movementRepo;
         _categoryRepo = categoryRepo;
+        _processedOrderRepo = processedOrderRepo;
         _config = config;
         _logger = logger;
     }
@@ -163,10 +174,29 @@ public class SyncService
 
     /// <summary>
     /// Processes an incoming order from the external store: records a stock exit
-    /// movement for each line item.
+    /// movement for each line item. Skips orders that have already been processed
+    /// or that do not have a confirmed payment status.
     /// </summary>
-    public async Task ProcessOrderAsync(ExternalOrder order)
+    public async Task<bool> ProcessOrderAsync(ExternalOrder order)
     {
+        // Deduplication: skip if already processed
+        if (await _processedOrderRepo.ExistsAsync(order.ExternalOrderId))
+        {
+            _logger.LogInformation(
+                "Order {OrderId} already processed. Skipping.",
+                order.ExternalOrderId);
+            return false;
+        }
+
+        // Status filter: only process orders with confirmed payment
+        if (!PaidStatuses.Contains(order.Status))
+        {
+            _logger.LogInformation(
+                "Order {OrderId} has status '{Status}' (not paid). Skipping.",
+                order.ExternalOrderId, order.Status);
+            return false;
+        }
+
         var localProducts = await _productRepo.GetAllAsync();
 
         foreach (var item in order.Items)
@@ -210,5 +240,15 @@ public class SyncService
                 "Recorded exit of {Quantity} unit(s) of {ProductName} for order {OrderId}.",
                 item.Quantity, product.Name, order.ExternalOrderId);
         }
+
+        // Mark order as processed to prevent reprocessing
+        await _processedOrderRepo.AddAsync(new ProcessedOrder
+        {
+            ExternalOrderId = order.ExternalOrderId,
+            Status = order.Status,
+            ProcessedAt = DateTime.Now
+        });
+
+        return true;
     }
 }

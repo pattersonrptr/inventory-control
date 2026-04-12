@@ -27,12 +27,13 @@ public class SyncWorkflowTests
         var productRepo = new ProductRepository(context);
         var movementRepo = new StockMovementRepository(context);
         var categoryRepo = new CategoryRepository(context);
+        var processedOrderRepo = new ProcessedOrderRepository(context);
         var storeMock = new Mock<IStoreIntegration>();
         var config = new IntegrationConfig { Enabled = true, Platform = "test" };
 
         var syncService = new SyncService(
             storeMock.Object, productRepo, movementRepo, categoryRepo,
-            config, Mock.Of<ILogger<SyncService>>());
+            processedOrderRepo, config, Mock.Of<ILogger<SyncService>>());
 
         // Step 1: Sync products — links external ID by SKU
         storeMock.Setup(s => s.GetProductsAsync())
@@ -47,6 +48,7 @@ public class SyncWorkflowTests
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-500",
+            Status = "closed",
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {
@@ -54,12 +56,19 @@ public class SyncWorkflowTests
             }
         };
 
-        await syncService.ProcessOrderAsync(order);
+        var processed = await syncService.ProcessOrderAsync(order);
+        Assert.True(processed);
 
         var updated = await productRepo.GetByIdAsync(product.Id);
         Assert.Equal(85, updated!.CurrentStock);
 
-        // Step 3: Verify stock push would send the correct value
+        // Step 3: Verify reprocessing the same order is skipped (deduplication)
+        var reprocessed = await syncService.ProcessOrderAsync(order);
+        Assert.False(reprocessed);
+        var stillSame = await productRepo.GetByIdAsync(product.Id);
+        Assert.Equal(85, stillSame!.CurrentStock);
+
+        // Step 4: Verify stock push would send the correct value
         storeMock.Setup(s => s.UpdateStockAsync("ext-100", 85)).Returns(Task.CompletedTask);
         await syncService.PushStockToStoreAsync(product.Id);
         storeMock.Verify(s => s.UpdateStockAsync("ext-100", 85), Times.Once);
