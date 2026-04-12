@@ -74,10 +74,41 @@ public class SyncWorkflowTests
         await syncService.PushStockToStoreAsync(product.Id);
         storeMock.Verify(s => s.UpdateStockAsync("ext-100", 85), Times.Once);
 
-        // Step 4: Verify movement was recorded
+        // Step 5: Verify movement was recorded
         var movements = (await movementRepo.GetByProductAsync(product.Id)).ToList();
         Assert.Single(movements);
         Assert.Equal(MovementType.Exit, movements[0].Type);
         Assert.Equal(15, movements[0].Quantity);
+
+        // Step 6: Simulate refund — stock should be restored
+        var refundedOrder = new ExternalOrder
+        {
+            ExternalOrderId = "ORD-500",
+            Status = "open",
+            PaymentStatus = "refunded",
+            CreatedAt = DateTime.UtcNow,
+            Items = new List<ExternalOrderItem>
+            {
+                new() { ExternalProductId = "ext-100", Quantity = 15, UnitPrice = 25.00m }
+            }
+        };
+
+        var refundProcessed = await syncService.ProcessOrderAsync(refundedOrder);
+        Assert.True(refundProcessed);
+
+        var afterRefund = await productRepo.GetByIdAsync(product.Id);
+        Assert.Equal(100, afterRefund!.CurrentStock);
+
+        // Step 7: Verify refund is not processed again
+        var refundAgain = await syncService.ProcessOrderAsync(refundedOrder);
+        Assert.False(refundAgain);
+        var stillHundred = await productRepo.GetByIdAsync(product.Id);
+        Assert.Equal(100, stillHundred!.CurrentStock);
+
+        // Step 8: Verify both movements exist (exit + entry)
+        var allMovements = (await movementRepo.GetByProductAsync(product.Id)).ToList();
+        Assert.Equal(2, allMovements.Count);
+        Assert.Contains(allMovements, m => m.Type == MovementType.Exit && m.Quantity == 15);
+        Assert.Contains(allMovements, m => m.Type == MovementType.Entry && m.Quantity == 15);
     }
 }
