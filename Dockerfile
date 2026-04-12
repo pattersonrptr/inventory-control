@@ -25,8 +25,8 @@ RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
 # Copy published output
 COPY --from=build /app/publish .
 
-# Create data directory for SQLite and set ownership
-RUN mkdir -p /app/data && chown -R appuser:appuser /app
+# Set ownership
+RUN chown -R appuser:appuser /app
 
 USER appuser
 
