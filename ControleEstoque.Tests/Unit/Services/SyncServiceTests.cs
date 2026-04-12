@@ -118,7 +118,8 @@ public class SyncServiceTests
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-1",
-            Status = "closed",
+            Status = "open",
+            PaymentStatus = "paid",
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {
@@ -136,7 +137,7 @@ public class SyncServiceTests
             m.ExitReason == ExitReason.Sale)), Times.Once);
         _productRepoMock.Verify(r => r.UpdateStockAsync(product.Id, 47), Times.Once);
         _processedOrderRepoMock.Verify(r => r.AddAsync(It.Is<ProcessedOrder>(po =>
-            po.ExternalOrderId == "ORD-1" && po.Status == "closed")), Times.Once);
+            po.ExternalOrderId == "ORD-1" && po.Status == "open")), Times.Once);
     }
 
     [Fact]
@@ -149,7 +150,8 @@ public class SyncServiceTests
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-1",
-            Status = "closed",
+            Status = "open",
+            PaymentStatus = "paid",
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {
@@ -171,7 +173,8 @@ public class SyncServiceTests
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-1",
-            Status = "closed",
+            Status = "open",
+            PaymentStatus = "paid",
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {
@@ -237,17 +240,42 @@ public class SyncServiceTests
     }
 
     [Theory]
-    [InlineData("open")]
-    [InlineData("cancelled")]
     [InlineData("pending")]
-    public async Task ProcessOrderAsync_UnpaidStatus_SkipsAndReturnsFalse(string status)
+    [InlineData("voided")]
+    [InlineData("refunded")]
+    [InlineData("abandoned")]
+    public async Task ProcessOrderAsync_UnconfirmedPayment_SkipsAndReturnsFalse(string paymentStatus)
     {
         _processedOrderRepoMock.Setup(r => r.ExistsAsync("ORD-1")).ReturnsAsync(false);
 
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-1",
-            Status = status,
+            Status = "open",
+            PaymentStatus = paymentStatus,
+            CreatedAt = DateTime.UtcNow,
+            Items = new List<ExternalOrderItem>
+            {
+                new() { ExternalProductId = "ext-1", Quantity = 5, UnitPrice = 10.00m }
+            }
+        };
+
+        var result = await _sut.ProcessOrderAsync(order);
+
+        Assert.False(result);
+        _movementRepoMock.Verify(r => r.AddAsync(It.IsAny<StockMovement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessOrderAsync_CancelledOrder_SkipsAndReturnsFalse()
+    {
+        _processedOrderRepoMock.Setup(r => r.ExistsAsync("ORD-1")).ReturnsAsync(false);
+
+        var order = new ExternalOrder
+        {
+            ExternalOrderId = "ORD-1",
+            Status = "cancelled",
+            PaymentStatus = "paid",
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {
@@ -262,10 +290,9 @@ public class SyncServiceTests
     }
 
     [Theory]
-    [InlineData("closed")]
-    [InlineData("packed")]
-    [InlineData("shipped")]
-    public async Task ProcessOrderAsync_PaidStatus_ProcessesOrder(string status)
+    [InlineData("paid")]
+    [InlineData("authorized")]
+    public async Task ProcessOrderAsync_ConfirmedPayment_ProcessesOrder(string paymentStatus)
     {
         var product = TestDataBuilder.CreateProduct(currentStock: 50, externalId: "ext-1");
         _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { product });
@@ -274,7 +301,8 @@ public class SyncServiceTests
         var order = new ExternalOrder
         {
             ExternalOrderId = "ORD-1",
-            Status = status,
+            Status = "open",
+            PaymentStatus = paymentStatus,
             CreatedAt = DateTime.UtcNow,
             Items = new List<ExternalOrderItem>
             {

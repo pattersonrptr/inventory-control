@@ -10,6 +10,9 @@ public class NuvemshopOrder
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
 
+    [JsonPropertyName("payment_status")]
+    public string PaymentStatus { get; set; } = string.Empty;
+
     [JsonPropertyName("created_at")]
     [JsonConverter(typeof(NuvemshopDateTimeConverter))]
     public DateTime CreatedAt { get; set; }

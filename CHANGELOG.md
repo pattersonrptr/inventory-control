@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Stock entry/exit returning 500 error on PostgreSQL due to `DateTime` with `Kind=Unspecified` being rejected by Npgsql; enabled legacy timestamp behavior to accept local dates from HTML form inputs
 - Added EF Core migration (`LegacyTimestampBehavior`) to change `StockMovements.Date` column from `timestamp with time zone` to `timestamp without time zone`, matching the new legacy timestamp behavior
-- Order sync now filters by payment status (`closed`, `packed`, `shipped`), preventing stock deduction for unpaid or cancelled orders
+- Order sync now filters by `payment_status` field (`paid`, `authorized`) instead of the generic `status` field, and rejects cancelled orders — fixes orders with `status: "open"` but valid payment being incorrectly skipped
 - Order sync deduplication: the same external order is never processed twice, even across polling cycles or manual syncs
 - Order sync returning 502 due to Nuvemshop `created_at` datetime format (`-0300`) not being parseable by `System.Text.Json`; added custom `NuvemshopDateTimeConverter`
 

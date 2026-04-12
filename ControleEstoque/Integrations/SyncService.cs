@@ -21,10 +21,13 @@ public class SyncService
 
     /// <summary>
     /// Order statuses that indicate confirmed payment and should trigger stock deduction.
+    /// Nuvemshop uses separate fields: 'status' (open/closed/cancelled) and
+    /// 'payment_status' (pending/authorized/paid/voided/refunded/abandoned).
+    /// We check payment_status for confirmation and status to exclude cancelled orders.
     /// </summary>
-    private static readonly HashSet<string> PaidStatuses = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> ConfirmedPaymentStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
-        "closed", "packed", "shipped"
+        "paid", "authorized"
     };
 
     public SyncService(
@@ -188,12 +191,20 @@ public class SyncService
             return false;
         }
 
-        // Status filter: only process orders with confirmed payment
-        if (!PaidStatuses.Contains(order.Status))
+        // Status filter: skip cancelled orders and orders without confirmed payment
+        if (string.Equals(order.Status, "cancelled", StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogInformation(
-                "Order {OrderId} has status '{Status}' (not paid). Skipping.",
-                order.ExternalOrderId, order.Status);
+                "Order {OrderId} is cancelled. Skipping.",
+                order.ExternalOrderId);
+            return false;
+        }
+
+        if (!ConfirmedPaymentStatuses.Contains(order.PaymentStatus))
+        {
+            _logger.LogInformation(
+                "Order {OrderId} has payment_status '{PaymentStatus}' (not confirmed). Skipping.",
+                order.ExternalOrderId, order.PaymentStatus);
             return false;
         }
 
