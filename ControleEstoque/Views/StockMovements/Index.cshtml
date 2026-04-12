@@ -1,16 +1,16 @@
 @model IEnumerable<StockMovement>
 @{
-    ViewData["Title"] = "Stock Movement History";
+    ViewData["Title"] = "Histórico de Movimentações";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0"><i class="bi bi-clock-history"></i> Stock Movement History</h1>
+    <h1 class="mb-0"><i class="bi bi-clock-history"></i> Histórico de Movimentações</h1>
     <div class="d-flex gap-2">
         <a asp-action="Entry" class="btn btn-success">
-            <i class="bi bi-arrow-down-circle"></i> New Entry
+            <i class="bi bi-arrow-down-circle"></i> Nova Entrada
         </a>
         <a asp-action="Exit" class="btn btn-danger">
-            <i class="bi bi-arrow-up-circle"></i> New Exit
+            <i class="bi bi-arrow-up-circle"></i> Nova Saída
         </a>
     </div>
 </div>
@@ -20,29 +20,29 @@
         <table class="table table-hover mb-0">
             <thead class="table-dark">
                 <tr>
-                    <th>Date</th>
-                    <th>Product</th>
-                    <th>Type</th>
-                    <th class="text-end">Qty.</th>
-                    <th>Reason / Supplier</th>
-                    <th class="text-end">Unit Cost</th>
-                    <th>Notes</th>
+                    <th>Data</th>
+                    <th>Produto</th>
+                    <th>Tipo</th>
+                    <th class="text-end">Qtd.</th>
+                    <th>Motivo / Fornecedor</th>
+                    <th class="text-end">Custo Unit.</th>
+                    <th>Obs.</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var item in Model)
                 {
                     <tr>
-                        <td>@item.Date.ToString("MM/dd/yyyy")</td>
+                        <td>@item.Date.ToString("dd/MM/yyyy")</td>
                         <td class="fw-semibold">@item.Product?.Name</td>
                         <td>
                             @if (item.Type == MovementType.Entry)
                             {
-                                <span class="badge bg-success"><i class="bi bi-arrow-down-circle"></i> Entry</span>
+                                <span class="badge bg-success"><i class="bi bi-arrow-down-circle"></i> Entrada</span>
                             }
                             else
                             {
-                                <span class="badge bg-danger"><i class="bi bi-arrow-up-circle"></i> Exit</span>
+                                <span class="badge bg-danger"><i class="bi bi-arrow-up-circle"></i> Saída</span>
                             }
                         </td>
                         <td class="text-end fw-bold">@item.Quantity</td>
@@ -71,7 +71,7 @@
                     <tr>
                         <td colspan="7" class="text-center text-muted py-4">
                             <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                            No stock movements recorded.
+                            Nenhuma movimentação de estoque registrada.
                         </td>
                     </tr>
                 }

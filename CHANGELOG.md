@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Full pt-BR localization of the entire user interface (all views, models, controllers)
+- Brazilian date format (`dd/MM/yyyy`) and currency format (`R$` with comma decimal separator)
+- jQuery Validation override to accept comma as decimal separator in form inputs
+- Sticky footer using CSS flexbox so the footer always stays at the bottom of the page
+
 ### Fixed
 
 - Stock entry/exit returning 500 error on PostgreSQL due to `DateTime` with `Kind=Unspecified` being rejected by Npgsql; enabled legacy timestamp behavior to accept local dates from HTML form inputs

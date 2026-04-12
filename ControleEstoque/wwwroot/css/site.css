@@ -1,5 +1,18 @@
+html {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
 body {
     font-size: 0.95rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
 }
 
 .navbar-brand {

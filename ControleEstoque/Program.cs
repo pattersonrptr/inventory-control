@@ -16,15 +16,15 @@ builder.Services.AddControllersWithViews(options =>
     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
 });
 
-// Support en-US culture: allows decimals with dot (1,234.56)
-var enUS = new System.Globalization.CultureInfo("en-US");
+// Support pt-BR culture: allows decimals with comma (1.234,56) and R$ currency
+var ptBR = new System.Globalization.CultureInfo("pt-BR");
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ModelBinding.Metadata.DefaultModelBindingMessageProvider>(p =>
-    p.SetValueMustBeANumberAccessor(fn => $"The field {fn} must be a valid number."));
+    p.SetValueMustBeANumberAccessor(fn => $"O campo {fn} deve ser um número válido."));
 builder.Services.AddRequestLocalization(opts =>
 {
-    opts.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(enUS);
-    opts.SupportedCultures = new[] { enUS };
-    opts.SupportedUICultures = new[] { enUS };
+    opts.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(ptBR);
+    opts.SupportedCultures = new[] { ptBR };
+    opts.SupportedUICultures = new[] { ptBR };
 });
 
 // EF Core configuration.

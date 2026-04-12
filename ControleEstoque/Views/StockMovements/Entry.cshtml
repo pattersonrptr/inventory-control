@@ -1,22 +1,22 @@
 @model StockMovement
 @{
-    ViewData["Title"] = "Record Entry";
+    ViewData["Title"] = "Registrar Entrada";
 }
 
 <div class="row justify-content-center">
     <div class="col-md-7">
         <div class="card border-success">
             <div class="card-header bg-success text-white">
-                <h4 class="mb-0"><i class="bi bi-arrow-down-circle"></i> Record Stock Entry</h4>
+                <h4 class="mb-0"><i class="bi bi-arrow-down-circle"></i> Registrar Entrada de Estoque</h4>
             </div>
             <div class="card-body">
                 <form asp-action="Entry" method="post">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     <div class="mb-3">
-                        <label asp-for="ProductId" class="form-label fw-semibold">Product</label>
+                        <label asp-for="ProductId" class="form-label fw-semibold">Produto</label>
                         <select asp-for="ProductId" asp-items="ViewBag.ProductId" class="form-select">
-                            <option value="">— Select a product —</option>
+                            <option value="">— Selecione um produto —</option>
                         </select>
                         <span asp-validation-for="ProductId" class="text-danger small"></span>
                     </div>
@@ -35,9 +35,9 @@
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="SupplierId" class="form-label fw-semibold">Supplier (for this entry)</label>
+                        <label asp-for="SupplierId" class="form-label fw-semibold">Fornecedor (para esta entrada)</label>
                         <select asp-for="SupplierId" asp-items="ViewBag.SupplierId" class="form-select">
-                            <option value="">— Select a supplier —</option>
+                            <option value="">— Selecione um fornecedor —</option>
                         </select>
                         <span asp-validation-for="SupplierId" class="text-danger small"></span>
                     </div>
@@ -45,8 +45,8 @@
                     <div class="mb-3">
                         <label asp-for="UnitCost" class="form-label fw-semibold"></label>
                         <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input asp-for="UnitCost" class="form-control" step="0.01" placeholder="0.00" />
+                            <span class="input-group-text">R$</span>
+                            <input asp-for="UnitCost" class="form-control" step="0.01" placeholder="0,00" />
                         </div>
                         <span asp-validation-for="UnitCost" class="text-danger small"></span>
                     </div>
@@ -54,16 +54,16 @@
                     <div class="mb-4">
                         <label asp-for="Notes" class="form-label fw-semibold"></label>
                         <textarea asp-for="Notes" class="form-control" rows="2"
-                                  placeholder="Invoice number, batch, etc."></textarea>
+                                  placeholder="Número da nota fiscal, lote, etc."></textarea>
                         <span asp-validation-for="Notes" class="text-danger small"></span>
                     </div>
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check-circle"></i> Record Entry
+                            <i class="bi bi-check-circle"></i> Registrar Entrada
                         </button>
                         <a asp-action="Index" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Cancel
+                            <i class="bi bi-x-circle"></i> Cancelar
                         </a>
                     </div>
                 </form>

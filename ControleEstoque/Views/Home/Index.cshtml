@@ -1,10 +1,10 @@
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Painel";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="mb-0"><i class="bi bi-speedometer2"></i> Dashboard</h1>
-    <small class="text-muted">@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</small>
+    <h1 class="mb-0"><i class="bi bi-speedometer2"></i> Painel</h1>
+    <small class="text-muted">@DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy")</small>
 </div>
 
 <div class="row g-4 mb-4">
@@ -13,13 +13,13 @@
             <div class="card-body d-flex align-items-center gap-3">
                 <i class="bi bi-box-seam fs-1"></i>
                 <div>
-                    <div class="card-title small mb-0 text-white-50">Total Products</div>
+                    <div class="card-title small mb-0 text-white-50">Total de Produtos</div>
                     <div class="display-6 fw-bold">@ViewBag.TotalProducts</div>
                 </div>
             </div>
             <div class="card-footer bg-primary border-0">
                 <a asp-controller="Products" asp-action="Index" class="text-white text-decoration-none small">
-                    View all <i class="bi bi-arrow-right"></i>
+                    Ver todos <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         </div>
@@ -30,13 +30,13 @@
             <div class="card-body d-flex align-items-center gap-3">
                 <i class="bi bi-exclamation-triangle fs-1"></i>
                 <div>
-                    <div class="card-title small mb-0 text-white-50">Below Minimum</div>
+                    <div class="card-title small mb-0 text-white-50">Abaixo do Mínimo</div>
                     <div class="display-6 fw-bold">@ViewBag.ProductsBelowMinimum</div>
                 </div>
             </div>
             <div class="card-footer border-0 @(ViewBag.ProductsBelowMinimum > 0 ? "bg-danger" : "bg-success")">
                 <a asp-controller="Reports" asp-action="BelowMinimum" class="text-white text-decoration-none small">
-                    View list <i class="bi bi-arrow-right"></i>
+                    Ver lista <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         </div>
@@ -47,16 +47,16 @@
             <div class="card-body d-flex align-items-center gap-3">
                 <i class="bi bi-arrow-left-right fs-1"></i>
                 <div>
-                    <div class="card-title small mb-0 text-white-50">Stock Movements</div>
-                    <div class="fw-bold mt-1">Record entry or exit</div>
+                    <div class="card-title small mb-0 text-white-50">Movimentações</div>
+                    <div class="fw-bold mt-1">Registrar entrada ou saída</div>
                 </div>
             </div>
             <div class="card-footer bg-info border-0 d-flex gap-3">
                 <a asp-controller="StockMovements" asp-action="Entry" class="text-white text-decoration-none small">
-                    <i class="bi bi-arrow-down-circle"></i> Entry
+                    <i class="bi bi-arrow-down-circle"></i> Entrada
                 </a>
                 <a asp-controller="StockMovements" asp-action="Exit" class="text-white text-decoration-none small">
-                    <i class="bi bi-arrow-up-circle"></i> Exit
+                    <i class="bi bi-arrow-up-circle"></i> Saída
                 </a>
             </div>
         </div>
@@ -67,23 +67,23 @@
 {
     <div class="card mb-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Store Integration</h5>
+            <h5 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Integração com Loja</h5>
         </div>
         <div class="card-body d-flex gap-3 flex-wrap">
             <button id="btnSyncOrders" class="btn btn-primary" onclick="syncOrders()">
                 <span id="spinnerOrders" class="spinner-border spinner-border-sm d-none" role="status"></span>
                 <i class="bi bi-bag-check" id="iconOrders"></i>
-                Sync Orders
+                Sincronizar Pedidos
             </button>
             <button id="btnSyncProducts" class="btn btn-secondary" onclick="syncProducts()">
                 <span id="spinnerProducts" class="spinner-border spinner-border-sm d-none" role="status"></span>
                 <i class="bi bi-arrow-repeat" id="iconProducts"></i>
-                Sync Products
+                Sincronizar Produtos
             </button>
             <button id="btnSyncCategories" class="btn btn-outline-secondary" onclick="syncCategories()">
                 <span id="spinnerCategories" class="spinner-border spinner-border-sm d-none" role="status"></span>
                 <i class="bi bi-tags" id="iconCategories"></i>
-                Sync Categories
+                Sincronizar Categorias
             </button>
         </div>
     </div>
@@ -91,7 +91,7 @@
     <div id="syncToast" class="toast align-items-center border-0 position-fixed bottom-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true" style="z-index:1100">
         <div class="d-flex">
             <div id="syncToastBody" class="toast-body fw-semibold"></div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
         </div>
     </div>
 
@@ -106,9 +106,9 @@
             try {
                 const res = await fetch(url, { method: 'POST' });
                 const data = await res.json();
-                showToast(res.ok, data.message ?? (res.ok ? 'Done.' : 'Failed.'));
+                showToast(res.ok, data.message ?? (res.ok ? 'Concluído.' : 'Falhou.'));
             } catch (e) {
-                showToast(false, 'Request failed: ' + e.message);
+                showToast(false, 'Falha na requisição: ' + e.message);
             } finally {
                 btn.disabled = false;
                 spinner.classList.add('d-none');
@@ -141,19 +141,19 @@
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Movements</h5>
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Movimentações Recentes</h5>
         <a asp-controller="StockMovements" asp-action="Index" class="btn btn-sm btn-outline-secondary">
-            View all
+            Ver todas
         </a>
     </div>
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
             <thead class="table-dark">
                 <tr>
-                    <th>Date</th>
-                    <th>Product</th>
-                    <th>Type</th>
-                    <th class="text-end">Quantity</th>
+                    <th>Data</th>
+                    <th>Produto</th>
+                    <th>Tipo</th>
+                    <th class="text-end">Quantidade</th>
                 </tr>
             </thead>
             <tbody>
@@ -165,16 +165,16 @@
                     foreach (var mov in recentMovements)
                     {
                         <tr>
-                            <td>@mov.Date.ToString("MM/dd/yyyy")</td>
+                            <td>@mov.Date.ToString("dd/MM/yyyy")</td>
                             <td>@mov.Product?.Name</td>
                             <td>
                                 @if (mov.Type == ControleEstoque.Models.MovementType.Entry)
                                 {
-                                    <span class="badge bg-success"><i class="bi bi-arrow-down-circle"></i> Entry</span>
+                                    <span class="badge bg-success"><i class="bi bi-arrow-down-circle"></i> Entrada</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger"><i class="bi bi-arrow-up-circle"></i> Exit</span>
+                                    <span class="badge bg-danger"><i class="bi bi-arrow-up-circle"></i> Saída</span>
                                 }
                             </td>
                             <td class="text-end fw-bold">@mov.Quantity</td>
@@ -186,7 +186,7 @@
                     <tr>
                         <td colspan="4" class="text-center text-muted py-4">
                             <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                            No stock movements recorded yet.
+                            Nenhuma movimentação de estoque registrada.
                         </td>
                     </tr>
                 }

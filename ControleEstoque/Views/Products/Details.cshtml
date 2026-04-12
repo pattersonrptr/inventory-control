@@ -1,6 +1,6 @@
 @model Product
 @{
-    ViewData["Title"] = "Product Details";
+    ViewData["Title"] = "Detalhes do Produto";
 }
 
 <div class="row justify-content-center">
@@ -11,34 +11,34 @@
                 @if (Model.IsBelowMinimumStock)
                 {
                     <span class="badge bg-danger fs-6">
-                        <i class="bi bi-exclamation-triangle-fill"></i> Below Minimum Stock
+                        <i class="bi bi-exclamation-triangle-fill"></i> Abaixo do Estoque Mínimo
                     </span>
                 }
             </div>
             <div class="card-body">
                 <dl class="row">
-                    <dt class="col-sm-4">Description</dt>
+                    <dt class="col-sm-4">Descrição</dt>
                     <dd class="col-sm-8">@(Model.Description ?? "—")</dd>
 
-                    <dt class="col-sm-4">Category</dt>
+                    <dt class="col-sm-4">Categoria</dt>
                     <dd class="col-sm-8">@Model.Category?.Name</dd>
 
-                    <dt class="col-sm-4">Supplier</dt>
+                    <dt class="col-sm-4">Fornecedor</dt>
                     <dd class="col-sm-8">@Model.Supplier?.Name</dd>
 
-                    <dt class="col-sm-4">Cost Price</dt>
+                    <dt class="col-sm-4">Preço de Custo</dt>
                     <dd class="col-sm-8">@Model.CostPrice.ToString("C")</dd>
 
-                    <dt class="col-sm-4">Selling Price</dt>
+                    <dt class="col-sm-4">Preço de Venda</dt>
                     <dd class="col-sm-8">@Model.SellingPrice.ToString("C")</dd>
 
-                    <dt class="col-sm-4">Current Stock</dt>
+                    <dt class="col-sm-4">Estoque Atual</dt>
                     <dd class="col-sm-8 fw-bold @(Model.IsBelowMinimumStock ? "text-danger" : "")">
-                        @Model.CurrentStock units
+                        @Model.CurrentStock unidades
                     </dd>
 
-                    <dt class="col-sm-4">Minimum Stock</dt>
-                    <dd class="col-sm-8">@Model.MinimumStock units</dd>
+                    <dt class="col-sm-4">Estoque Mínimo</dt>
+                    <dd class="col-sm-8">@Model.MinimumStock unidades</dd>
 
                     @if (!string.IsNullOrEmpty(Model.Sku))
                     {
@@ -48,17 +48,17 @@
 
                     @if (!string.IsNullOrEmpty(Model.ExternalId))
                     {
-                        <dt class="col-sm-4">External ID</dt>
+                        <dt class="col-sm-4">ID Externo</dt>
                         <dd class="col-sm-8">@Model.ExternalId (@Model.ExternalIdSource)</dd>
                     }
                 </dl>
 
                 <div class="d-flex gap-2 mt-3">
                     <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
-                        <i class="bi bi-pencil"></i> Edit
+                        <i class="bi bi-pencil"></i> Editar
                     </a>
                     <a asp-action="Index" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Back to List
+                        <i class="bi bi-arrow-left"></i> Voltar à Lista
                     </a>
                 </div>
             </div>
@@ -68,31 +68,31 @@
         {
             <div class="card mt-4">
                 <div class="card-header fw-bold">
-                    <i class="bi bi-clock-history"></i> Movement History
+                    <i class="bi bi-clock-history"></i> Histórico de Movimentações
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-hover mb-0">
                         <thead class="table-dark">
                             <tr>
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th class="text-end">Qty</th>
-                                <th>Notes</th>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th class="text-end">Qtd</th>
+                                <th>Observações</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var mov in Model.StockMovements.OrderByDescending(m => m.Date))
                             {
                                 <tr>
-                                    <td>@mov.Date.ToString("MM/dd/yyyy")</td>
+                                    <td>@mov.Date.ToString("dd/MM/yyyy")</td>
                                     <td>
                                         @if (mov.Type == MovementType.Entry)
                                         {
-                                            <span class="badge bg-success">Entry</span>
+                                            <span class="badge bg-success">Entrada</span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-danger">Exit</span>
+                                            <span class="badge bg-danger">Saída</span>
                                         }
                                     </td>
                                     <td class="text-end fw-bold">@mov.Quantity</td>

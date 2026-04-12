@@ -26,7 +26,7 @@ public class SuppliersController : Controller
         if (!ModelState.IsValid) return View(supplier);
 
         await _repository.AddAsync(supplier);
-        TempData["Success"] = "Supplier created successfully!";
+        TempData["Success"] = "Fornecedor criado com sucesso!";
         return RedirectToAction(nameof(Index));
     }
 
@@ -45,7 +45,7 @@ public class SuppliersController : Controller
         if (!ModelState.IsValid) return View(supplier);
 
         await _repository.UpdateAsync(supplier);
-        TempData["Success"] = "Supplier updated successfully!";
+        TempData["Success"] = "Fornecedor atualizado com sucesso!";
         return RedirectToAction(nameof(Index));
     }
 
@@ -63,11 +63,11 @@ public class SuppliersController : Controller
         try
         {
             await _repository.DeleteAsync(id);
-            TempData["Success"] = "Supplier deleted successfully!";
+            TempData["Success"] = "Fornecedor excluído com sucesso!";
         }
         catch (DbUpdateException)
         {
-            TempData["Error"] = "Cannot delete this supplier because there are products linked to it.";
+            TempData["Error"] = "Não é possível excluir este fornecedor porque existem produtos vinculados a ele.";
         }
         return RedirectToAction(nameof(Index));
     }

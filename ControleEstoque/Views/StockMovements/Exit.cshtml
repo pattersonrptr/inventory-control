@@ -1,22 +1,22 @@
 @model StockMovement
 @{
-    ViewData["Title"] = "Record Exit";
+    ViewData["Title"] = "Registrar Saída";
 }
 
 <div class="row justify-content-center">
     <div class="col-md-7">
         <div class="card border-danger">
             <div class="card-header bg-danger text-white">
-                <h4 class="mb-0"><i class="bi bi-arrow-up-circle"></i> Record Stock Exit</h4>
+                <h4 class="mb-0"><i class="bi bi-arrow-up-circle"></i> Registrar Saída de Estoque</h4>
             </div>
             <div class="card-body">
                 <form asp-action="Exit" method="post">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     <div class="mb-3">
-                        <label asp-for="ProductId" class="form-label fw-semibold">Product</label>
+                        <label asp-for="ProductId" class="form-label fw-semibold">Produto</label>
                         <select asp-for="ProductId" asp-items="ViewBag.ProductId" class="form-select">
-                            <option value="">— Select a product —</option>
+                            <option value="">— Selecione um produto —</option>
                         </select>
                         <span asp-validation-for="ProductId" class="text-danger small"></span>
                     </div>
@@ -37,7 +37,7 @@
                     <div class="mb-3">
                         <label asp-for="ExitReason" class="form-label fw-semibold"></label>
                         <select asp-for="ExitReason" asp-items="Html.GetEnumSelectList<ExitReason>()" class="form-select">
-                            <option value="">— Select a reason —</option>
+                            <option value="">— Selecione um motivo —</option>
                         </select>
                         <span asp-validation-for="ExitReason" class="text-danger small"></span>
                     </div>
@@ -45,16 +45,16 @@
                     <div class="mb-4">
                         <label asp-for="Notes" class="form-label fw-semibold"></label>
                         <textarea asp-for="Notes" class="form-control" rows="2"
-                                  placeholder="Order number, customer, etc."></textarea>
+                                  placeholder="Número do pedido, cliente, etc."></textarea>
                         <span asp-validation-for="Notes" class="text-danger small"></span>
                     </div>
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-danger">
-                            <i class="bi bi-check-circle"></i> Record Exit
+                            <i class="bi bi-check-circle"></i> Registrar Saída
                         </button>
                         <a asp-action="Index" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Cancel
+                            <i class="bi bi-x-circle"></i> Cancelar
                         </a>
                     </div>
                 </form>

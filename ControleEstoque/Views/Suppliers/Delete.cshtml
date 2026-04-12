@@ -1,28 +1,28 @@
 @model Supplier
 @{
-    ViewData["Title"] = "Delete Supplier";
+    ViewData["Title"] = "Excluir Fornecedor";
 }
 
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card border-danger">
             <div class="card-header bg-danger text-white">
-                <h4 class="mb-0"><i class="bi bi-trash"></i> Confirm Deletion</h4>
+                <h4 class="mb-0"><i class="bi bi-trash"></i> Confirmar Exclusão</h4>
             </div>
             <div class="card-body">
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle-fill"></i>
-                    Are you sure you want to delete the supplier <strong>@Model.Name</strong>?
+                    Tem certeza que deseja excluir o fornecedor <strong>@Model.Name</strong>?
                 </div>
 
                 <dl class="row">
-                    <dt class="col-sm-4">Name</dt>
+                    <dt class="col-sm-4">Nome</dt>
                     <dd class="col-sm-8">@Model.Name</dd>
                     <dt class="col-sm-4">CNPJ</dt>
                     <dd class="col-sm-8">@(Model.Cnpj ?? "—")</dd>
-                    <dt class="col-sm-4">Phone</dt>
+                    <dt class="col-sm-4">Telefone</dt>
                     <dd class="col-sm-8">@(Model.Phone ?? "—")</dd>
-                    <dt class="col-sm-4">Email</dt>
+                    <dt class="col-sm-4">E-mail</dt>
                     <dd class="col-sm-8">@(Model.Email ?? "—")</dd>
                 </dl>
 
@@ -30,10 +30,10 @@
                     <input type="hidden" asp-for="Id" />
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-danger">
-                            <i class="bi bi-trash"></i> Confirm Deletion
+                            <i class="bi bi-trash"></i> Confirmar Exclusão
                         </button>
                         <a asp-action="Index" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Cancel
+                            <i class="bi bi-x-circle"></i> Cancelar
                         </a>
                     </div>
                 </form>

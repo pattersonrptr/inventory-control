@@ -1,13 +1,13 @@
 @model Category
 @{
-    ViewData["Title"] = "New Category";
+    ViewData["Title"] = "Nova Categoria";
 }
 
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h4 class="mb-0"><i class="bi bi-plus-circle"></i> New Category</h4>
+                <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Nova Categoria</h4>
             </div>
             <div class="card-body">
                 <form asp-action="Create" method="post">
@@ -15,23 +15,23 @@
 
                     <div class="mb-3">
                         <label asp-for="Name" class="form-label fw-semibold"></label>
-                        <input asp-for="Name" class="form-control" placeholder="E.g.: Cleaning, Food..." />
+                        <input asp-for="Name" class="form-control" placeholder="Ex.: Limpeza, Alimentos..." />
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-4">
                         <label asp-for="Description" class="form-label fw-semibold"></label>
                         <textarea asp-for="Description" class="form-control" rows="3"
-                                  placeholder="Optional description of the category..."></textarea>
+                                  placeholder="Descrição opcional da categoria..."></textarea>
                         <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Save
+                            <i class="bi bi-check-circle"></i> Salvar
                         </button>
                         <a asp-action="Index" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Cancel
+                            <i class="bi bi-x-circle"></i> Cancelar
                         </a>
                     </div>
                 </form>

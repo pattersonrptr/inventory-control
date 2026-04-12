@@ -1,13 +1,13 @@
 @model Product
 @{
-    ViewData["Title"] = "Edit Product";
+    ViewData["Title"] = "Editar Produto";
 }
 
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card">
             <div class="card-header">
-                <h4 class="mb-0"><i class="bi bi-pencil"></i> Edit Product</h4>
+                <h4 class="mb-0"><i class="bi bi-pencil"></i> Editar Produto</h4>
             </div>
             <div class="card-body">
                 <form asp-action="Edit" method="post">
@@ -30,7 +30,7 @@
                         <div class="col-md-6 mb-3">
                             <label asp-for="CostPrice" class="form-label fw-semibold"></label>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
+                                <span class="input-group-text">R$</span>
                                 <input asp-for="CostPrice" class="form-control" step="0.01" />
                             </div>
                             <span asp-validation-for="CostPrice" class="text-danger small"></span>
@@ -38,7 +38,7 @@
                         <div class="col-md-6 mb-3">
                             <label asp-for="SellingPrice" class="form-label fw-semibold"></label>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
+                                <span class="input-group-text">R$</span>
                                 <input asp-for="SellingPrice" class="form-control" step="0.01" />
                             </div>
                             <span asp-validation-for="SellingPrice" class="text-danger small"></span>
@@ -53,23 +53,23 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label asp-for="Sku" class="form-label fw-semibold"></label>
-                            <input asp-for="Sku" class="form-control" placeholder="E.g.: PROD-001" />
+                            <input asp-for="Sku" class="form-control" placeholder="Ex.: PROD-001" />
                             <span asp-validation-for="Sku" class="text-danger small"></span>
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label asp-for="CategoryId" class="form-label fw-semibold">Category</label>
+                            <label asp-for="CategoryId" class="form-label fw-semibold">Categoria</label>
                             <select asp-for="CategoryId" asp-items="ViewBag.CategoryId" class="form-select">
-                                <option value="">— Select a category —</option>
+                                <option value="">— Selecione uma categoria —</option>
                             </select>
                             <span asp-validation-for="CategoryId" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label asp-for="SupplierId" class="form-label fw-semibold">Supplier</label>
+                            <label asp-for="SupplierId" class="form-label fw-semibold">Fornecedor</label>
                             <select asp-for="SupplierId" asp-items="ViewBag.SupplierId" class="form-select">
-                                <option value="">— Select a supplier —</option>
+                                <option value="">— Selecione um fornecedor —</option>
                             </select>
                             <span asp-validation-for="SupplierId" class="text-danger small"></span>
                         </div>
@@ -77,10 +77,10 @@
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Save Changes
+                            <i class="bi bi-check-circle"></i> Salvar Alterações
                         </button>
                         <a asp-action="Index" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Cancel
+                            <i class="bi bi-x-circle"></i> Cancelar
                         </a>
                     </div>
                 </form>

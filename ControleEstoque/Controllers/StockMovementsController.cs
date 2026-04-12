@@ -62,7 +62,7 @@ public class StockMovementsController : Controller
 
         await TryPushStockAsync(product.Id, product.Name);
 
-        TempData["Success"] = $"Entry of {movement.Quantity} unit(s) of \"{product.Name}\" recorded successfully!";
+        TempData["Success"] = $"Entrada de {movement.Quantity} unidade(s) de \"{product.Name}\" registrada com sucesso!";
         return RedirectToAction(nameof(Index));
     }
 
@@ -94,7 +94,7 @@ public class StockMovementsController : Controller
         if (product.CurrentStock < movement.Quantity)
         {
             ModelState.AddModelError(nameof(StockMovement.Quantity),
-                $"Insufficient stock. Available: {product.CurrentStock} unit(s).");
+                $"Estoque insuficiente. Disponível: {product.CurrentStock} unidade(s).");
             await PopulateProductDropdownAsync(movement.ProductId);
             return View(movement);
         }
@@ -104,7 +104,7 @@ public class StockMovementsController : Controller
 
         await TryPushStockAsync(product.Id, product.Name);
 
-        TempData["Success"] = $"Exit of {movement.Quantity} unit(s) of \"{product.Name}\" recorded successfully!";
+        TempData["Success"] = $"Saída de {movement.Quantity} unidade(s) de \"{product.Name}\" registrada com sucesso!";
         return RedirectToAction(nameof(Index));
     }
 
