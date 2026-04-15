@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: pattersonrptr/inventory-control:2.0
+    image: pattersonrptr/inventory-control:latest
     container_name: inventory-control
     ports:
       - "8080:8080"
@@ -29,7 +29,59 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=estoque;Username=estoque;Password=${DB_PASSWORD:-estoque}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  backup:
+    image: prodrigestivill/postgres-backup-local
+    container_name: inventory-backup
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: estoque
+      POSTGRES_USER: estoque
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-estoque}
+      SCHEDULE: "0 */12 * * *"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 0
+      HEALTHCHECK_PORT: 8081
+    volumes:
+      - backups:/backups
+    restart: unless-stopped
+
+  offsite-backup:
+    image: rclone/rclone
+    container_name: inventory-offsite-backup
+    profiles: ["offsite"]
+    depends_on:
+      - backup
+    volumes:
+      - backups:/backups:ro
+      - rclone-config:/config/rclone
+    environment:
+      RCLONE_REMOTE: ${RCLONE_REMOTE:-gdrive:inventory-control-backups}
+      SYNC_INTERVAL: ${SYNC_INTERVAL:-12h}
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "Offsite backup: syncing /backups to $$RCLONE_REMOTE every $$SYNC_INTERVAL"
+        while true; do
+          rclone sync /backups $$RCLONE_REMOTE --log-level INFO
+          sleep_seconds=$$(echo $$SYNC_INTERVAL | sed 's/h/*3600/' | sed 's/m/*60/' | bc)
+          sleep $$sleep_seconds
+        done
     restart: unless-stopped
 
 volumes:
   db-data:
+  backups:
+  rclone-config:

@@ -48,6 +48,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseSqlite(connectionString);
 });
 
+// Health checks (used by Docker/TrueNAS to verify the app + DB are working)
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>();
+
 // Dependency injection for repositories
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
@@ -87,6 +91,8 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapHealthChecks("/health");
 
 // Apply pending migrations automatically on startup (relational providers only)
 using (var scope = app.Services.CreateScope())

@@ -22,6 +22,9 @@ WORKDIR /app
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
 
+# Install curl for Docker healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # Copy published output
 COPY --from=build /app/publish .
 
