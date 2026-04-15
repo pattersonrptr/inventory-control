@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ProcessedOrders` table to track which external orders have already been synced, preventing duplicate stock deductions
 - Refund/return stock reversal: when a previously paid order is refunded or voided on the external store, stock is automatically restored via entry movements
 - Documented `Integration:OrderSyncIntervalMinutes` in `appsettings.example.json` and README (env var: `Integration__OrderSyncIntervalMinutes`)
+- Health check endpoint (`/health`) with database connectivity probe for Docker and TrueNAS monitoring
+- Automated PostgreSQL backup container (`prodrigestivill/postgres-backup-local`) running every 12 hours with 7-day daily and 4-week weekly retention
+- Optional offsite backup to Google Drive via rclone (`docker compose --profile offsite up -d`)
+- Unified `docker-compose.yml` with all services: `db`, `app`, `backup`, and opt-in `offsite-backup`
 
 ### Fixed
 

@@ -84,16 +84,60 @@ Copy `appsettings.example.json` to `appsettings.json` and update the values:
 ### Docker
 
 ```bash
-# Build and run with Docker Compose
+# Build and run with Docker Compose (app + db + local backup)
 docker compose up -d
 
 # The app will be available at http://localhost:8080
+# Health check: http://localhost:8080/health
 
-# Stop the container
+# With offsite backup to Google Drive (requires rclone config):
+docker compose --profile offsite up -d
+
+# Stop all containers
 docker compose down
 ```
 
-The SQLite database is persisted in a Docker volume (`app-data`), so data survives container restarts.
+| Container | Purpose | Always runs? |
+|---|---|---|
+| `db` | PostgreSQL 16 | Yes |
+| `app` | Inventory Control | Yes |
+| `backup` | pg_dump every 12h (7 daily + 4 weekly retention) | Yes |
+| `offsite-backup` | rclone sync to Google Drive | Only with `--profile offsite` |
+
+Environment variables (use `__` instead of `:` for nested keys):
+
+| Variable | Description | Default |
+|---|---|---|
+| `DB_PASSWORD` | PostgreSQL password | `estoque` |
+| `RCLONE_REMOTE` | rclone remote destination | `gdrive:inventory-control-backups` |
+| `SYNC_INTERVAL` | Offsite sync interval | `12h` |
+
+### Backup & Restore
+
+**Local backups** run automatically every 12 hours via `prodrigestivill/postgres-backup-local`. Backups are stored in the `backups` Docker volume as compressed `.sql.gz` files.
+
+```bash
+# List available backups
+docker compose exec backup ls -la /backups/estoque
+
+# Trigger a manual backup
+docker compose exec backup /backup.sh
+
+# Restore from a backup (replace filename with the desired backup)
+docker compose exec -T db psql -U estoque -d estoque < backup.sql
+```
+
+**Offsite backups** (optional) sync the backup volume to Google Drive via rclone:
+
+```bash
+# 1. Generate rclone config interactively (one-time setup)
+docker run --rm -it -v inventory-control_rclone-config:/config/rclone rclone/rclone config
+
+# 2. Create a remote named "gdrive" (type: Google Drive, follow OAuth flow)
+
+# 3. Start with offsite profile
+docker compose --profile offsite up -d
+```
 
 ## Architecture
 
