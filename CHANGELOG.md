@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-04-17
+
 ### Added
 
 - Interactive Chart.js dashboard on the home page: movements per month (line chart), stock by category (doughnut chart), and top 10 sellers (horizontal bar chart) with dedicated API endpoints
@@ -160,7 +162,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSRF protection on all form-based POST/PUT/DELETE actions
 - No raw SQL — all queries through EF Core with LINQ
 
-[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v4.1.0...HEAD
+[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v4.2.0...HEAD
+[4.2.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/pattersonrptr/inventory-control/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/pattersonrptr/inventory-control/compare/v3.0.1...v3.1.0
