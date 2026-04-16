@@ -266,9 +266,9 @@ using (var scope = app.Services.CreateScope())
             BEGIN
                 -- (table, column, sequence_name, pg_type)
                 FOR tbl, col, seq, typ IN
-                    VALUES ('AuditLogs','Id','AuditLogs_Id_seq','bigint'),
-                           ('AspNetRoleClaims','Id','AspNetRoleClaims_Id_seq','integer'),
-                           ('AspNetUserClaims','Id','AspNetUserClaims_Id_seq','integer')
+                    VALUES ('AuditLogs','Id','auditlogs_id_seq','bigint'),
+                           ('AspNetRoleClaims','Id','aspnetroleclaims_id_seq','integer'),
+                           ('AspNetUserClaims','Id','aspnetuserclaims_id_seq','integer')
                 LOOP
                     IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = seq) THEN
                         EXECUTE format('CREATE SEQUENCE %I AS %s OWNED BY %I.%I', seq, typ, tbl, col);
