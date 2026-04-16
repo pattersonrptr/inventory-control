@@ -20,10 +20,17 @@
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
 
-                    <div class="mb-3">
-                        <label asp-for="Cnpj" class="form-label fw-semibold"></label>
-                        <input asp-for="Cnpj" class="form-control" />
-                        <span asp-validation-for="Cnpj" class="text-danger small"></span>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="ContactName" class="form-label fw-semibold"></label>
+                            <input asp-for="ContactName" class="form-control" />
+                            <span asp-validation-for="ContactName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Cnpj" class="form-label fw-semibold"></label>
+                            <input asp-for="Cnpj" class="form-control" />
+                            <span asp-validation-for="Cnpj" class="text-danger small"></span>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -37,6 +44,23 @@
                             <input asp-for="Email" class="form-control" />
                             <span asp-validation-for="Email" class="text-danger small"></span>
                         </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="LeadTimeDays" class="form-label fw-semibold"></label>
+                            <div class="input-group">
+                                <input asp-for="LeadTimeDays" class="form-control" min="0" max="365" />
+                                <span class="input-group-text">dias</span>
+                            </div>
+                            <span asp-validation-for="LeadTimeDays" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Notes" class="form-label fw-semibold"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger small"></span>
                     </div>
 
                     <div class="d-flex gap-2">

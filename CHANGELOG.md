@@ -7,9 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Multiple images per product** — upload multiple images on create/edit, image gallery with primary image selection and individual delete via AJAX
+- **Product brand field** — new `Brand` property on Product model with index for fast filtering
+- **Category hierarchy** — categories can now have a parent category (`ParentId` self-referencing FK), displayed as "Parent > Child" throughout the UI
+- **Supplier enriched fields** — `ContactName`, `LeadTimeDays`, and `Notes` fields on Supplier model
+- **Inline creation modals** — create categories and suppliers directly from the product form via Bootstrap modals + AJAX (endpoints `CreateInline`)
+- **Development seed data** — 5 categories (hierarchical), 6 suppliers, and 20 products from real spreadsheet data seeded automatically in Development environment
+- `ProductImage` model with `ImagePath`, `AltText`, `DisplayOrder`, and `IsPrimary` fields
+- `_CategoryModal.cshtml` and `_SupplierModal.cshtml` shared partials
+- `inline-create.js` for AJAX-based inline entity creation
+- EF Core migration `EnrichedModels` with automatic data migration from single `ImagePath` to `ProductImages` table
+
+### Changed
+
+- Product image storage migrated from single `ImagePath` column to `ProductImages` table (one-to-many relationship)
+- Product create/edit forms now use `<input type="file" multiple>` for multi-image upload
+- Product details view shows image carousel (Bootstrap) when multiple images exist
+- Product index shows thumbnail column
+- Category dropdowns throughout the app now display `FullName` (hierarchical path)
+- Category create/edit forms include parent category dropdown
+- Category index shows parent category column
+- Supplier create/edit forms include ContactName, LeadTimeDays, and Notes fields
+- Supplier index shows contact column
+- API `MapProduct` returns `PrimaryImagePath` and `Brand` instead of `ImagePath`
+
+### Removed
+
+- `ImagePath` column from Product table (migrated to ProductImages table)
+
+- TrueNAS catalog app definition (`truenas-catalog/`) — full `ix_lib`-based catalog app with `questions.yaml` UI form, Jinja2 docker-compose template, and test values for the official TrueNAS Apps structure
+- Integration tests for form POST submissions (Categories, Suppliers, Products, StockMovements Entry/Exit) — catches database and model binding errors that GET-only tests miss
+
 ### Fixed
 
 - PostgreSQL startup fix: corrected `SyncCursors` → `SyncStates` table name in DateTime TEXT→timestamp conversion SQL (fixes OrderSync background service crash)
+- PostgreSQL auto-increment sequences: added missing `CREATE SEQUENCE` / `SET DEFAULT nextval` for Categories, Suppliers, Products, StockMovements, ProcessedOrders, and SyncStates tables (fixes 500 errors on form submissions in production)
+- Test infrastructure: fixed `WebAppFactory` InMemory database name evaluated per scope (`Guid.NewGuid()` inside lambda) causing each `AppDbContext` to use a different database; added `InMemoryEventId.TransactionIgnoredWarning` suppression so StockMovement transaction-based tests work
 
 ## [6.0.0] - 2026-04-16
 

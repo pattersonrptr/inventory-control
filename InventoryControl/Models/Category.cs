@@ -15,6 +15,11 @@ public class Category
     [Display(Name = "Descrição")]
     public string? Description { get; set; }
 
+    [Display(Name = "Categoria Pai")]
+    public int? ParentId { get; set; }
+    public Category? Parent { get; set; }
+    public ICollection<Category> Children { get; set; } = new List<Category>();
+
     // ID of this category in an external store
     [StringLength(200)]
     [Display(Name = "ID Externo")]
@@ -26,4 +31,6 @@ public class Category
     public string? ExternalIdSource { get; set; }
 
     public ICollection<Product> Products { get; set; } = new List<Product>();
+
+    public string FullName => Parent is not null ? $"{Parent.Name} > {Name}" : Name;
 }

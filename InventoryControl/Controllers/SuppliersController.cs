@@ -30,6 +30,17 @@ public class SuppliersController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateInline([FromBody] Supplier supplier)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage) });
+
+        await _repository.AddAsync(supplier);
+        return StatusCode(201, new { id = supplier.Id, name = supplier.Name });
+    }
+
     public async Task<IActionResult> Edit(int id)
     {
         var supplier = await _repository.GetByIdAsync(id);

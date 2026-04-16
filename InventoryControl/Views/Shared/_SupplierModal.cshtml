@@ -1,0 +1,40 @@
+<!-- Supplier creation modal (used from Products Create/Edit) -->
+<div class="modal fade" id="supplierModal" tabindex="-1" aria-labelledby="supplierModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="supplierModalLabel">
+                    <i class="bi bi-truck"></i> Novo Fornecedor
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="supplierModalErrors" class="alert alert-danger d-none"></div>
+                <div class="mb-3">
+                    <label for="newSupplierName" class="form-label fw-semibold">Nome</label>
+                    <input type="text" class="form-control" id="newSupplierName" placeholder="Razão social" required maxlength="200" />
+                </div>
+                <div class="mb-3">
+                    <label for="newSupplierContactName" class="form-label fw-semibold">Contato</label>
+                    <input type="text" class="form-control" id="newSupplierContactName" placeholder="Nome do contato" maxlength="200" />
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="newSupplierPhone" class="form-label fw-semibold">Telefone</label>
+                        <input type="text" class="form-control" id="newSupplierPhone" placeholder="(11) 99999-0000" maxlength="20" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="newSupplierEmail" class="form-label fw-semibold">E-mail</label>
+                        <input type="email" class="form-control" id="newSupplierEmail" placeholder="contato@email.com" maxlength="100" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSaveSupplier">
+                    <i class="bi bi-check-circle"></i> Criar Fornecedor
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

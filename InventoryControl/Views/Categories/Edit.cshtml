@@ -20,6 +20,14 @@
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
 
+                    <div class="mb-3">
+                        <label asp-for="ParentId" class="form-label fw-semibold"></label>
+                        <select asp-for="ParentId" asp-items="ViewBag.ParentId" class="form-select">
+                            <option value="">— Nenhuma (categoria raiz) —</option>
+                        </select>
+                        <span asp-validation-for="ParentId" class="text-danger small"></span>
+                    </div>
+
                     <div class="mb-4">
                         <label asp-for="Description" class="form-label fw-semibold"></label>
                         <textarea asp-for="Description" class="form-control" rows="3"></textarea>

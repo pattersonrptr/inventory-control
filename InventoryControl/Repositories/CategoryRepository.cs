@@ -17,6 +17,8 @@ public class CategoryRepository : ICategoryRepository
     public async Task<IEnumerable<Category>> GetAllAsync()
         => await _context.Categories
             .Include(c => c.Products)
+            .Include(c => c.Parent)
+            .Include(c => c.Children)
             .OrderBy(c => c.Name)
             .ToListAsync();
 
@@ -24,6 +26,8 @@ public class CategoryRepository : ICategoryRepository
     {
         var query = _context.Categories
             .Include(c => c.Products)
+            .Include(c => c.Parent)
+            .Include(c => c.Children)
             .OrderBy(c => c.Name);
 
         var totalCount = await query.CountAsync();

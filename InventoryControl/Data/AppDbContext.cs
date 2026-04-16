@@ -11,6 +11,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<ProcessedOrder> ProcessedOrders => Set<ProcessedOrder>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
@@ -27,6 +28,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(c => c.Description).HasMaxLength(500);
             entity.Property(c => c.ExternalId).HasMaxLength(200);
             entity.Property(c => c.ExternalIdSource).HasMaxLength(50);
+
+            entity.HasOne(c => c.Parent)
+                  .WithMany(c => c.Children)
+                  .HasForeignKey(c => c.ParentId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Supplier>(entity =>
@@ -36,6 +42,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(s => s.Cnpj).HasMaxLength(18);
             entity.Property(s => s.Phone).HasMaxLength(20);
             entity.Property(s => s.Email).HasMaxLength(100);
+            entity.Property(s => s.ContactName).HasMaxLength(200);
+            entity.Property(s => s.Notes).HasMaxLength(1000);
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -51,7 +59,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                   .HasFilter("\"Sku\" IS NOT NULL");
             entity.Property(p => p.ExternalId).HasMaxLength(200);
             entity.Property(p => p.ExternalIdSource).HasMaxLength(50);
-            entity.Property(p => p.ImagePath).HasMaxLength(500);
+            entity.Property(p => p.Brand).HasMaxLength(100);
+            entity.HasIndex(p => p.Brand);
 
             entity.HasOne(p => p.Category)
                   .WithMany(c => c.Products)
@@ -62,6 +71,20 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                   .WithMany(s => s.Products)
                   .HasForeignKey(p => p.SupplierId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Ignore(p => p.PrimaryImagePath);
+        });
+
+        modelBuilder.Entity<ProductImage>(entity =>
+        {
+            entity.HasKey(pi => pi.Id);
+            entity.Property(pi => pi.ImagePath).IsRequired().HasMaxLength(500);
+            entity.Property(pi => pi.AltText).HasMaxLength(200);
+
+            entity.HasOne(pi => pi.Product)
+                  .WithMany(p => p.Images)
+                  .HasForeignKey(pi => pi.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<StockMovement>(entity =>

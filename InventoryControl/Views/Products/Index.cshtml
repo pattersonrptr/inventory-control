@@ -15,9 +15,11 @@
         <table class="table table-hover mb-0">
             <thead class="table-dark">
                 <tr>
+                    <th style="width: 50px;"></th>
                     <th>Nome</th>
                     <th>Categoria</th>
                     <th>Fornecedor</th>
+                    <th>Marca</th>
                     <th class="text-end">Preço de Custo</th>
                     <th class="text-end">Preço de Venda</th>
                     <th class="text-center">Estoque</th>
@@ -28,6 +30,16 @@
                 @foreach (var item in Model.Items)
                 {
                     <tr class="@(item.IsBelowMinimumStock ? "table-warning" : "")">
+                        <td>
+                            @if (item.PrimaryImagePath is not null)
+                            {
+                                <img src="@item.PrimaryImagePath" alt="@item.Name" class="rounded" style="width: 40px; height: 40px; object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <span class="text-muted"><i class="bi bi-image" style="font-size: 1.5rem;"></i></span>
+                            }
+                        </td>
                         <td class="fw-semibold">
                             @item.Name
                             @if (item.IsBelowMinimumStock)
@@ -37,8 +49,9 @@
                                 </span>
                             }
                         </td>
-                        <td class="text-muted">@item.Category?.Name</td>
+                        <td class="text-muted">@item.Category?.FullName</td>
                         <td class="text-muted">@item.Supplier?.Name</td>
+                        <td class="text-muted">@(item.Brand ?? "—")</td>
                         <td class="text-end">@item.CostPrice.ToString("C")</td>
                         <td class="text-end">@item.SellingPrice.ToString("C")</td>
                         <td class="text-center fw-bold @(item.IsBelowMinimumStock ? "text-danger" : "")">
@@ -71,7 +84,7 @@
                 @if (!Model.Items.Any())
                 {
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">
+                        <td colspan="9" class="text-center text-muted py-4">
                             <i class="bi bi-inbox fs-4 d-block mb-2"></i>
                             Nenhum produto cadastrado.
                         </td>

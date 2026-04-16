@@ -1,0 +1,31 @@
+<!-- Category creation modal (used from Products Create/Edit) -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="categoryModalLabel">
+                    <i class="bi bi-tags"></i> Nova Categoria
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="categoryModalErrors" class="alert alert-danger d-none"></div>
+                <div class="mb-3">
+                    <label for="newCategoryName" class="form-label fw-semibold">Nome</label>
+                    <input type="text" class="form-control" id="newCategoryName" placeholder="Ex.: Canetas" required maxlength="100" />
+                </div>
+                <div class="mb-3">
+                    <label for="newCategoryDescription" class="form-label fw-semibold">Descrição</label>
+                    <textarea class="form-control" id="newCategoryDescription" rows="2" maxlength="500"
+                              placeholder="Descrição opcional..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCategory">
+                    <i class="bi bi-check-circle"></i> Criar Categoria
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
