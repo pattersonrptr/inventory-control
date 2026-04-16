@@ -40,13 +40,13 @@ into 6 phases following Semantic Versioning.
 |-----|---------|----------|
 | F1  | Authentication with ASP.NET Core Identity + Roles (Admin / Operator) | HIGH |
 | F2  | Pagination in all list views | HIGH |
-| F3  | Dashboard with Chart.js (movements/period, top sellers, stock/category, profitability) | MEDIUM |
-| F4  | Email notifications for low stock (SMTP) | MEDIUM |
+| F3  | Dashboard with Chart.js (movements/period, top sellers, stock/category, profitability) | ✅ |
+| F4  | Email notifications for low stock (SMTP) | ✅ |
 | F5  | CSV import for Products, Suppliers, Categories | MEDIUM |
 | F6  | Audit trail — logs who changed what, when, and how | MEDIUM |
 | F7  | Product images — upload local + push/pull from Nuvemshop | MEDIUM |
 | F8  | Public REST API with Swagger, API key auth, rate limiting | MEDIUM |
-| F9  | Profitability report (cost vs selling price × quantity sold) | LOW |
+| F9  | Profitability report (cost vs selling price × quantity sold) | ✅ |
 | F10 | Multi-platform preparation — architecture for N e-commerce platforms | LOW |
 
 ---

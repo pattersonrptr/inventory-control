@@ -9,15 +9,18 @@ public class HomeController : Controller
 {
     private readonly IProductRepository _productRepo;
     private readonly IStockMovementRepository _movementRepo;
+    private readonly ICategoryRepository _categoryRepo;
     private readonly IntegrationConfig? _integrationConfig;
 
     public HomeController(
         IProductRepository productRepo,
         IStockMovementRepository movementRepo,
+        ICategoryRepository categoryRepo,
         IntegrationConfig? integrationConfig = null)
     {
         _productRepo = productRepo;
         _movementRepo = movementRepo;
+        _categoryRepo = categoryRepo;
         _integrationConfig = integrationConfig;
     }
 
@@ -33,6 +36,68 @@ public class HomeController : Controller
         ViewBag.IntegrationEnabled = _integrationConfig?.Enabled == true;
 
         return View();
+    }
+
+    [HttpGet]
+    [Route("/api/dashboard/movements-by-month")]
+    public async Task<IActionResult> MovementsByMonth()
+    {
+        var movements = await _movementRepo.GetAllAsync();
+        var sixMonthsAgo = DateTime.Today.AddMonths(-5);
+        var startOfRange = new DateTime(sixMonthsAgo.Year, sixMonthsAgo.Month, 1);
+
+        var data = movements
+            .Where(m => m.Date >= startOfRange)
+            .GroupBy(m => new { m.Date.Year, m.Date.Month })
+            .Select(g => new
+            {
+                month = $"{g.Key.Month:00}/{g.Key.Year}",
+                sortKey = g.Key.Year * 100 + g.Key.Month,
+                entries = g.Where(m => m.Type == MovementType.Entry).Sum(m => m.Quantity),
+                exits = g.Where(m => m.Type == MovementType.Exit).Sum(m => m.Quantity)
+            })
+            .OrderBy(x => x.sortKey)
+            .ToList();
+
+        return Json(data);
+    }
+
+    [HttpGet]
+    [Route("/api/dashboard/top-sellers")]
+    public async Task<IActionResult> TopSellers()
+    {
+        var movements = await _movementRepo.GetAllAsync();
+        var data = movements
+            .Where(m => m.Type == MovementType.Exit)
+            .GroupBy(m => m.Product?.Name ?? "Desconhecido")
+            .Select(g => new
+            {
+                product = g.Key,
+                quantity = g.Sum(m => m.Quantity)
+            })
+            .OrderByDescending(x => x.quantity)
+            .Take(10)
+            .ToList();
+
+        return Json(data);
+    }
+
+    [HttpGet]
+    [Route("/api/dashboard/stock-by-category")]
+    public async Task<IActionResult> StockByCategory()
+    {
+        var products = await _productRepo.GetAllAsync();
+        var data = products
+            .GroupBy(p => p.Category?.Name ?? "Sem Categoria")
+            .Select(g => new
+            {
+                category = g.Key,
+                stock = g.Sum(p => p.CurrentStock)
+            })
+            .OrderByDescending(x => x.stock)
+            .ToList();
+
+        return Json(data);
     }
 
     [HttpGet]
