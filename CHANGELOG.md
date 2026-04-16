@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-04-16
+
+### Changed
+
+- **BREAKING**: Renamed project from `ControleEstoque` to `InventoryControl` — solution, csproj files, folders, namespaces, Docker config, and all documentation updated
+
+### Added
+
+- Playwright browser-based E2E test suite (30 tests) covering authentication, CRUD operations for categories/suppliers/products, stock movements, reports, admin features, and a full user workflow
+- `PlaywrightFixture` with TestServer + Kestrel reverse-proxy architecture for real browser testing
+- `PageHelpers` utility class with reusable page interaction methods
+
 ### Fixed
 
 - PostgreSQL: convert DateTime TEXT columns to proper `timestamp` types at startup (fixes 500 errors on Reports/Monthly and AuditLogs pages when running with SQLite-generated migrations)
@@ -173,7 +185,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Semantic versioning release process documented in copilot instructions
 - Docker support: `Dockerfile` (multi-stage build), `docker-compose.yml`, `.dockerignore`
 - Test suite with xUnit: unit tests (models, repositories, services, view models), integration tests (controllers via WebApplicationFactory), and E2E workflow tests
-- `ControleEstoque.Tests` project with Moq and InMemory database support
+- `InventoryControl.Tests` project with Moq and InMemory database support
 - GitHub Actions workflow `.github/workflows/docker-publish.yml`: builds and pushes the Docker image to Docker Hub on every merge to `main` and on semver tags (`v*.*.*`); uses GitHub Actions cache for faster builds
 
 ### Changed
@@ -211,7 +223,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSRF protection on all form-based POST/PUT/DELETE actions
 - No raw SQL — all queries through EF Core with LINQ
 
-[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v6.0.0...HEAD
+[6.0.0]: https://github.com/pattersonrptr/inventory-control/compare/v5.0.0...v6.0.0
 [5.0.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.3.0...v5.0.0
 [4.3.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.1.0...v4.2.0

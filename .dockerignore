@@ -15,4 +15,4 @@
 *.md
 LICENSE
 .github/
-ControleEstoque.Tests/
+InventoryControl.Tests/

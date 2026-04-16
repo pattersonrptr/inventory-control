@@ -78,7 +78,7 @@ Releases follow [Semantic Versioning](https://semver.org/):
 ## Testing
 
 - Framework: **xUnit**.
-- Place tests in a separate `ControleEstoque.Tests` project.
+- Place tests in a separate `InventoryControl.Tests` project.
 - Name test methods: `MethodName_Scenario_ExpectedResult`.
 
 ## Dependencies

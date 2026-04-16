@@ -3,17 +3,17 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy solution and project files first for layer caching
-COPY ControleEstoque.sln .
-COPY ControleEstoque/ControleEstoque.csproj ControleEstoque/
+COPY InventoryControl.sln .
+COPY InventoryControl/InventoryControl.csproj InventoryControl/
 
 # Restore dependencies (cached unless .csproj changes)
-RUN dotnet restore ControleEstoque/ControleEstoque.csproj
+RUN dotnet restore InventoryControl/InventoryControl.csproj
 
 # Copy the rest of the source code
-COPY ControleEstoque/ ControleEstoque/
+COPY InventoryControl/ InventoryControl/
 
 # Publish the application
-RUN dotnet publish ControleEstoque/ControleEstoque.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish InventoryControl/InventoryControl.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
@@ -38,4 +38,4 @@ EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
-ENTRYPOINT ["dotnet", "ControleEstoque.dll"]
+ENTRYPOINT ["dotnet", "InventoryControl.dll"]

@@ -30,7 +30,7 @@ Key interfaces:
 ### 1. Create the Platform Folder
 
 ```
-ControleEstoque/Integrations/YourPlatform/
+InventoryControl/Integrations/YourPlatform/
 ├── YourPlatformClient.cs           # HTTP client wrapper
 ├── YourPlatformIntegration.cs      # IStoreIntegration adapter
 ├── YourPlatformPlatformFactory.cs  # IPlatformFactory implementation
@@ -45,9 +45,9 @@ ControleEstoque/Integrations/YourPlatform/
 Create `YourPlatformIntegration.cs` implementing all methods:
 
 ```csharp
-using ControleEstoque.Integrations.Abstractions;
+using InventoryControl.Integrations.Abstractions;
 
-namespace ControleEstoque.Integrations.YourPlatform;
+namespace InventoryControl.Integrations.YourPlatform;
 
 public class YourPlatformIntegration : IStoreIntegration
 {
@@ -109,9 +109,9 @@ public class YourPlatformIntegration : IStoreIntegration
 ### 3. Create the HTTP Client
 
 ```csharp
-using ControleEstoque.Integrations.Abstractions;
+using InventoryControl.Integrations.Abstractions;
 
-namespace ControleEstoque.Integrations.YourPlatform;
+namespace InventoryControl.Integrations.YourPlatform;
 
 public class YourPlatformClient
 {
@@ -132,9 +132,9 @@ public class YourPlatformClient
 ### 4. Implement `IPlatformFactory`
 
 ```csharp
-using ControleEstoque.Integrations.Abstractions;
+using InventoryControl.Integrations.Abstractions;
 
-namespace ControleEstoque.Integrations.YourPlatform;
+namespace InventoryControl.Integrations.YourPlatform;
 
 public class YourPlatformPlatformFactory : IPlatformFactory
 {
@@ -213,7 +213,7 @@ public class YourPlatformWebhookController : ControllerBase
 
 ## Testing
 
-1. Add unit tests for your integration adapter in `ControleEstoque.Tests/Unit/Services/`
+1. Add unit tests for your integration adapter in `InventoryControl.Tests/Unit/Services/`
 2. Test the mapping from platform-specific models to `External*` abstractions
 3. Verify the factory creates a working integration with a mock HttpClient
 
