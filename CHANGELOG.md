@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- CSV import for Products, Categories, and Suppliers — upload CSV file, preview parsed data with validation, then confirm import (Admin only)
+- Product images — upload images on create/edit, view on product details; stored in `wwwroot/images/products/`
+- Full REST API at `/api/v1/` with CRUD endpoints for Products, Categories, and Suppliers
+- Swagger UI available at `/swagger` with interactive API documentation
+- API key authentication via `X-Api-Key` header for all REST API endpoints
+- Import links in Admin dropdown menu (Products, Categories, Suppliers)
+- `Api:Key` configuration for API key authentication
+- `ImagePath` column on Products table (via EF Core migration)
+
+### Changed
+
+- Product Create and Edit forms now support image upload (`enctype="multipart/form-data"`)
+- Product Details view shows product image when available
+- Admin dropdown in navbar now includes CSV import links
+
 ## [4.2.0] - 2026-04-17
 
 ### Added

@@ -27,6 +27,10 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 - **Interactive dashboard** — Chart.js charts for movements/month, top sellers, and stock by category
 - **E-commerce sync** — pull products, push stock, and process orders from Nuvemshop
 - **Email notifications** — configurable SMTP alerts when products drop below minimum stock
+- **CSV import** — bulk import Products, Categories, and Suppliers via CSV files (Admin only)
+- **Product images** — upload images for products, displayed on details and edit pages
+- **REST API** — full CRUD API at `/api/v1/` for Products, Categories, and Suppliers with Swagger UI
+- **API key authentication** — secure API access via `X-Api-Key` header
 - **Authentication** — ASP.NET Core Identity with email/password login and role-based access (Admin / Operator)
 - **User management** — admins can create, edit, and delete users and assign roles
 - **Audit trail** — automatic logging of every data change (who, what, when, old/new values)
@@ -41,6 +45,7 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 | Database (dev) | SQLite |
 | Database (prod) | Configurable (PostgreSQL, Oracle, etc.) |
 | Front-end | Bootstrap 5.3 + Bootstrap Icons + Chart.js 4 |
+| API docs | Swagger UI (Swashbuckle) |
 
 ## Getting Started
 
@@ -97,6 +102,7 @@ Copy `appsettings.example.json` to `appsettings.json` and update the values:
 | `EmailNotifications:ToEmail` | Recipient email address for alerts |
 | `EmailNotifications:EnableSsl` | Use SSL/TLS for SMTP (default: `true`) |
 | `EmailNotifications:CheckIntervalHours` | How often to check for low stock (default: `24`) |
+| `Api:Key` | API key for REST API authentication (used via `X-Api-Key` header) |
 
 > **Never commit `appsettings.json`** — it is listed in `.gitignore`. Use `appsettings.example.json` as a template.
 >
