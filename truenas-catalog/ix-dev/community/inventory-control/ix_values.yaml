@@ -1,0 +1,21 @@
+images:
+  image:
+    repository: pattersonrptr/inventory-control
+    tag: v6.0.1
+  postgres_image:
+    repository: postgres
+    tag: 16-alpine
+  backup_image:
+    repository: prodrigestivill/postgres-backup-local
+    tag: latest
+  offsite_image:
+    repository: rclone/rclone
+    tag: latest
+
+consts:
+  app_container_name: "inventory-control"
+  db_container_name: "inventory-db"
+  backup_container_name: "inventory-backup"
+  offsite_container_name: "inventory-offsite-backup"
+  perms_container_name: "inventory-perms"
+  db_name: "inventory"

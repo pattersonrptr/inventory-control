@@ -17,6 +17,7 @@
                 <tr>
                     <th>#</th>
                     <th>Nome</th>
+                    <th>Categoria Pai</th>
                     <th>Descrição</th>
                     <th class="text-center">Produtos</th>
                     <th class="text-end">Ações</th>
@@ -27,7 +28,14 @@
                 {
                     <tr>
                         <td class="text-muted">@item.Id</td>
-                        <td class="fw-semibold">@item.Name</td>
+                        <td class="fw-semibold">
+                            @if (item.Parent is not null)
+                            {
+                                <span class="text-muted">@item.Parent.Name ></span>
+                            }
+                            @item.Name
+                        </td>
+                        <td class="text-muted">@(item.Parent?.Name ?? "—")</td>
                         <td class="text-muted">@item.Description</td>
                         <td class="text-center">
                             <span class="badge bg-secondary">@item.Products.Count</span>
@@ -47,7 +55,7 @@
                 @if (!Model.Items.Any())
                 {
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
+                        <td colspan="6" class="text-center text-muted py-4">
                             <i class="bi bi-inbox fs-4 d-block mb-2"></i>
                             Nenhuma categoria cadastrada.
                         </td>

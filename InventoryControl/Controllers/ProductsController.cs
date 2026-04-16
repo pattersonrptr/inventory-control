@@ -1,3 +1,4 @@
+using InventoryControl.Data;
 using InventoryControl.Integrations;
 using InventoryControl.Models;
 using InventoryControl.Repositories.Interfaces;
@@ -14,19 +15,22 @@ public class ProductsController : Controller
     private readonly ISupplierRepository _supplierRepo;
     private readonly PlatformRegistry _registry;
     private readonly IWebHostEnvironment _environment;
+    private readonly AppDbContext _context;
 
     public ProductsController(
         IProductRepository productRepo,
         ICategoryRepository categoryRepo,
         ISupplierRepository supplierRepo,
         IWebHostEnvironment environment,
-        PlatformRegistry registry)
+        PlatformRegistry registry,
+        AppDbContext context)
     {
         _productRepo = productRepo;
         _categoryRepo = categoryRepo;
         _supplierRepo = supplierRepo;
         _environment = environment;
         _registry = registry;
+        _context = context;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 20)
@@ -50,7 +54,7 @@ public class ProductsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Product product, IFormFile? image)
+    public async Task<IActionResult> Create(Product product, IFormFile[]? images)
     {
         if (!ModelState.IsValid)
         {
@@ -58,8 +62,8 @@ public class ProductsController : Controller
             return View(product);
         }
 
-        if (image is not null)
-            product.ImagePath = await SaveImageAsync(image);
+        if (images is not null)
+            product.Images = await SaveImagesAsync(images);
 
         await _productRepo.AddAsync(product);
         TempData["Success"] = "Produto criado com sucesso!";
@@ -76,7 +80,7 @@ public class ProductsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, Product product, IFormFile? image)
+    public async Task<IActionResult> Edit(int id, Product product, IFormFile[]? images)
     {
         if (id != product.Id) return BadRequest();
         if (!ModelState.IsValid)
@@ -85,8 +89,20 @@ public class ProductsController : Controller
             return View(product);
         }
 
-        if (image is not null)
-            product.ImagePath = await SaveImageAsync(image);
+        if (images is { Length: > 0 })
+        {
+            var newImages = await SaveImagesAsync(images);
+            var hasPrimary = await _context.ProductImages.AnyAsync(pi => pi.ProductId == id && pi.IsPrimary);
+            if (!hasPrimary && newImages.Count > 0)
+                newImages[0].IsPrimary = true;
+
+            foreach (var img in newImages)
+            {
+                img.ProductId = id;
+                _context.ProductImages.Add(img);
+            }
+            await _context.SaveChangesAsync();
+        }
 
         await _productRepo.UpdateAsync(product);
         TempData["Success"] = "Produto atualizado com sucesso!";
@@ -120,26 +136,87 @@ public class ProductsController : Controller
     {
         var categories = await _categoryRepo.GetAllAsync();
         var suppliers = await _supplierRepo.GetAllAsync();
-        ViewBag.CategoryId = new SelectList(categories, "Id", "Name", categoryId);
+        ViewBag.CategoryId = new SelectList(
+            categories.Select(c => new { c.Id, Name = c.FullName }),
+            "Id", "Name", categoryId);
         ViewBag.SupplierId = new SelectList(suppliers, "Id", "Name", supplierId);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteImage(int id)
+    {
+        var image = await _context.ProductImages.FindAsync(id);
+        if (image is null) return NotFound();
+
+        var productId = image.ProductId;
+        var filePath = Path.Combine(_environment.WebRootPath, image.ImagePath.TrimStart('/'));
+        if (System.IO.File.Exists(filePath))
+            System.IO.File.Delete(filePath);
+
+        _context.ProductImages.Remove(image);
+
+        if (image.IsPrimary)
+        {
+            var next = await _context.ProductImages
+                .Where(pi => pi.ProductId == productId && pi.Id != id)
+                .OrderBy(pi => pi.DisplayOrder)
+                .FirstOrDefaultAsync();
+            if (next is not null)
+                next.IsPrimary = true;
+        }
+
+        await _context.SaveChangesAsync();
+        return Json(new { success = true });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetPrimaryImage(int id)
+    {
+        var image = await _context.ProductImages.FindAsync(id);
+        if (image is null) return NotFound();
+
+        var allImages = await _context.ProductImages
+            .Where(pi => pi.ProductId == image.ProductId)
+            .ToListAsync();
+
+        foreach (var img in allImages)
+            img.IsPrimary = img.Id == id;
+
+        await _context.SaveChangesAsync();
+        return Json(new { success = true });
     }
 
     private static readonly HashSet<string> AllowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
 
-    private async Task<string> SaveImageAsync(IFormFile image)
+    private async Task<List<ProductImage>> SaveImagesAsync(IFormFile[] files)
     {
-        var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
-        if (!AllowedExtensions.Contains(extension))
-            extension = ".jpg";
-
-        var fileName = $"{Guid.NewGuid()}{extension}";
+        var result = new List<ProductImage>();
         var uploadsDir = Path.Combine(_environment.WebRootPath, "images", "products");
         Directory.CreateDirectory(uploadsDir);
 
-        var filePath = Path.Combine(uploadsDir, fileName);
-        using var stream = new FileStream(filePath, FileMode.Create);
-        await image.CopyToAsync(stream);
+        for (var i = 0; i < files.Length; i++)
+        {
+            var file = files[i];
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!AllowedExtensions.Contains(extension))
+                extension = ".jpg";
 
-        return $"/images/products/{fileName}";
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(uploadsDir, fileName);
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(stream);
+
+            result.Add(new ProductImage
+            {
+                ImagePath = $"/images/products/{fileName}",
+                AltText = Path.GetFileNameWithoutExtension(file.FileName),
+                DisplayOrder = i,
+                IsPrimary = i == 0
+            });
+        }
+
+        return result;
     }
 }

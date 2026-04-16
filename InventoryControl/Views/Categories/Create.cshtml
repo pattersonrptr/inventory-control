@@ -15,8 +15,16 @@
 
                     <div class="mb-3">
                         <label asp-for="Name" class="form-label fw-semibold"></label>
-                        <input asp-for="Name" class="form-control" placeholder="Ex.: Limpeza, Alimentos..." />
+                        <input asp-for="Name" class="form-control" placeholder="Ex.: Canetas, Papelaria..." />
                         <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ParentId" class="form-label fw-semibold"></label>
+                        <select asp-for="ParentId" asp-items="ViewBag.ParentId" class="form-select">
+                            <option value="">— Nenhuma (categoria raiz) —</option>
+                        </select>
+                        <span asp-validation-for="ParentId" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-4">

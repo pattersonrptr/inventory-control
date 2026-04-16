@@ -318,7 +318,14 @@ using (var scope = app.Services.CreateScope())
             BEGIN
                 -- (table, column, sequence_name, pg_type)
                 FOR tbl, col, seq, typ IN
-                    VALUES ('AuditLogs','Id','auditlogs_id_seq','bigint'),
+                    VALUES ('Categories','Id','categories_id_seq','integer'),
+                           ('Suppliers','Id','suppliers_id_seq','integer'),
+                           ('Products','Id','products_id_seq','integer'),
+                           ('StockMovements','Id','stockmovements_id_seq','integer'),
+                           ('ProcessedOrders','Id','processedorders_id_seq','integer'),
+                           ('SyncStates','Id','syncstates_id_seq','integer'),
+                           ('ProductImages','Id','productimages_id_seq','integer'),
+                           ('AuditLogs','Id','auditlogs_id_seq','bigint'),
                            ('AspNetRoleClaims','Id','aspnetroleclaims_id_seq','integer'),
                            ('AspNetUserClaims','Id','aspnetuserclaims_id_seq','integer')
                 LOOP
@@ -362,9 +369,70 @@ using (var scope = app.Services.CreateScope())
         if (result.Succeeded)
             await userManager.AddToRoleAsync(admin, "Admin");
     }
+
+    // Seed development data
+    if (app.Environment.IsDevelopment())
+    {
+        await SeedDevelopmentDataAsync(db);
+    }
 }
 
 app.Run();
+
+static async Task SeedDevelopmentDataAsync(AppDbContext db)
+{
+    if (await db.Categories.AnyAsync()) return;
+
+    // Categories (hierarchical)
+    var escrita = new Category { Name = "ESCRITA", Description = "Materiais de escrita" };
+    var acessorios = new Category { Name = "ACESSÓRIOS", Description = "Acessórios diversos" };
+    var papelaria = new Category { Name = "PAPELARIA", Description = "Materiais de papelaria em geral" };
+    db.Categories.AddRange(escrita, acessorios, papelaria);
+    await db.SaveChangesAsync();
+
+    var canetas = new Category { Name = "CANETAS", Description = "Canetas de todos os tipos", ParentId = escrita.Id };
+    var lapisCat = new Category { Name = "LÁPIS", Description = "Lápis e lapiseiras", ParentId = escrita.Id };
+    db.Categories.AddRange(canetas, lapisCat);
+    await db.SaveChangesAsync();
+
+    // Suppliers
+    var aliexpress = new Supplier { Name = "ALIEXPRESS", Notes = "Importação direta, prazo ~30 dias", LeadTimeDays = 30 };
+    var starAtacado = new Supplier { Name = "STAR ATACADO", Notes = "Atacado papelaria" };
+    var canetasAtacado = new Supplier { Name = "CANETAS ATACADO", Notes = "Especializado em canetas" };
+    var temu = new Supplier { Name = "TEMU", Notes = "Importação, prazo variável", LeadTimeDays = 25 };
+    var descontoAqui = new Supplier { Name = "DESCONTO AQUI" };
+    var papeleraAtacado = new Supplier { Name = "PAPELERA ATACADO" };
+    db.Suppliers.AddRange(aliexpress, starAtacado, canetasAtacado, temu, descontoAqui, papeleraAtacado);
+    await db.SaveChangesAsync();
+
+    // Products (sample from the spreadsheet)
+    var products = new List<Product>
+    {
+        new() { Name = "Caneta gel Dogs - Nervosa", Sku = "001-CG-DOGN-ARV", Brand = "IMPORTADA", CostPrice = 5.00m, SellingPrice = 12.90m, MinimumStock = 2, CurrentStock = 3, CategoryId = canetas.Id, SupplierId = aliexpress.Id },
+        new() { Name = "Caneta gel Dogs - Rolou", Sku = "002-CG-DOGR-ARV", Brand = "IMPORTADA", CostPrice = 5.00m, SellingPrice = 12.90m, MinimumStock = 2, CurrentStock = 2, CategoryId = canetas.Id, SupplierId = aliexpress.Id },
+        new() { Name = "Caneta gel Gato Musical", Sku = "003-CG-GATM-PT", Brand = "IMPORTADA", CostPrice = 2.10m, SellingPrice = 7.90m, MinimumStock = 3, CurrentStock = 5, CategoryId = canetas.Id, SupplierId = aliexpress.Id },
+        new() { Name = "Caneta gel Coração", Sku = "004-CG-COR-RS", Brand = "IMPORTADA", CostPrice = 2.50m, SellingPrice = 8.90m, MinimumStock = 2, CurrentStock = 4, CategoryId = canetas.Id, SupplierId = temu.Id },
+        new() { Name = "Caneta esferográfica BRW 0.7 Azul", Sku = "005-CE-BRW-AZ", Brand = "BRW", CostPrice = 1.20m, SellingPrice = 3.50m, MinimumStock = 5, CurrentStock = 10, CategoryId = canetas.Id, SupplierId = starAtacado.Id },
+        new() { Name = "Caneta esferográfica BRW 0.7 Preta", Sku = "006-CE-BRW-PT", Brand = "BRW", CostPrice = 1.20m, SellingPrice = 3.50m, MinimumStock = 5, CurrentStock = 8, CategoryId = canetas.Id, SupplierId = starAtacado.Id },
+        new() { Name = "Caneta esferográfica BRW 0.7 Vermelha", Sku = "007-CE-BRW-VM", Brand = "BRW", CostPrice = 1.20m, SellingPrice = 3.50m, MinimumStock = 5, CurrentStock = 6, CategoryId = canetas.Id, SupplierId = starAtacado.Id },
+        new() { Name = "Caneta Molin retro gel pastel (kit 5)", Sku = "008-CG-MOLIN-KIT5", Brand = "MOLIN", CostPrice = 15.00m, SellingPrice = 29.90m, MinimumStock = 2, CurrentStock = 3, CategoryId = canetas.Id, SupplierId = canetasAtacado.Id },
+        new() { Name = "Caneta CIS apagável azul", Sku = "009-CA-CIS-AZ", Brand = "CIS", CostPrice = 8.50m, SellingPrice = 16.90m, MinimumStock = 3, CurrentStock = 5, CategoryId = canetas.Id, SupplierId = canetasAtacado.Id },
+        new() { Name = "Caneta CIS apagável preta", Sku = "010-CA-CIS-PT", Brand = "CIS", CostPrice = 8.50m, SellingPrice = 16.90m, MinimumStock = 3, CurrentStock = 4, CategoryId = canetas.Id, SupplierId = canetasAtacado.Id },
+        new() { Name = "Caneta TRIS gel neon (kit 6)", Sku = "011-CG-TRIS-NEON6", Brand = "TRIS", CostPrice = 12.00m, SellingPrice = 24.90m, MinimumStock = 2, CurrentStock = 2, CategoryId = canetas.Id, SupplierId = descontoAqui.Id },
+        new() { Name = "Caneta Tilibra gel glitter 1.0 (kit 8)", Sku = "012-CG-TILIBRA-GLIT8", Brand = "TILIBRA", CostPrice = 20.00m, SellingPrice = 39.90m, MinimumStock = 1, CurrentStock = 3, CategoryId = canetas.Id, SupplierId = canetasAtacado.Id },
+        new() { Name = "Caneta Fofy gel 0.5 pastel rosa", Sku = "013-CG-FOFY-RS", Brand = "FOFY", CostPrice = 3.50m, SellingPrice = 8.90m, MinimumStock = 3, CurrentStock = 5, CategoryId = canetas.Id, SupplierId = starAtacado.Id },
+        new() { Name = "Caneta Leonora brush pen (kit 12)", Sku = "014-CB-LEONORA-KIT12", Brand = "LEONORA", CostPrice = 25.00m, SellingPrice = 49.90m, MinimumStock = 1, CurrentStock = 2, CategoryId = canetas.Id, SupplierId = canetasAtacado.Id },
+        new() { Name = "Caneta Compactor esferográfica 0.7 azul (cx 50)", Sku = "015-CE-COMP-AZ50", Brand = "COMPACTOR", CostPrice = 35.00m, SellingPrice = 59.90m, MinimumStock = 1, CurrentStock = 1, CategoryId = canetas.Id, SupplierId = papeleraAtacado.Id },
+        new() { Name = "Lápis preto HB TRIS (cx 12)", Sku = "016-LP-TRIS-HB12", Brand = "TRIS", CostPrice = 6.00m, SellingPrice = 14.90m, MinimumStock = 2, CurrentStock = 4, CategoryId = lapisCat.Id, SupplierId = descontoAqui.Id },
+        new() { Name = "Borracha branca Tilibra (kit 3)", Sku = "017-BR-TILIBRA-KIT3", Brand = "TILIBRA", CostPrice = 2.50m, SellingPrice = 6.90m, MinimumStock = 3, CurrentStock = 6, CategoryId = papelaria.Id, SupplierId = starAtacado.Id },
+        new() { Name = "Apontador com depósito CIS", Sku = "018-AP-CIS-DEP", Brand = "CIS", CostPrice = 3.00m, SellingPrice = 7.90m, MinimumStock = 3, CurrentStock = 5, CategoryId = acessorios.Id, SupplierId = canetasAtacado.Id },
+        new() { Name = "Régua 30cm transparente Molin", Sku = "019-RG-MOLIN-30", Brand = "MOLIN", CostPrice = 1.50m, SellingPrice = 4.50m, MinimumStock = 3, CurrentStock = 8, CategoryId = acessorios.Id, SupplierId = starAtacado.Id },
+        new() { Name = "Fita corretiva BRW 5mmx6m", Sku = "020-FC-BRW-5X6", Brand = "BRW", CostPrice = 3.80m, SellingPrice = 8.90m, MinimumStock = 2, CurrentStock = 4, CategoryId = acessorios.Id, SupplierId = starAtacado.Id },
+    };
+
+    db.Products.AddRange(products);
+    await db.SaveChangesAsync();
+}
 
 // Make the auto-generated Program class accessible to integration tests
 public partial class Program { }

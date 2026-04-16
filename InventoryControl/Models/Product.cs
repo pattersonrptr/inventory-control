@@ -62,11 +62,17 @@ public class Product
     [Display(Name = "Origem do ID Externo")]
     public string? ExternalIdSource { get; set; }
 
-    public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
+    [StringLength(100)]
+    [Display(Name = "Marca")]
+    public string? Brand { get; set; }
 
-    [StringLength(500)]
+    public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
+    public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
+
+    [NotMapped]
     [Display(Name = "Imagem")]
-    public string? ImagePath { get; set; }
+    public string? PrimaryImagePath => Images?.FirstOrDefault(i => i.IsPrimary)?.ImagePath
+                                       ?? Images?.OrderBy(i => i.DisplayOrder).FirstOrDefault()?.ImagePath;
 
     [NotMapped]
     public bool IsBelowMinimumStock => CurrentStock <= MinimumStock;

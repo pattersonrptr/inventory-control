@@ -17,8 +17,10 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 
 ## Features
 
-- **Products** — register products with cost/selling prices, current stock, and minimum stock thresholds
-- **Categories & Suppliers** — organize products and track supplier information
+- **Products** — register products with cost/selling prices, brand, current stock, minimum stock thresholds, and multiple images
+- **Categories & Suppliers** — organize products with hierarchical categories (parent/child) and track enriched supplier information (contact name, lead time, notes)
+- **Multiple product images** — upload multiple images per product, set primary image, delete individual images via AJAX
+- **Inline creation** — create categories and suppliers directly from the product form via modal dialogs (no page navigation)
 - **Stock Movements** — record entries (with supplier, unit cost, date) and exits (sale, loss, return)
 - **Automatic stock updates** on every movement
 - **Low-stock alerts** for products below the minimum threshold
@@ -29,7 +31,6 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 - **Multi-platform architecture** — plugin-based platform registry supports N e-commerce integrations (currently Nuvemshop; Shopify, WooCommerce, etc. can be added)
 - **Email notifications** — configurable SMTP alerts when products drop below minimum stock
 - **CSV import** — bulk import Products, Categories, and Suppliers via CSV files (Admin only)
-- **Product images** — upload images for products, displayed on details and edit pages
 - **REST API** — full CRUD API at `/api/v1/` for Products, Categories, and Suppliers with Swagger UI
 - **API key authentication** — secure API access via `X-Api-Key` header
 - **Authentication** — ASP.NET Core Identity with email/password login and role-based access (Admin / Operator)
@@ -231,7 +232,7 @@ inventory-control/
 │   ├── Data/                  # AppDbContext, EF Core config, audit interceptor
 │   ├── Integrations/          # E-commerce platform abstractions + Nuvemshop
 │   ├── Migrations/            # EF Core migrations
-│   ├── Models/                # Domain entities + Identity user + audit log
+│   ├── Models/                # Domain entities (Product, ProductImage, Category, Supplier, StockMovement) + Identity + audit
 │   ├── Repositories/          # Data access layer (interfaces + implementations)
 │   ├── ViewModels/            # View-specific models (reports, auth, user management)
 │   ├── Views/                 # Razor views
@@ -243,6 +244,7 @@ inventory-control/
 │   ├── Fixtures/              # Test data builders and database fixtures
 │   ├── Integration/           # Controller integration tests
 │   └── Unit/                  # Unit tests (models, repositories, services, view models)
+├── truenas-catalog/           # TrueNAS catalog app definition (ix_lib-based)
 ├── CHANGELOG.md
 ├── LICENSE
 └── README.md

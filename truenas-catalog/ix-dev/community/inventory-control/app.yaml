@@ -1,0 +1,53 @@
+app_version: "6.0.1"
+capabilities:
+  - description: "Inventory Control is able to change file ownership"
+    name: "CHOWN"
+  - description: "Inventory Control is able to bypass file permission checks"
+    name: "DAC_OVERRIDE"
+  - description: "Inventory Control is able to bypass permission checks for file operations"
+    name: "FOWNER"
+  - description: "Inventory Control is able to change group ID of processes"
+    name: "SETGID"
+  - description: "Inventory Control is able to change user ID of processes"
+    name: "SETUID"
+  - description: "Inventory Control is able to bind to privileged ports (< 1024)"
+    name: "NET_BIND_SERVICE"
+categories:
+  - productivity
+date_added: "2025-06-28"
+description: "ASP.NET Core MVC inventory management system with e-commerce integration (Nuvemshop). Manage products, categories, suppliers, stock movements, and synchronize with online stores."
+home: "https://github.com/pattersonrptr/inventory-control"
+host_mounts: []
+icon: "https://raw.githubusercontent.com/pattersonrptr/inventory-control/main/ControleEstoque/wwwroot/icon.png"
+keywords:
+  - inventory
+  - stock
+  - e-commerce
+  - nuvemshop
+  - management
+  - erp
+lib_version: "2.3.2"
+lib_version_hash: ""
+maintainers:
+  - email: "pattersonrptr@users.noreply.github.com"
+    name: "pattersonrptr"
+    url: "https://github.com/pattersonrptr"
+name: "inventory-control"
+run_as_context:
+  - description: "Container [inventory-control] runs as root user and group."
+    gid: 0
+    group_name: "root"
+    uid: 0
+    user_name: "root"
+  - description: "Container [inventory-db] runs as user 999 (postgres)."
+    gid: 999
+    group_name: "postgres"
+    uid: 999
+    user_name: "postgres"
+screenshots: []
+sources:
+  - "https://github.com/pattersonrptr/inventory-control"
+  - "https://hub.docker.com/r/pattersonrptr/inventory-control"
+title: "Inventory Control"
+train: community
+version: 1.0.0

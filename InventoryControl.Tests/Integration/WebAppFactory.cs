@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -26,8 +27,10 @@ public class WebAppFactory : WebApplicationFactory<Program>
                 services.Remove(descriptor);
 
             // Add InMemory database for testing
+            var dbName = "TestDb_" + Guid.NewGuid();
             services.AddDbContext<AppDbContext>(options =>
-                options.UseInMemoryDatabase("TestDb_" + Guid.NewGuid()));
+                options.UseInMemoryDatabase(dbName)
+                       .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
 
             // Replace authentication with a test scheme that auto-authenticates as Admin
             services.AddAuthentication(options =>

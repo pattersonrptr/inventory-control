@@ -1,0 +1,60 @@
+resources:
+  limits:
+    cpus: 2.0
+    memory: 4096
+
+TZ: "America/Sao_Paulo"
+
+inventory:
+  admin_email: "admin@test.local"
+  admin_password: "test-pass-123"
+  admin_full_name: "Test Admin"
+  api_key: "test-api-key-456"
+  db_user: "inventory"
+  db_password: "test-db-pass-456"
+  store_enabled: true
+  store_name: "Nuvemshop"
+  store_id: "1234567"
+  store_access_token: "test-token-abc123"
+  store_sync_interval: 30
+  backup_enabled: true
+  backup_schedule: "0 */6 * * *"
+  backup_keep_days: 14
+  backup_keep_weeks: 8
+  offsite_enabled: true
+  offsite_remote: "gdrive:test-inventory-backups"
+  offsite_interval_hours: 6
+  additional_envs:
+    - name: "CUSTOM_VAR"
+      value: "custom-value"
+
+network:
+  web_port:
+    bind_mode: "published"
+    port_number: 30080
+    host_ips: []
+
+storage:
+  postgres_data:
+    type: ix_volume
+    ix_volume_config:
+      dataset_name: test_postgres_data
+      create_host_path: true
+  backups:
+    type: ix_volume
+    ix_volume_config:
+      dataset_name: test_backups
+      create_host_path: true
+  rclone_config:
+    type: ix_volume
+    ix_volume_config:
+      dataset_name: test_rclone_config
+      create_host_path: true
+  additional_storage: []
+
+labels: []
+
+ix_volumes:
+  test_postgres_data: /opt/tests/mnt/inventory/postgres-data
+  test_backups: /opt/tests/mnt/inventory/backups
+  test_rclone_config: /opt/tests/mnt/inventory/rclone-config
