@@ -47,7 +47,7 @@ into 6 phases following Semantic Versioning.
 | F7  | Product images — upload local + push/pull from Nuvemshop | ✅ |
 | F8  | Public REST API with Swagger, API key auth, rate limiting | ✅ |
 | F9  | Profitability report (cost vs selling price × quantity sold) | ✅ |
-| F10 | Multi-platform preparation — architecture for N e-commerce platforms | LOW |
+| F10 | Multi-platform preparation — architecture for N e-commerce platforms | ✅ |
 
 ---
 

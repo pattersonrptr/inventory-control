@@ -153,28 +153,53 @@ builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 builder.Services.AddScoped<IProcessedOrderRepository, ProcessedOrderRepository>();
 
 // Conditional registration of the e-commerce integration layer
-var integrationConfig = builder.Configuration
+// Supports multiple stores — each entry in the "Stores" array is an independent store connection.
+// Backward compatibility: if "Integration" section exists (single store), it is auto-migrated.
+var storesConfig = builder.Configuration
+    .GetSection("Stores")
+    .Get<List<ControleEstoque.Integrations.Abstractions.IntegrationConfig>>()
+    ?? new List<ControleEstoque.Integrations.Abstractions.IntegrationConfig>();
+
+// Backward compatibility: migrate legacy single-store "Integration" config
+var legacyConfig = builder.Configuration
     .GetSection("Integration")
     .Get<ControleEstoque.Integrations.Abstractions.IntegrationConfig>();
-
-if (integrationConfig?.Enabled == true)
+if (legacyConfig?.Enabled == true && !storesConfig.Any(s => s.Enabled))
 {
-    builder.Services.AddSingleton(integrationConfig);
-    builder.Services.AddHttpClient<ControleEstoque.Integrations.Nuvemshop.NuvemshopClient>()
-        .AddStandardResilienceHandler(options =>
-        {
-            options.Retry.MaxRetryAttempts = 3;
-            options.Retry.Delay = TimeSpan.FromSeconds(1);
-            options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
-            options.CircuitBreaker.FailureRatio = 0.5;
-            options.CircuitBreaker.MinimumThroughput = 5;
-            options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(15);
-            options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(10);
-            options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(45);
-        });
-    builder.Services.AddScoped<ControleEstoque.Integrations.Abstractions.IStoreIntegration,
-        ControleEstoque.Integrations.Nuvemshop.NuvemshopIntegration>();
-    builder.Services.AddScoped<ControleEstoque.Integrations.SyncService>();
+    if (string.IsNullOrEmpty(legacyConfig.Name))
+        legacyConfig.Name = legacyConfig.Platform;
+    var legacyInterval = builder.Configuration.GetValue<int?>("Integration:OrderSyncIntervalMinutes");
+    if (legacyInterval.HasValue)
+        legacyConfig.OrderSyncIntervalMinutes = legacyInterval.Value;
+    storesConfig.Add(legacyConfig);
+}
+
+builder.Services.AddSingleton(storesConfig);
+
+// Platform factory registry — register all known platform adapters
+builder.Services.AddSingleton<ControleEstoque.Integrations.Abstractions.IPlatformFactory,
+    ControleEstoque.Integrations.NuvemshopPlatformFactory>();
+
+// Named HttpClient per platform with resilience handlers
+builder.Services.AddHttpClient("Platform_nuvemshop")
+    .AddStandardResilienceHandler(options =>
+    {
+        options.Retry.MaxRetryAttempts = 3;
+        options.Retry.Delay = TimeSpan.FromSeconds(1);
+        options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+        options.CircuitBreaker.FailureRatio = 0.5;
+        options.CircuitBreaker.MinimumThroughput = 5;
+        options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(15);
+        options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(10);
+        options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(45);
+    });
+
+builder.Services.AddSingleton<ControleEstoque.Integrations.PlatformRegistry>();
+builder.Services.AddScoped<ControleEstoque.Integrations.SyncServiceFactory>();
+
+// Background order sync runs for all enabled stores
+if (storesConfig.Any(s => s.Enabled))
+{
     builder.Services.AddHostedService<ControleEstoque.BackgroundServices.OrderSyncBackgroundService>();
 }
 
