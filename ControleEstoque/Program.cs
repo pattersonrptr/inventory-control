@@ -255,6 +255,33 @@ using (var scope = app.Services.CreateScope())
     // leaving integer PK columns without SERIAL/IDENTITY. Add sequences idempotently.
     if (usePostgres)
     {
+        // Fix DateTime columns: SQLite migrations create them as TEXT, but Npgsql requires proper
+        // timestamp types for date operations (date_part, comparisons, etc.).
+        var fixDateTimeColumnsSql = """
+            DO $$
+            DECLARE
+                tbl  TEXT;
+                col  TEXT;
+                typ  TEXT;
+            BEGIN
+                FOR tbl, col, typ IN
+                    VALUES ('AuditLogs','Timestamp','timestamp without time zone'),
+                           ('ProcessedOrders','ProcessedAt','timestamp without time zone'),
+                           ('SyncCursors','LastProcessedAt','timestamp without time zone'),
+                           ('StockMovements','Date','timestamp without time zone'),
+                           ('AspNetUsers','LockoutEnd','timestamp with time zone')
+                LOOP
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = tbl AND column_name = col AND data_type = 'text'
+                    ) THEN
+                        EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE %s USING %I::%s', tbl, col, typ, col, typ);
+                    END IF;
+                END LOOP;
+            END $$;
+            """;
+        db.Database.ExecuteSqlRaw(fixDateTimeColumnsSql);
+
         // Fix boolean columns: SQLite migrations create them as INTEGER, but Npgsql sends boolean values.
         // Convert INTEGER columns that should be boolean to proper boolean type.
         var fixBooleanColumnsSql = """

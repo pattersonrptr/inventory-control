@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- PostgreSQL: convert DateTime TEXT columns to proper `timestamp` types at startup (fixes 500 errors on Reports/Monthly and AuditLogs pages when running with SQLite-generated migrations)
+
 ## [5.0.0] - 2026-04-17
 
 ### Added
