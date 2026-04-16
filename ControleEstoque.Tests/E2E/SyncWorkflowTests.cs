@@ -33,7 +33,7 @@ public class SyncWorkflowTests
 
         var syncService = new SyncService(
             storeMock.Object, productRepo, movementRepo, categoryRepo,
-            processedOrderRepo, config, Mock.Of<ILogger<SyncService>>());
+            processedOrderRepo, context, config, Mock.Of<ILogger<SyncService>>());
 
         // Step 1: Sync products — links external ID by SKU
         storeMock.Setup(s => s.GetProductsAsync())

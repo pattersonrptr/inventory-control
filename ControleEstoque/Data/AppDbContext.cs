@@ -43,6 +43,9 @@ public class AppDbContext : DbContext
             entity.Property(p => p.CostPrice).HasColumnType("decimal(10,2)");
             entity.Property(p => p.SellingPrice).HasColumnType("decimal(10,2)");
             entity.Property(p => p.Sku).HasMaxLength(100);
+            entity.HasIndex(p => p.Sku)
+                  .IsUnique()
+                  .HasFilter("\"Sku\" IS NOT NULL");
             entity.Property(p => p.ExternalId).HasMaxLength(200);
             entity.Property(p => p.ExternalIdSource).HasMaxLength(50);
 

@@ -16,8 +16,8 @@ public class ProductRepositoryTests
         var supplier = TestDataBuilder.CreateSupplier();
         context.Categories.Add(category);
         context.Suppliers.Add(supplier);
-        context.Products.Add(TestDataBuilder.CreateProduct(id: 1, name: "Zebra", categoryId: 1, supplierId: 1));
-        context.Products.Add(TestDataBuilder.CreateProduct(id: 2, name: "Apple", categoryId: 1, supplierId: 1));
+        context.Products.Add(TestDataBuilder.CreateProduct(id: 1, name: "Zebra", categoryId: 1, supplierId: 1, sku: "ZEBRA-001"));
+        context.Products.Add(TestDataBuilder.CreateProduct(id: 2, name: "Apple", categoryId: 1, supplierId: 1, sku: "APPLE-001"));
         await context.SaveChangesAsync();
 
         var repo = new ProductRepository(context);
@@ -62,8 +62,8 @@ public class ProductRepositoryTests
         using var context = _fixture.CreateContext();
         context.Categories.Add(TestDataBuilder.CreateCategory());
         context.Suppliers.Add(TestDataBuilder.CreateSupplier());
-        context.Products.Add(TestDataBuilder.CreateProduct(id: 1, name: "Low", currentStock: 5, minimumStock: 10));
-        context.Products.Add(TestDataBuilder.CreateProduct(id: 2, name: "OK", currentStock: 50, minimumStock: 10));
+        context.Products.Add(TestDataBuilder.CreateProduct(id: 1, name: "Low", currentStock: 5, minimumStock: 10, sku: "LOW-001"));
+        context.Products.Add(TestDataBuilder.CreateProduct(id: 2, name: "OK", currentStock: 50, minimumStock: 10, sku: "OK-001"));
         await context.SaveChangesAsync();
 
         var repo = new ProductRepository(context);

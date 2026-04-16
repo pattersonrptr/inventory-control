@@ -59,7 +59,7 @@ public class StockMovementRepositoryTests
         using var context = _fixture.CreateContext();
         await SeedBaseDataAsync(context);
         context.Categories.Add(TestDataBuilder.CreateCategory(id: 2, name: "Other"));
-        context.Products.Add(TestDataBuilder.CreateProduct(id: 2, name: "Other Product", categoryId: 2));
+        context.Products.Add(TestDataBuilder.CreateProduct(id: 2, name: "Other Product", categoryId: 2, sku: "OTHER-001"));
         context.StockMovements.Add(TestDataBuilder.CreateEntry(productId: 1));
         context.StockMovements.Add(TestDataBuilder.CreateEntry(productId: 2));
         await context.SaveChangesAsync();

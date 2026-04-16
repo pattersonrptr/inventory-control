@@ -1,3 +1,4 @@
+using ControleEstoque.Data;
 using ControleEstoque.Integrations;
 using ControleEstoque.Models;
 using ControleEstoque.Repositories.Interfaces;
@@ -11,6 +12,7 @@ public class StockMovementsController : Controller
     private readonly IStockMovementRepository _movementRepo;
     private readonly IProductRepository _productRepo;
     private readonly ISupplierRepository _supplierRepo;
+    private readonly AppDbContext _dbContext;
     private readonly SyncService? _syncService;
     private readonly ILogger<StockMovementsController> _logger;
 
@@ -18,12 +20,14 @@ public class StockMovementsController : Controller
         IStockMovementRepository movementRepo,
         IProductRepository productRepo,
         ISupplierRepository supplierRepo,
+        AppDbContext dbContext,
         ILogger<StockMovementsController> logger,
         SyncService? syncService = null)
     {
         _movementRepo = movementRepo;
         _productRepo = productRepo;
         _supplierRepo = supplierRepo;
+        _dbContext = dbContext;
         _logger = logger;
         _syncService = syncService;
     }
@@ -57,8 +61,18 @@ public class StockMovementsController : Controller
         var product = await _productRepo.GetByIdAsync(movement.ProductId);
         if (product is null) return NotFound();
 
-        await _movementRepo.AddAsync(movement);
-        await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock + movement.Quantity);
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            await _movementRepo.AddAsync(movement);
+            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock + movement.Quantity);
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
 
         await TryPushStockAsync(product.Id, product.Name);
 
@@ -99,8 +113,18 @@ public class StockMovementsController : Controller
             return View(movement);
         }
 
-        await _movementRepo.AddAsync(movement);
-        await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock - movement.Quantity);
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            await _movementRepo.AddAsync(movement);
+            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock - movement.Quantity);
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
 
         await TryPushStockAsync(product.Id, product.Name);
 

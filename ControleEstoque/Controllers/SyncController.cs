@@ -39,10 +39,15 @@ public class SyncController : ControllerBase
         {
             await _syncService.SyncProductsFromStoreAsync();
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Product sync failed: external API unreachable.");
+            return StatusCode(502, new { error = "ExternalApiError", message = "Product sync failed: could not reach the external store API.", status = 502 });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Product sync failed.");
-            return StatusCode(502, new { message = "Product sync failed. Check the server logs for details." });
+            return StatusCode(500, new { error = "InternalError", message = "Product sync failed due to an internal error.", status = 500 });
         }
 
         return Ok(new { message = "Product sync completed." });
@@ -72,10 +77,15 @@ public class SyncController : ControllerBase
         {
             await _syncService.PushStockToStoreAsync(productId);
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Push-stock failed for product id={ProductId}: external API unreachable.", productId);
+            return StatusCode(502, new { error = "ExternalApiError", message = $"Failed to push stock for product {productId}: could not reach the external store API.", status = 502 });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Push-stock failed for product id={ProductId}.", productId);
-            return StatusCode(502, new { message = $"Failed to push stock for product {productId}. Check the server logs for details." });
+            return StatusCode(500, new { error = "InternalError", message = $"Failed to push stock for product {productId} due to an internal error.", status = 500 });
         }
 
         return Ok(new { message = $"Stock for product {productId} pushed to store." });
@@ -98,10 +108,15 @@ public class SyncController : ControllerBase
         {
             orders = await _store.GetOrdersAsync(sinceDate);
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Failed to fetch orders from the store: external API unreachable.");
+            return StatusCode(502, new { error = "ExternalApiError", message = "Failed to fetch orders from the store: could not reach the external store API.", status = 502 });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch orders from the store.");
-            return StatusCode(502, new { message = "Failed to fetch orders from the store. Check the server logs for details." });
+            return StatusCode(500, new { error = "InternalError", message = "Failed to fetch orders from the store due to an internal error.", status = 500 });
         }
 
         var orderList = orders.ToList();
@@ -150,10 +165,15 @@ public class SyncController : ControllerBase
         {
             await _syncService.PushProductToStoreAsync(productId);
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Push-product failed for product id={ProductId}: external API unreachable.", productId);
+            return StatusCode(502, new { error = "ExternalApiError", message = $"Failed to push product {productId}: could not reach the external store API.", status = 502 });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Push-product failed for product id={ProductId}.", productId);
-            return StatusCode(502, new { message = $"Failed to push product {productId} to store. Check the server logs for details." });
+            return StatusCode(500, new { error = "InternalError", message = $"Failed to push product {productId} due to an internal error.", status = 500 });
         }
 
         return Ok(new { message = $"Product {productId} pushed to store." });
@@ -171,10 +191,15 @@ public class SyncController : ControllerBase
         {
             await _syncService.SyncCategoriesToStoreAsync();
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Category sync failed: external API unreachable.");
+            return StatusCode(502, new { error = "ExternalApiError", message = "Category sync failed: could not reach the external store API.", status = 502 });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Category sync failed.");
-            return StatusCode(502, new { message = "Category sync failed. Check the server logs for details." });
+            return StatusCode(500, new { error = "InternalError", message = "Category sync failed due to an internal error.", status = 500 });
         }
 
         return Ok(new { message = "Category sync completed." });
