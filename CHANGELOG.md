@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-04-17
+
 ### Added
 
 - **Multi-platform architecture** — support for N e-commerce platform integrations simultaneously via platform registry pattern
@@ -205,7 +207,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSRF protection on all form-based POST/PUT/DELETE actions
 - No raw SQL — all queries through EF Core with LINQ
 
-[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v4.3.0...HEAD
+[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.3.0...v5.0.0
 [4.3.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.0.0...v4.1.0
