@@ -29,6 +29,7 @@ Thumbs.db
 **/appsettings.Production.json
 **/appsettings.Local.json
 secrets.json
+docker-compose.truenas.yml
 
 ## Rider
 .idea/
