@@ -108,9 +108,36 @@ Environment variables (use `__` instead of `:` for nested keys):
 
 | Variable | Description | Default |
 |---|---|---|
-| `DB_PASSWORD` | PostgreSQL password | `estoque` |
+| `DB_PASSWORD` | PostgreSQL password | `$Caramelo123` |
 | `RCLONE_REMOTE` | rclone remote destination | `gdrive:inventory-control-backups` |
 | `SYNC_INTERVAL` | Offsite sync interval | `12h` |
+
+### TrueNAS SCALE
+
+**Deployment via "Install via YAML":**
+
+1. Copy `docker-compose.truenas.example.yml` and replace placeholders:
+   - `<YOUR_DB_PASSWORD>` — secure password (no special shell chars: avoid `$`, use `#` or alphanumeric)
+   - `<YOUR_NUVEMSHOP_STORE_ID>` — from Nuvemshop admin
+   - `<YOUR_NUVEMSHOP_ACCESS_TOKEN>` — from Nuvemshop API credentials
+
+2. In TrueNAS UI → Apps → Discover → Custom App → **Install via YAML**:
+   - **Name**: `inventory-control`
+   - **Custom Config**: paste the edited YAML
+
+3. Create ZFS directories first (via TrueNAS Shell):
+   ```bash
+   mkdir -p /mnt/Storage/apps/inventory_control/db-data
+   mkdir -p /mnt/Storage/apps/inventory_control/backups
+   ```
+
+**Features:**
+- Uses host paths on ZFS (`/mnt/Storage/apps/inventory_control/`) for snapshots/backups
+- Port `9080` → app port `8080` (avoids conflicts with other TrueNAS apps)
+- All 3 services: PostgreSQL, app, local backup
+- Offsite backup (rclone) disabled by default; add as separate app when needed
+
+**Access:** `http://<truenas-ip>:9080`
 
 ### Backup & Restore
 
@@ -118,26 +145,32 @@ Environment variables (use `__` instead of `:` for nested keys):
 
 ```bash
 # List available backups
-docker compose exec backup ls -la /backups/estoque
+docker compose exec backup ls -la /backups/caramelo_inventory
 
 # Trigger a manual backup
 docker compose exec backup /backup.sh
 
 # Restore from a backup (replace filename with the desired backup)
-docker compose exec -T db psql -U estoque -d estoque < backup.sql
+docker compose exec -T db psql -U caramelo -d caramelo_inventory < backup.sql
 ```
 
-**Offsite backups** (optional) sync the backup volume to Google Drive via rclone:
+**Offsite backups** (on TrueNAS) sync daily to Google Drive via rclone:
 
-```bash
-# 1. Generate rclone config interactively (one-time setup)
-docker run --rm -it -v inventory-control_rclone-config:/config/rclone rclone/rclone config
+1. **Set up rclone config** (one-time only):
+   ```bash
+   docker run --rm -it -v /mnt/Storage/apps/inventory_control/rclone-config:/config/rclone rclone/rclone config
+   
+   # Follow the wizard:
+   # - "Create new remote" → y
+   # - Remote name → gdrive
+   # - Storage type → Google Drive (number option)
+   # - Client ID → leave blank (uses default)
+   # - OAuth authentication → opens browser for authorization
+   ```
 
-# 2. Create a remote named "gdrive" (type: Google Drive, follow OAuth flow)
+2. **Restart the app** — offsite-backup container auto-syncs `/backups` to Google Drive every 12 hours
 
-# 3. Start with offsite profile
-docker compose --profile offsite up -d
-```
+For **local development** (docker compose): rclone is optional. Add manually if needed.
 
 ## Architecture
 

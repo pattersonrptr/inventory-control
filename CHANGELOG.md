@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- TrueNAS-specific Docker Compose deployment files:
+  - `docker-compose.truenas.yml` (production with real credentials)
+  - `docker-compose.truenas.example.yml` (template with placeholders)
+  - Uses ZFS host paths, port `9080`, all Nuvemshop integration vars
+- Offsite backup to Google Drive via rclone: syncs local backups every 12h (now always-on, no profiles needed)
+- Documentation for TrueNAS deployment and rclone configuration in README
 - Full pt-BR localization of the entire user interface (all views, models, controllers)
 - Brazilian date format (`dd/MM/yyyy`) and currency format (`R$` with comma decimal separator)
 - jQuery Validation override to accept comma as decimal separator in form inputs
@@ -19,8 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documented `Integration:OrderSyncIntervalMinutes` in `appsettings.example.json` and README (env var: `Integration__OrderSyncIntervalMinutes`)
 - Health check endpoint (`/health`) with database connectivity probe for Docker and TrueNAS monitoring
 - Automated PostgreSQL backup container (`prodrigestivill/postgres-backup-local`) running every 12 hours with 7-day daily and 4-week weekly retention
-- Optional offsite backup to Google Drive via rclone (`docker compose --profile offsite up -d`)
-- Unified `docker-compose.yml` with all services: `db`, `app`, `backup`, and opt-in `offsite-backup`
+- Unified `docker-compose.yml` with all services: `db`, `app`, `backup`, and `offsite-backup`
+
+### Changed
+
+- Database credentials updated: database `caramelo_inventory`, user `caramelo`
+- Offsite backup now always runs (not optional profile) for consistent deployment
 
 ### Fixed
 

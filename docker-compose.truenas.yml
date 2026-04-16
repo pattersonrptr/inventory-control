@@ -1,3 +1,8 @@
+# TrueNAS SCALE deployment — paste into "Install via YAML" → Custom Config.
+# Uses host paths on ZFS dataset instead of named volumes.
+# Does not expose common ports to avoid conflicts with other TrueNAS apps.
+# To enable offsite backup, remove the "profiles" line or deploy separately.
+
 services:
   db:
     image: postgres:16-alpine
@@ -5,9 +10,9 @@ services:
     environment:
       POSTGRES_DB: caramelo_inventory
       POSTGRES_USER: caramelo
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-#Caramelo123}
+      POSTGRES_PASSWORD: "#Caramelo123"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - /mnt/Storage/apps/inventory_control/db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U caramelo -d caramelo_inventory"]
       interval: 10s
@@ -16,19 +21,21 @@ services:
     restart: unless-stopped
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: pattersonrptr/inventory-control:latest
     container_name: inventory-control
     ports:
-      - "8080:8080"
+      - "9080:8080"
     depends_on:
       db:
         condition: service_healthy
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=caramelo_inventory;Username=caramelo;Password=${DB_PASSWORD:-#Caramelo123}
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=caramelo_inventory;Username=caramelo;Password=#Caramelo123
+      - Integration__Enabled=true
+      - Integration__Platform=nuvemshop
+      - Integration__StoreId=7469767
+      - Integration__AccessToken=a25cf2ec26ca8f325bf7281fb2614b72d081aa5e
+      - Integration__OrderSyncIntervalMinutes=15
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 30s
@@ -47,41 +54,35 @@ services:
       POSTGRES_HOST: db
       POSTGRES_DB: caramelo_inventory
       POSTGRES_USER: caramelo
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-#Caramelo123}
+      POSTGRES_PASSWORD: "#Caramelo123"
       SCHEDULE: "0 */12 * * *"
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 0
       HEALTHCHECK_PORT: 8081
     volumes:
-      - backups:/backups
+      - /mnt/Storage/apps/inventory_control/backups:/backups
     restart: unless-stopped
 
   offsite-backup:
     image: rclone/rclone
     container_name: inventory-offsite-backup
-    profiles: ["offsite"]
     depends_on:
       - backup
     volumes:
-      - backups:/backups:ro
-      - rclone-config:/config/rclone
+      - /mnt/Storage/apps/inventory_control/backups:/backups:ro
+      - /mnt/Storage/apps/inventory_control/rclone-config:/config/rclone
     environment:
-      RCLONE_REMOTE: ${RCLONE_REMOTE:-gdrive:inventory-control-backups}
-      SYNC_INTERVAL: ${SYNC_INTERVAL:-12h}
+      RCLONE_REMOTE: gdrive:inventory-control-backups
+      SYNC_INTERVAL: 12h
     entrypoint: /bin/sh
     command:
       - -c
       - |
-        echo "Offsite backup: syncing /backups to $$RCLONE_REMOTE every $$SYNC_INTERVAL"
+        echo "Offsite backup: syncing /backups to $RCLONE_REMOTE every $SYNC_INTERVAL"
         while true; do
-          rclone sync /backups $$RCLONE_REMOTE --log-level INFO
-          sleep_seconds=$$(echo $$SYNC_INTERVAL | sed 's/h/*3600/' | sed 's/m/*60/' | bc)
-          sleep $$sleep_seconds
+          rclone sync /backups $RCLONE_REMOTE --log-level INFO
+          sleep_seconds=$(echo $SYNC_INTERVAL | sed 's/h/*3600/' | sed 's/m/*60/' | bc)
+          sleep $sleep_seconds
         done
     restart: unless-stopped
-
-volumes:
-  db-data:
-  backups:
-  rclone-config:
