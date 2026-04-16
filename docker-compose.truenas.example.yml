@@ -33,11 +33,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=caramelo_inventory;Username=caramelo;Password=<YOUR_DB_PASSWORD>
-      - Integration__Enabled=true
-      - Integration__Platform=nuvemshop
-      - Integration__StoreId=<YOUR_NUVEMSHOP_STORE_ID>
-      - Integration__AccessToken=<YOUR_NUVEMSHOP_ACCESS_TOKEN>
-      - Integration__OrderSyncIntervalMinutes=15
+      - Stores__0__Name=Nuvemshop
+      - Stores__0__Enabled=true
+      - Stores__0__Platform=nuvemshop
+      - Stores__0__StoreId=<YOUR_NUVEMSHOP_STORE_ID>
+      - Stores__0__AccessToken=<YOUR_NUVEMSHOP_ACCESS_TOKEN>
+      - Stores__0__OrderSyncIntervalMinutes=15
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 30s
