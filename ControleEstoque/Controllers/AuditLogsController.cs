@@ -1,4 +1,5 @@
 using ControleEstoque.Data;
+using ControleEstoque.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,13 +16,17 @@ public class AuditLogsController : Controller
         _context = context;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 50)
     {
-        var logs = await _context.AuditLogs
-            .OrderByDescending(a => a.Timestamp)
-            .Take(200)
+        var query = _context.AuditLogs
+            .OrderByDescending(a => a.Timestamp);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
-        return View(logs);
+        return View(new PagedResult<AuditLog>(items, totalCount, page, pageSize));
     }
 }

@@ -1,5 +1,8 @@
+using ControleEstoque.Data;
 using ControleEstoque.Integrations;
 using ControleEstoque.Integrations.Abstractions;
+using ControleEstoque.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,12 +13,14 @@ namespace ControleEstoque.BackgroundServices;
 /// Hosted background service that periodically fetches new orders from the
 /// external store and processes them (recording stock exit movements).
 /// Runs every 15 minutes by default (configurable via Integration:OrderSyncIntervalMinutes).
+/// Tracks last processed time in the database to avoid re-fetching old orders.
 /// </summary>
 public class OrderSyncBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<OrderSyncBackgroundService> _logger;
     private readonly TimeSpan _interval;
+    private const string SyncStateKey = "OrderSync";
 
     public OrderSyncBackgroundService(
         IServiceScopeFactory scopeFactory,
@@ -51,10 +56,12 @@ public class OrderSyncBackgroundService : BackgroundService
             await using var scope = _scopeFactory.CreateAsyncScope();
             var store = scope.ServiceProvider.GetRequiredService<IStoreIntegration>();
             var syncService = scope.ServiceProvider.GetRequiredService<SyncService>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            // Look back twice the sync interval to avoid missing orders at boundaries
-            // (e.g., if the previous run was slightly late or the store has clock drift).
-            var since = DateTime.UtcNow.Subtract(_interval * 2);
+            // Use persisted last-processed timestamp; fall back to interval×2 for first run
+            var syncState = await dbContext.SyncStates.FindAsync([SyncStateKey], stoppingToken);
+            var since = syncState?.LastProcessedAt ?? DateTime.UtcNow.Subtract(_interval * 2);
+
             var orders = await store.GetOrdersAsync(since);
 
             int processed = 0;
@@ -79,6 +86,18 @@ public class OrderSyncBackgroundService : BackgroundService
                     failed++;
                 }
             }
+
+            // Persist the current time as last processed
+            if (syncState is null)
+            {
+                syncState = new SyncState { Key = SyncStateKey, LastProcessedAt = DateTime.UtcNow };
+                dbContext.SyncStates.Add(syncState);
+            }
+            else
+            {
+                syncState.LastProcessedAt = DateTime.UtcNow;
+            }
+            await dbContext.SaveChangesAsync(stoppingToken);
 
             _logger.LogInformation(
                 "OrderSyncBackgroundService: completed. Processed={Processed}, Skipped={Skipped}, Failed={Failed}.",

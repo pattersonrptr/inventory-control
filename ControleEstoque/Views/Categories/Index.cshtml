@@ -1,4 +1,4 @@
-@model IEnumerable<Category>
+@model PagedResult<Category>
 @{
     ViewData["Title"] = "Categorias";
 }
@@ -23,7 +23,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model)
+                @foreach (var item in Model.Items)
                 {
                     <tr>
                         <td class="text-muted">@item.Id</td>
@@ -44,7 +44,7 @@
                         </td>
                     </tr>
                 }
-                @if (!Model.Any())
+                @if (!Model.Items.Any())
                 {
                     <tr>
                         <td colspan="5" class="text-center text-muted py-4">
@@ -57,3 +57,5 @@
         </table>
     </div>
 </div>
+
+@await Html.PartialAsync("_Pagination", (object)Model)

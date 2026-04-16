@@ -21,11 +21,11 @@ into 6 phases following Semantic Versioning.
 |----|----------|-------|-------|
 | 1  | CRITICAL | No transactions in multi-step operations (SyncService + StockMovementsController) | ✅ |
 | 2  | CRITICAL | No uniqueness constraint on Product.Sku | ✅ |
-| 3  | HIGH     | No pagination in list views / repositories | 🔲 |
-| 4  | HIGH     | OrderSync fetches all orders in interval×2 window | 🔲 |
-| 5  | HIGH     | No rate limiting on API endpoints | 🔲 |
+| 3  | HIGH     | No pagination in list views / repositories | ✅ |
+| 4  | HIGH     | OrderSync fetches all orders in interval×2 window | ✅ |
+| 5  | HIGH     | No rate limiting on API endpoints | ✅ |
 | 6  | MEDIUM   | ProcessOrderAsync partial success — no rollback on item failure | ✅ |
-| 7  | MEDIUM   | No retry / circuit breaker on Nuvemshop API calls | 🔲 |
+| 7  | MEDIUM   | No retry / circuit breaker on Nuvemshop API calls | ✅ |
 | 8  | MEDIUM   | API returns generic 502 — no useful error details | ✅ |
 | 10 | LOW      | No audit trail (who / what / when / how) | ✅ |
 | 11 | LOW      | No CSV/Excel import for bulk data entry | 🔲 |

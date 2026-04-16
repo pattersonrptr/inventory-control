@@ -32,8 +32,8 @@ public class StockMovementsController : Controller
         _syncService = syncService;
     }
 
-    public async Task<IActionResult> Index()
-        => View(await _movementRepo.GetAllAsync());
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 25)
+        => View(await _movementRepo.GetAllAsync(page, pageSize));
 
     // GET: StockMovements/Entry
     public async Task<IActionResult> Entry()

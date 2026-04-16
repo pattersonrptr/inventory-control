@@ -1,4 +1,4 @@
-@model IEnumerable<StockMovement>
+@model PagedResult<StockMovement>
 @{
     ViewData["Title"] = "Histórico de Movimentações";
 }
@@ -30,7 +30,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model)
+                @foreach (var item in Model.Items)
                 {
                     <tr>
                         <td>@item.Date.ToString("dd/MM/yyyy")</td>
@@ -66,7 +66,7 @@
                         <td class="text-muted small">@(item.Notes ?? "—")</td>
                     </tr>
                 }
-                @if (!Model.Any())
+                @if (!Model.Items.Any())
                 {
                     <tr>
                         <td colspan="7" class="text-center text-muted py-4">
@@ -79,3 +79,5 @@
         </table>
     </div>
 </div>
+
+@await Html.PartialAsync("_Pagination", (object)Model)

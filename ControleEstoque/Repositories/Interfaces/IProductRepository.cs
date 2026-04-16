@@ -5,6 +5,7 @@ namespace ControleEstoque.Repositories.Interfaces;
 public interface IProductRepository
 {
     Task<IEnumerable<Product>> GetAllAsync();
+    Task<PagedResult<Product>> GetAllAsync(int page, int pageSize);
     Task<Product?> GetByIdAsync(int id);
     Task<IEnumerable<Product>> GetBelowMinimumAsync();
     Task AddAsync(Product product);

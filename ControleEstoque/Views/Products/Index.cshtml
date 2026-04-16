@@ -1,4 +1,4 @@
-@model IEnumerable<Product>
+@model PagedResult<Product>
 @{
     ViewData["Title"] = "Produtos";
 }
@@ -25,7 +25,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model)
+                @foreach (var item in Model.Items)
                 {
                     <tr class="@(item.IsBelowMinimumStock ? "table-warning" : "")">
                         <td class="fw-semibold">
@@ -68,7 +68,7 @@
                         </td>
                     </tr>
                 }
-                @if (!Model.Any())
+                @if (!Model.Items.Any())
                 {
                     <tr>
                         <td colspan="7" class="text-center text-muted py-4">
@@ -81,6 +81,8 @@
         </table>
     </div>
 </div>
+
+@await Html.PartialAsync("_Pagination", (object)Model)
 
 @if (ViewBag.IntegrationEnabled == true)
 {

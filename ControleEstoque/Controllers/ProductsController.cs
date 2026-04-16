@@ -26,10 +26,10 @@ public class ProductsController : Controller
         _integrationConfig = integrationConfig;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 20)
     {
         ViewBag.IntegrationEnabled = _integrationConfig?.Enabled == true;
-        return View(await _productRepo.GetAllAsync());
+        return View(await _productRepo.GetAllAsync(page, pageSize));
     }
 
     public async Task<IActionResult> Details(int id)

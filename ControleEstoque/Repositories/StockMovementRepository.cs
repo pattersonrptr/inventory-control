@@ -22,6 +22,23 @@ public class StockMovementRepository : IStockMovementRepository
             .ThenByDescending(m => m.Id)
             .ToListAsync();
 
+    public async Task<PagedResult<StockMovement>> GetAllAsync(int page, int pageSize)
+    {
+        var query = _context.StockMovements
+            .Include(m => m.Product)
+            .Include(m => m.Supplier)
+            .OrderByDescending(m => m.Date)
+            .ThenByDescending(m => m.Id);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PagedResult<StockMovement>(items, totalCount, page, pageSize);
+    }
+
     public async Task<IEnumerable<StockMovement>> GetByProductAsync(int productId)
         => await _context.StockMovements
             .Include(m => m.Product)

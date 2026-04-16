@@ -1,4 +1,4 @@
-@model IEnumerable<ControleEstoque.Models.AuditLog>
+@model PagedResult<ControleEstoque.Models.AuditLog>
 @{
     ViewData["Title"] = "Histórico de Auditoria";
 }
@@ -20,7 +20,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var log in Model)
+            @foreach (var log in Model.Items)
             {
                 <tr>
                     <td>@log.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")</td>
@@ -81,3 +81,5 @@
         </tbody>
     </table>
 </div>
+
+@await Html.PartialAsync("_Pagination", (object)Model)
