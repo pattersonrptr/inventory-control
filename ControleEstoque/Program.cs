@@ -250,6 +250,38 @@ using (var scope = app.Services.CreateScope())
     if (db.Database.IsRelational())
         db.Database.Migrate();
 
+    // Fix auto-increment columns on PostgreSQL.
+    // Migrations generated with SQLite use "Sqlite:Autoincrement" which Npgsql ignores,
+    // leaving integer PK columns without SERIAL/IDENTITY. Add sequences idempotently.
+    if (usePostgres)
+    {
+        var fixSequenceSql = """
+            DO $$
+            DECLARE
+                tbl  TEXT;
+                col  TEXT;
+                seq  TEXT;
+                typ  TEXT;
+                max_val BIGINT;
+            BEGIN
+                -- (table, column, sequence_name, pg_type)
+                FOR tbl, col, seq, typ IN
+                    VALUES ('AuditLogs','Id','AuditLogs_Id_seq','bigint'),
+                           ('AspNetRoleClaims','Id','AspNetRoleClaims_Id_seq','integer'),
+                           ('AspNetUserClaims','Id','AspNetUserClaims_Id_seq','integer')
+                LOOP
+                    IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = seq) THEN
+                        EXECUTE format('CREATE SEQUENCE %I AS %s OWNED BY %I.%I', seq, typ, tbl, col);
+                        EXECUTE format('SELECT COALESCE(MAX(%I),0)+1 FROM %I', col, tbl) INTO max_val;
+                        PERFORM setval(seq, max_val, false);
+                        EXECUTE format('ALTER TABLE %I ALTER COLUMN %I SET DEFAULT nextval(%L)', tbl, col, seq);
+                    END IF;
+                END LOOP;
+            END $$;
+            """;
+        db.Database.ExecuteSqlRaw(fixSequenceSql);
+    }
+
     // Seed roles and default admin user
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
