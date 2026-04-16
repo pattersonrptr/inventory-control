@@ -1,4 +1,4 @@
-@model IEnumerable<Supplier>
+@model PagedResult<Supplier>
 @{
     ViewData["Title"] = "Fornecedores";
 }
@@ -24,7 +24,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model)
+                @foreach (var item in Model.Items)
                 {
                     <tr>
                         <td class="fw-semibold">@item.Name</td>
@@ -46,7 +46,7 @@
                         </td>
                     </tr>
                 }
-                @if (!Model.Any())
+                @if (!Model.Items.Any())
                 {
                     <tr>
                         <td colspan="6" class="text-center text-muted py-4">
@@ -59,3 +59,5 @@
         </table>
     </div>
 </div>
+
+@await Html.PartialAsync("_Pagination", (object)Model)

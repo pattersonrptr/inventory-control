@@ -14,6 +14,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<ProcessedOrder> ProcessedOrders => Set<ProcessedOrder>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<SyncState> SyncStates => Set<SyncState>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,6 +101,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(a => a.OldValues).HasMaxLength(4000);
             entity.Property(a => a.NewValues).HasMaxLength(4000);
             entity.HasIndex(a => a.Timestamp);
+        });
+
+        modelBuilder.Entity<SyncState>(entity =>
+        {
+            entity.HasKey(s => s.Key);
+            entity.Property(s => s.Key).HasMaxLength(100);
         });
     }
 }

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Pagination in all list views: Products, Categories, Suppliers, Stock Movements, and Audit Logs (configurable page size via query parameter)
+- Shared `_Pagination.cshtml` partial view with page navigation controls (first/prev/next/last, ellipsis for large ranges)
+- `PagedResult<T>` model for type-safe paginated query results
+- `SyncState` model to persist order sync timestamps in the database
+- IP rate limiting on API endpoints via AspNetCoreRateLimit (30 POST/min, 60 GET/min)
+- Polly retry (3 attempts, 1s delay) and circuit breaker (50% failure threshold, 15s break) for Nuvemshop HTTP client via `Microsoft.Extensions.Http.Resilience`
+
+### Changed
+
+- Repository interfaces and implementations now include paginated `GetAllAsync(int page, int pageSize)` overloads alongside the existing non-paginated versions
+- `OrderSyncBackgroundService` now tracks last processed time in the database instead of using a fixed interval×2 lookback window
+- All controller Index actions accept `page` and `pageSize` query parameters
+- Audit logs viewer paginated with 50 items per page (previously hardcoded to last 200)
+
 ## [4.0.0] - 2026-04-16
 
 ### Added

@@ -1,3 +1,4 @@
+using AspNetCoreRateLimit;
 using ControleEstoque.Data;
 using ControleEstoque.Models;
 using ControleEstoque.Repositories;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Http.Resilience;
 
 // Allow DateTime with Kind=Unspecified to be sent to PostgreSQL without requiring UTC conversion.
 // This is needed because HTML date inputs and DateTime.Today produce Unspecified-kind values.
@@ -86,6 +88,29 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
 
+// IP rate limiting on API endpoints
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(options =>
+{
+    options.GeneralRules =
+    [
+        new RateLimitRule
+        {
+            Endpoint = "post:/api/*",
+            Period = "1m",
+            Limit = 30
+        },
+        new RateLimitRule
+        {
+            Endpoint = "get:/api/*",
+            Period = "1m",
+            Limit = 60
+        }
+    ];
+});
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+builder.Services.AddInMemoryRateLimiting();
+
 // Dependency injection for repositories
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
@@ -101,7 +126,18 @@ var integrationConfig = builder.Configuration
 if (integrationConfig?.Enabled == true)
 {
     builder.Services.AddSingleton(integrationConfig);
-    builder.Services.AddHttpClient<ControleEstoque.Integrations.Nuvemshop.NuvemshopClient>();
+    builder.Services.AddHttpClient<ControleEstoque.Integrations.Nuvemshop.NuvemshopClient>()
+        .AddStandardResilienceHandler(options =>
+        {
+            options.Retry.MaxRetryAttempts = 3;
+            options.Retry.Delay = TimeSpan.FromSeconds(1);
+            options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+            options.CircuitBreaker.FailureRatio = 0.5;
+            options.CircuitBreaker.MinimumThroughput = 5;
+            options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(15);
+            options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(10);
+            options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(45);
+        });
     builder.Services.AddScoped<ControleEstoque.Integrations.Abstractions.IStoreIntegration,
         ControleEstoque.Integrations.Nuvemshop.NuvemshopIntegration>();
     builder.Services.AddScoped<ControleEstoque.Integrations.SyncService>();
@@ -119,6 +155,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRequestLocalization();
+app.UseIpRateLimiting();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

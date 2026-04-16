@@ -5,6 +5,7 @@ namespace ControleEstoque.Repositories.Interfaces;
 public interface ISupplierRepository
 {
     Task<IEnumerable<Supplier>> GetAllAsync();
+    Task<PagedResult<Supplier>> GetAllAsync(int page, int pageSize);
     Task<Supplier?> GetByIdAsync(int id);
     Task AddAsync(Supplier supplier);
     Task UpdateAsync(Supplier supplier);

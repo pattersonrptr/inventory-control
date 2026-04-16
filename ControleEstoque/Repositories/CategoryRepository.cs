@@ -20,6 +20,21 @@ public class CategoryRepository : ICategoryRepository
             .OrderBy(c => c.Name)
             .ToListAsync();
 
+    public async Task<PagedResult<Category>> GetAllAsync(int page, int pageSize)
+    {
+        var query = _context.Categories
+            .Include(c => c.Products)
+            .OrderBy(c => c.Name);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PagedResult<Category>(items, totalCount, page, pageSize);
+    }
+
     public async Task<Category?> GetByIdAsync(int id)
         => await _context.Categories.FindAsync(id);
 

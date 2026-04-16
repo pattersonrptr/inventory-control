@@ -14,8 +14,8 @@ public class SuppliersController : Controller
         _repository = repository;
     }
 
-    public async Task<IActionResult> Index()
-        => View(await _repository.GetAllAsync());
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 20)
+        => View(await _repository.GetAllAsync(page, pageSize));
 
     public IActionResult Create() => View();
 

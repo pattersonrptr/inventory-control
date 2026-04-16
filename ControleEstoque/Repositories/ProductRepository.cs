@@ -21,6 +21,22 @@ public class ProductRepository : IProductRepository
             .OrderBy(p => p.Name)
             .ToListAsync();
 
+    public async Task<PagedResult<Product>> GetAllAsync(int page, int pageSize)
+    {
+        var query = _context.Products
+            .Include(p => p.Category)
+            .Include(p => p.Supplier)
+            .OrderBy(p => p.Name);
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PagedResult<Product>(items, totalCount, page, pageSize);
+    }
+
     public async Task<Product?> GetByIdAsync(int id)
         => await _context.Products
             .Include(p => p.Category)
