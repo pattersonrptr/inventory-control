@@ -1,9 +1,10 @@
 using ControleEstoque.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace ControleEstoque.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -12,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<ProcessedOrder> ProcessedOrders => Set<ProcessedOrder>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,6 +87,19 @@ public class AppDbContext : DbContext
             entity.Property(po => po.ExternalOrderId).IsRequired().HasMaxLength(200);
             entity.Property(po => po.Status).IsRequired().HasMaxLength(50);
             entity.HasIndex(po => po.ExternalOrderId).IsUnique();
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.UserId).IsRequired().HasMaxLength(256);
+            entity.Property(a => a.UserName).IsRequired().HasMaxLength(100);
+            entity.Property(a => a.Action).IsRequired().HasMaxLength(50);
+            entity.Property(a => a.EntityName).IsRequired().HasMaxLength(100);
+            entity.Property(a => a.EntityId).HasMaxLength(100);
+            entity.Property(a => a.OldValues).HasMaxLength(4000);
+            entity.Property(a => a.NewValues).HasMaxLength(4000);
+            entity.HasIndex(a => a.Timestamp);
         });
     }
 }
