@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Interactive Chart.js dashboard on the home page: movements per month (line chart), stock by category (doughnut chart), and top 10 sellers (horizontal bar chart) with dedicated API endpoints
+- Profitability report: cost vs selling price analysis per product with revenue, cost, profit, and margin percentage breakdown
+- Email notifications for low stock via configurable SMTP — background service checks products below minimum stock at a configurable interval and sends alert emails
+- `EmailNotifications` configuration section in `appsettings.example.json` (SmtpHost, SmtpPort, SmtpUser, SmtpPassword, FromEmail, ToEmail, EnableSsl, CheckIntervalHours)
+
+### Changed
+
+- Home page now includes interactive charts alongside the existing summary cards and recent movements table
+- Reports dropdown in navbar now includes "Lucratividade" (Profitability) link
+
 ## [4.1.0] - 2026-04-16
 
 ### Added

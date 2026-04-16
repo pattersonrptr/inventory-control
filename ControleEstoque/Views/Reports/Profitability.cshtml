@@ -1,0 +1,143 @@
+@model ProfitabilityReportViewModel
+@{
+    ViewData["Title"] = "Relatório de Lucratividade";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0"><i class="bi bi-currency-dollar"></i> Relatório de Lucratividade</h1>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Profitability" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="month" class="form-label fw-semibold">Mês</label>
+                <select id="month" name="month" class="form-select">
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        var monthName = new DateTime(2000, m, 1).ToString("MMMM");
+                        <option value="@m" selected="@(m == Model.Month)">@monthName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="year" class="form-label fw-semibold">Ano</label>
+                <input id="year" name="year" type="number" class="form-control"
+                       value="@Model.Year" min="2000" max="2099" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Pesquisar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<h4 class="mb-3 text-capitalize">
+    <i class="bi bi-bar-chart"></i> Resultados: @Model.MonthName
+</h4>
+
+@if (!Model.Items.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        Nenhuma venda registrada em @Model.MonthName.
+    </div>
+}
+else
+{
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card text-center text-white bg-primary">
+                <div class="card-body">
+                    <div class="small text-white-50">Receita Total</div>
+                    <div class="display-6 fw-bold">@Model.TotalRevenue.ToString("C")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center text-white bg-danger">
+                <div class="card-body">
+                    <div class="small text-white-50">Custo Total</div>
+                    <div class="display-6 fw-bold">@Model.TotalCost.ToString("C")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center text-white @(Model.TotalProfit >= 0 ? "bg-success" : "bg-warning")">
+                <div class="card-body">
+                    <div class="small text-white-50">Lucro Total</div>
+                    <div class="display-6 fw-bold">@Model.TotalProfit.ToString("C")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header fw-bold">Detalhamento por Produto</div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Produto</th>
+                        <th class="text-center">Qtd. Vendida</th>
+                        <th class="text-end">Preço Venda</th>
+                        <th class="text-end">Preço Custo</th>
+                        <th class="text-end">Receita</th>
+                        <th class="text-end">Custo</th>
+                        <th class="text-end">Lucro</th>
+                        <th class="text-end">Margem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@item.ProductName</td>
+                            <td class="text-center fw-bold">@item.QuantitySold</td>
+                            <td class="text-end">@item.SellingPrice.ToString("C")</td>
+                            <td class="text-end text-muted">@item.CostPrice.ToString("C")</td>
+                            <td class="text-end text-primary fw-bold">@item.Revenue.ToString("C")</td>
+                            <td class="text-end text-danger">@item.Cost.ToString("C")</td>
+                            <td class="text-end @(item.Profit >= 0 ? "text-success" : "text-danger") fw-bold">
+                                @item.Profit.ToString("C")
+                            </td>
+                            <td class="text-end">
+                                @if (item.MarginPercent >= 0)
+                                {
+                                    <span class="badge bg-success">@item.MarginPercent.ToString("F1")%</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">@item.MarginPercent.ToString("F1")%</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="table-secondary fw-bold">
+                    <tr>
+                        <td>TOTAL</td>
+                        <td class="text-center">@Model.Items.Sum(i => i.QuantitySold)</td>
+                        <td></td>
+                        <td></td>
+                        <td class="text-end text-primary">@Model.TotalRevenue.ToString("C")</td>
+                        <td class="text-end text-danger">@Model.TotalCost.ToString("C")</td>
+                        <td class="text-end @(Model.TotalProfit >= 0 ? "text-success" : "text-danger")">
+                            @Model.TotalProfit.ToString("C")
+                        </td>
+                        <td class="text-end">
+                            @{
+                                var totalMargin = Model.TotalRevenue > 0 ? (Model.TotalProfit / Model.TotalRevenue) * 100 : 0;
+                            }
+                            <span class="badge @(totalMargin >= 0 ? "bg-success" : "bg-danger")">
+                                @totalMargin.ToString("F1")%
+                            </span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}

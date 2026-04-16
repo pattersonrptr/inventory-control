@@ -23,7 +23,10 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 - **Automatic stock updates** on every movement
 - **Low-stock alerts** for products below the minimum threshold
 - **Monthly reports** with entry/exit breakdown per product
+- **Profitability report** — cost vs selling price analysis per product with margins
+- **Interactive dashboard** — Chart.js charts for movements/month, top sellers, and stock by category
 - **E-commerce sync** — pull products, push stock, and process orders from Nuvemshop
+- **Email notifications** — configurable SMTP alerts when products drop below minimum stock
 - **Authentication** — ASP.NET Core Identity with email/password login and role-based access (Admin / Operator)
 - **User management** — admins can create, edit, and delete users and assign roles
 - **Audit trail** — automatic logging of every data change (who, what, when, old/new values)
@@ -37,7 +40,7 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 | Authentication | ASP.NET Core Identity |
 | Database (dev) | SQLite |
 | Database (prod) | Configurable (PostgreSQL, Oracle, etc.) |
-| Front-end | Bootstrap 5.3 + Bootstrap Icons |
+| Front-end | Bootstrap 5.3 + Bootstrap Icons + Chart.js 4 |
 
 ## Getting Started
 
@@ -85,6 +88,15 @@ Copy `appsettings.example.json` to `appsettings.json` and update the values:
 | `DefaultAdmin:Email` | Default admin email (seeded on first run) |
 | `DefaultAdmin:Password` | Default admin password (min 6 characters) |
 | `DefaultAdmin:FullName` | Default admin display name |
+| `EmailNotifications:Enabled` | Enable/disable low stock email alerts |
+| `EmailNotifications:SmtpHost` | SMTP server hostname |
+| `EmailNotifications:SmtpPort` | SMTP server port (default: `587`) |
+| `EmailNotifications:SmtpUser` | SMTP authentication username |
+| `EmailNotifications:SmtpPassword` | SMTP authentication password (keep secret!) |
+| `EmailNotifications:FromEmail` | Sender email address |
+| `EmailNotifications:ToEmail` | Recipient email address for alerts |
+| `EmailNotifications:EnableSsl` | Use SSL/TLS for SMTP (default: `true`) |
+| `EmailNotifications:CheckIntervalHours` | How often to check for low stock (default: `24`) |
 
 > **Never commit `appsettings.json`** — it is listed in `.gitignore`. Use `appsettings.example.json` as a template.
 >

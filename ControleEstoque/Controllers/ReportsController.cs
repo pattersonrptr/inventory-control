@@ -49,4 +49,40 @@ public class ReportsController : Controller
 
         return View(viewModel);
     }
+
+    public async Task<IActionResult> Profitability(int? month, int? year)
+    {
+        var currentMonth = month ?? DateTime.Today.Month;
+        var currentYear = year ?? DateTime.Today.Year;
+
+        var movements = await _movementRepo.GetByMonthYearAsync(currentMonth, currentYear);
+        var products = await _productRepo.GetAllAsync();
+        var productLookup = products.ToDictionary(p => p.Id);
+
+        var items = movements
+            .Where(m => m.Type == MovementType.Exit)
+            .GroupBy(m => m.ProductId)
+            .Select(g =>
+            {
+                productLookup.TryGetValue(g.Key, out var product);
+                return new ProfitabilityItem
+                {
+                    ProductName = product?.Name ?? g.First().Product?.Name ?? "Desconhecido",
+                    QuantitySold = g.Sum(m => m.Quantity),
+                    SellingPrice = product?.SellingPrice ?? 0,
+                    CostPrice = product?.CostPrice ?? 0
+                };
+            })
+            .OrderByDescending(i => i.Profit)
+            .ToList();
+
+        var viewModel = new ProfitabilityReportViewModel
+        {
+            Month = currentMonth,
+            Year = currentYear,
+            Items = items
+        };
+
+        return View(viewModel);
+    }
 }

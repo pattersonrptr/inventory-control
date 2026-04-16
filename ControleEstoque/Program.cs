@@ -144,6 +144,12 @@ if (integrationConfig?.Enabled == true)
     builder.Services.AddHostedService<ControleEstoque.BackgroundServices.OrderSyncBackgroundService>();
 }
 
+// Low stock email notifications (runs independently of e-commerce integration)
+if (builder.Configuration.GetValue<bool?>("EmailNotifications:Enabled") == true)
+{
+    builder.Services.AddHostedService<ControleEstoque.BackgroundServices.LowStockNotificationService>();
+}
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
