@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Multi-platform architecture** — support for N e-commerce platform integrations simultaneously via platform registry pattern
+- `PlatformRegistry` service that discovers and manages platform factories, resolves stores by name or platform store ID
+- `IPlatformFactory` interface for creating `IStoreIntegration` instances per platform
+- `NuvemshopPlatformFactory` — factory implementation for the Nuvemshop platform
+- `SyncServiceFactory` for creating per-store `SyncService` instances with the correct integration
+- Multi-store configuration via `Stores` JSON array in `appsettings.json` (replaces single `Integration` object)
+- Backward compatibility: legacy `Integration` config section is auto-migrated to the new `Stores` format
+- Store management page at Admin → Lojas — shows all configured stores with status, platform, and sync action buttons
+- `GET /api/sync/stores` endpoint to list all configured stores
+- `?store=<name>` query parameter on all sync API endpoints to target a specific store
+- Per-store order sync timestamps in `OrderSyncBackgroundService` (each store tracks its own `lastProcessedAt`)
+- Per-store `OrderSyncIntervalMinutes` configuration
+- "How to Add a New Platform" contributor guide at `docs/adding-a-platform.md`
+
+### Changed
+
+- **BREAKING**: Store configuration moved from `Integration` object to `Stores` array in `appsettings.json`
+- `SyncController` now uses `PlatformRegistry` and `SyncServiceFactory` instead of directly injecting `IStoreIntegration` and `SyncService`
+- `OrderSyncBackgroundService` now iterates over all enabled stores instead of syncing a single store
+- `NuvemshopWebhookController` matches incoming webhooks to the correct store by `store_id` from the payload
+- Nuvemshop HTTP client registered as named client (`Platform_nuvemshop`) via `IHttpClientFactory` instead of typed client
+
 ## [4.3.0] - 2026-04-17
 
 ### Added

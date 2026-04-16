@@ -11,52 +11,53 @@ namespace ControleEstoque.Integrations.Nuvemshop;
 [Route("api/webhooks/nuvemshop")]
 public class NuvemshopWebhookController : ControllerBase
 {
-    private readonly SyncService _syncService;
-    private readonly IStoreIntegration _store;
-    private readonly IntegrationConfig _config;
+    private readonly PlatformRegistry _registry;
+    private readonly SyncServiceFactory _syncFactory;
     private readonly ILogger<NuvemshopWebhookController> _logger;
 
     public NuvemshopWebhookController(
-        SyncService syncService,
-        IStoreIntegration store,
-        IntegrationConfig config,
+        PlatformRegistry registry,
+        SyncServiceFactory syncFactory,
         ILogger<NuvemshopWebhookController> logger)
     {
-        _syncService = syncService;
-        _store = store;
-        _config = config;
+        _registry = registry;
+        _syncFactory = syncFactory;
         _logger = logger;
     }
 
     // Webhooks are server-to-server calls — CSRF tokens are not applicable.
     // Request authenticity is validated by comparing the payload store_id with
-    // the configured StoreId (see body below).
+    // a configured store's StoreId.
     [HttpPost]
     [IgnoreAntiforgeryToken]
     public async Task<IActionResult> Receive([FromBody] NuvemshopWebhookPayload payload)
     {
-        // Validate that the request comes from the configured Nuvemshop store
-        // by comparing the payload store_id with the configured StoreId.
-        if (!string.IsNullOrEmpty(_config.StoreId) &&
-            payload.StoreId.ToString() != _config.StoreId)
+        // Find the matching store by the payload's store_id
+        var storeConfig = _registry.GetStoreByPlatformStoreId(payload.StoreId.ToString());
+        if (storeConfig is null)
         {
             _logger.LogWarning(
-                "Webhook rejected: store_id={StoreId} does not match configured store.",
+                "Webhook rejected: store_id={StoreId} does not match any configured store.",
                 payload.StoreId);
             return Unauthorized();
         }
 
-        _logger.LogInformation("Webhook received: event={Event}, id={Id}", payload.Event, payload.Id);
+        _logger.LogInformation(
+            "Webhook received for store '{Store}': event={Event}, id={Id}",
+            storeConfig.Name, payload.Event, payload.Id);
 
         try
         {
             // Handle paid/fulfilled orders: trigger stock exit movement
             if (payload.Event is "order/paid" or "order/fulfilled")
             {
-                var order = await _store.GetOrderAsync(payload.Id.ToString());
+                var storeIntegration = _registry.CreateIntegration(storeConfig);
+                var syncService = _syncFactory.Create(storeConfig);
+
+                var order = await storeIntegration.GetOrderAsync(payload.Id.ToString());
                 if (order is not null)
                 {
-                    await _syncService.ProcessOrderAsync(order);
+                    await syncService.ProcessOrderAsync(order);
                 }
             }
 
@@ -64,7 +65,9 @@ public class NuvemshopWebhookController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Webhook processing failed for event={Event}, id={Id}.", payload.Event, payload.Id);
+            _logger.LogError(ex,
+                "Webhook processing failed for store '{Store}', event={Event}, id={Id}.",
+                storeConfig.Name, payload.Event, payload.Id);
             return StatusCode(500, new { error = "WebhookProcessingError", message = "Failed to process webhook event." });
         }
     }

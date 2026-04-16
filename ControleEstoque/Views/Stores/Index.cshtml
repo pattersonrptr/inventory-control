@@ -1,0 +1,159 @@
+@model IReadOnlyList<ControleEstoque.Integrations.Abstractions.IntegrationConfig>
+@{
+    ViewData["Title"] = "Lojas Integradas";
+    var platforms = ViewBag.RegisteredPlatforms as List<string> ?? new();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-shop"></i> Lojas Integradas</h2>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Nenhuma loja configurada. Adicione lojas na seção <code>Stores</code> do <code>appsettings.json</code>.
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var store in Model)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card @(store.Enabled ? "" : "border-secondary opacity-75")">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>
+                            <i class="bi bi-shop"></i> @store.Name
+                        </strong>
+                        @if (store.Enabled)
+                        {
+                            <span class="badge bg-success">Ativa</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Desativada</span>
+                        }
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm mb-3">
+                            <tr>
+                                <th>Plataforma</th>
+                                <td>
+                                    <span class="badge bg-primary">@store.Platform</span>
+                                </td>
+                            </tr>
+                            @if (!string.IsNullOrEmpty(store.StoreUrl))
+                            {
+                                <tr>
+                                    <th>URL</th>
+                                    <td><small>@store.StoreUrl</small></td>
+                                </tr>
+                            }
+                            <tr>
+                                <th>Store ID</th>
+                                <td><code>@(store.StoreId ?? "—")</code></td>
+                            </tr>
+                            <tr>
+                                <th>Sincronização</th>
+                                <td>a cada @store.OrderSyncIntervalMinutes min</td>
+                            </tr>
+                        </table>
+
+                        @if (store.Enabled)
+                        {
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary btn-sm sync-btn"
+                                        data-url="/api/sync/products?store=@Uri.EscapeDataString(store.Name)"
+                                        data-action="Sincronizar Produtos">
+                                    <i class="bi bi-arrow-repeat"></i> Sincronizar Produtos
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm sync-btn"
+                                        data-url="/api/sync/categories?store=@Uri.EscapeDataString(store.Name)"
+                                        data-action="Sincronizar Categorias">
+                                    <i class="bi bi-tags"></i> Sincronizar Categorias
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm sync-btn"
+                                        data-url="/api/sync/orders?store=@Uri.EscapeDataString(store.Name)"
+                                        data-action="Processar Pedidos">
+                                    <i class="bi bi-cart-check"></i> Processar Pedidos
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<div class="card mt-4">
+    <div class="card-header">
+        <i class="bi bi-plug"></i> Plataformas Registradas
+    </div>
+    <div class="card-body">
+        <p>Plataformas disponíveis para integração:</p>
+        <ul class="list-group list-group-flush">
+            @foreach (var platform in platforms)
+            {
+                <li class="list-group-item">
+                    <i class="bi bi-check-circle text-success"></i> <strong>@platform</strong>
+                </li>
+            }
+        </ul>
+        <p class="text-muted mt-3 mb-0">
+            <small>
+                Para adicionar uma nova plataforma, consulte a documentação em
+                <a href="https://github.com/pattersonrptr/inventory-control/blob/main/docs/adding-a-platform.md">
+                    docs/adding-a-platform.md
+                </a>
+            </small>
+        </p>
+    </div>
+</div>
+
+<!-- Toast for sync feedback -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+    <div id="syncToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toastTitle">Sincronização</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Fechar"></button>
+        </div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.querySelectorAll('.sync-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const url = this.dataset.url;
+            const action = this.dataset.action;
+            const originalText = this.innerHTML;
+
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Aguarde...';
+
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+
+                const toast = document.getElementById('syncToast');
+                document.getElementById('toastTitle').textContent = action;
+                document.getElementById('toastBody').textContent = data.message || 'Operação concluída.';
+                toast.classList.remove('bg-danger', 'text-white');
+
+                if (!response.ok) {
+                    toast.classList.add('bg-danger', 'text-white');
+                }
+
+                new bootstrap.Toast(toast).show();
+            } catch (err) {
+                alert('Erro ao executar: ' + err.message);
+            } finally {
+                this.disabled = false;
+                this.innerHTML = originalText;
+            }
+        });
+    });
+</script>
+}

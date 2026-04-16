@@ -25,7 +25,8 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 - **Monthly reports** with entry/exit breakdown per product
 - **Profitability report** — cost vs selling price analysis per product with margins
 - **Interactive dashboard** — Chart.js charts for movements/month, top sellers, and stock by category
-- **E-commerce sync** — pull products, push stock, and process orders from Nuvemshop
+- **E-commerce sync** — pull products, push stock, and process orders from multiple stores simultaneously
+- **Multi-platform architecture** — plugin-based platform registry supports N e-commerce integrations (currently Nuvemshop; Shopify, WooCommerce, etc. can be added)
 - **Email notifications** — configurable SMTP alerts when products drop below minimum stock
 - **CSV import** — bulk import Products, Categories, and Suppliers via CSV files (Admin only)
 - **Product images** — upload images for products, displayed on details and edit pages
@@ -85,11 +86,14 @@ Copy `appsettings.example.json` to `appsettings.json` and update the values:
 | Key | Description |
 |---|---|
 | `ConnectionStrings:DefaultConnection` | Database connection string (default: SQLite) |
-| `Integration:Enabled` | Enable/disable e-commerce integration |
-| `Integration:Platform` | Integration platform (`nuvemshop`) |
-| `Integration:StoreId` | Your store ID |
-| `Integration:AccessToken` | API access token (keep secret!) |
-| `Integration:OrderSyncIntervalMinutes` | Auto-sync orders interval in minutes (default: `15`) |
+| `Stores` | JSON array of store configurations (see below) |
+| `Stores[].Name` | Display name for the store (must be unique) |
+| `Stores[].Enabled` | Enable/disable this store integration |
+| `Stores[].Platform` | Platform type (`nuvemshop`, or any registered platform) |
+| `Stores[].StoreId` | Platform-specific store identifier |
+| `Stores[].AccessToken` | API access token (keep secret!) |
+| `Stores[].StoreUrl` | Store URL (optional, depends on platform) |
+| `Stores[].OrderSyncIntervalMinutes` | Auto-sync orders interval in minutes (default: `15`) |
 | `DefaultAdmin:Email` | Default admin email (seeded on first run) |
 | `DefaultAdmin:Password` | Default admin password (min 6 characters) |
 | `DefaultAdmin:FullName` | Default admin display name |
@@ -209,11 +213,13 @@ Controllers  →  Repositories (interfaces)  →  AppDbContext  →  Database
 
 - **Repository Pattern** — all data access through `Repositories/Interfaces/I*Repository.cs`
 - **Thin controllers** — business logic lives in services and repositories
-- **Integration layer** — `Integrations/` abstracts e-commerce platforms behind `IStoreIntegration`
+- **Integration layer** — `Integrations/` abstracts e-commerce platforms behind `IStoreIntegration` with a plugin-based `PlatformRegistry`
 
 Switching database providers requires changes in only two places:
 1. `appsettings.json` → connection string
 2. `Program.cs` → swap `UseSqlite(...)` with the desired provider (e.g., `UseNpgsql(...)`)
+
+Adding a new e-commerce platform requires implementing `IStoreIntegration` and `IPlatformFactory`, then registering in `Program.cs`. See [docs/adding-a-platform.md](docs/adding-a-platform.md) for a step-by-step guide.
 
 ## Project Structure
 

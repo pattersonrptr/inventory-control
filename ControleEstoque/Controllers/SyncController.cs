@@ -9,21 +9,48 @@ namespace ControleEstoque.Controllers;
 [Route("api/sync")]
 public class SyncController : ControllerBase
 {
-    private readonly SyncService _syncService;
+    private readonly SyncServiceFactory _syncFactory;
+    private readonly PlatformRegistry _registry;
     private readonly IProductRepository _productRepo;
-    private readonly IStoreIntegration _store;
     private readonly ILogger<SyncController> _logger;
 
     public SyncController(
-        SyncService syncService,
+        SyncServiceFactory syncFactory,
+        PlatformRegistry registry,
         IProductRepository productRepo,
-        IStoreIntegration store,
         ILogger<SyncController> logger)
     {
-        _syncService = syncService;
+        _syncFactory = syncFactory;
+        _registry = registry;
         _productRepo = productRepo;
-        _store = store;
         _logger = logger;
+    }
+
+    private IActionResult ResolveStore(string? storeName, out IntegrationConfig config, out SyncService syncService)
+    {
+        config = null!;
+        syncService = null!;
+
+        if (string.IsNullOrWhiteSpace(storeName))
+        {
+            var enabledStores = _registry.GetEnabledStores();
+            if (enabledStores.Count == 0)
+                return BadRequest(new { error = "NoStoreConfigured", message = "No enabled stores configured." });
+            if (enabledStores.Count > 1)
+                return BadRequest(new { error = "StoreRequired", message = "Multiple stores configured. Provide ?store=<name> to select one." });
+            config = enabledStores[0];
+        }
+        else
+        {
+            config = _registry.GetStoreByName(storeName)!;
+            if (config is null)
+                return NotFound(new { error = "StoreNotFound", message = $"Store '{storeName}' not found." });
+            if (!config.Enabled)
+                return BadRequest(new { error = "StoreDisabled", message = $"Store '{storeName}' is disabled." });
+        }
+
+        syncService = _syncFactory.Create(config);
+        return null!;
     }
 
     /// <summary>
@@ -32,25 +59,28 @@ public class SyncController : ControllerBase
     /// </summary>
     [HttpPost("products")]
     [IgnoreAntiforgeryToken]
-    public async Task<IActionResult> SyncProducts()
+    public async Task<IActionResult> SyncProducts([FromQuery] string? store)
     {
-        _logger.LogInformation("Manual product sync triggered.");
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
+
+        _logger.LogInformation("Manual product sync triggered for store '{Store}'.", config.Name);
         try
         {
-            await _syncService.SyncProductsFromStoreAsync();
+            await syncService.SyncProductsFromStoreAsync();
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Product sync failed: external API unreachable.");
+            _logger.LogError(ex, "Product sync failed for store '{Store}': external API unreachable.", config.Name);
             return StatusCode(502, new { error = "ExternalApiError", message = "Product sync failed: could not reach the external store API.", status = 502 });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Product sync failed.");
+            _logger.LogError(ex, "Product sync failed for store '{Store}'.", config.Name);
             return StatusCode(500, new { error = "InternalError", message = "Product sync failed due to an internal error.", status = 500 });
         }
 
-        return Ok(new { message = "Product sync completed." });
+        return Ok(new { message = $"Product sync completed for store '{config.Name}'." });
     }
 
     /// <summary>
@@ -59,8 +89,11 @@ public class SyncController : ControllerBase
     /// </summary>
     [HttpPost("push-stock/{productId:int}")]
     [IgnoreAntiforgeryToken]
-    public async Task<IActionResult> PushStock(int productId)
+    public async Task<IActionResult> PushStock(int productId, [FromQuery] string? store)
     {
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
+
         var product = await _productRepo.GetByIdAsync(productId);
         if (product is null)
         {
@@ -72,23 +105,23 @@ public class SyncController : ControllerBase
             return NotFound(new { message = $"Product {productId} has no linked external ID. Run a product sync first." });
         }
 
-        _logger.LogInformation("Manual push-stock triggered for product id={ProductId}.", productId);
+        _logger.LogInformation("Manual push-stock triggered for product id={ProductId} on store '{Store}'.", productId, config.Name);
         try
         {
-            await _syncService.PushStockToStoreAsync(productId);
+            await syncService.PushStockToStoreAsync(productId);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Push-stock failed for product id={ProductId}: external API unreachable.", productId);
+            _logger.LogError(ex, "Push-stock failed for product id={ProductId} on store '{Store}': external API unreachable.", productId, config.Name);
             return StatusCode(502, new { error = "ExternalApiError", message = $"Failed to push stock for product {productId}: could not reach the external store API.", status = 502 });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Push-stock failed for product id={ProductId}.", productId);
+            _logger.LogError(ex, "Push-stock failed for product id={ProductId} on store '{Store}'.", productId, config.Name);
             return StatusCode(500, new { error = "InternalError", message = $"Failed to push stock for product {productId} due to an internal error.", status = 500 });
         }
 
-        return Ok(new { message = $"Stock for product {productId} pushed to store." });
+        return Ok(new { message = $"Stock for product {productId} pushed to store '{config.Name}'." });
     }
 
     /// <summary>
@@ -98,30 +131,34 @@ public class SyncController : ControllerBase
     /// </summary>
     [HttpPost("orders")]
     [IgnoreAntiforgeryToken]
-    public async Task<IActionResult> ProcessOrders([FromQuery] DateTime? since)
+    public async Task<IActionResult> ProcessOrders([FromQuery] DateTime? since, [FromQuery] string? store)
     {
-        var sinceDate = since?.ToUniversalTime() ?? DateTime.UtcNow.AddDays(-1);
-        _logger.LogInformation("Manual order processing triggered since {Since}.", sinceDate);
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
 
+        var sinceDate = since?.ToUniversalTime() ?? DateTime.UtcNow.AddDays(-1);
+        _logger.LogInformation("Manual order processing triggered since {Since} for store '{Store}'.", sinceDate, config.Name);
+
+        var storeIntegration = _registry.CreateIntegration(config);
         IEnumerable<ExternalOrder> orders;
         try
         {
-            orders = await _store.GetOrdersAsync(sinceDate);
+            orders = await storeIntegration.GetOrdersAsync(sinceDate);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to fetch orders from the store: external API unreachable.");
+            _logger.LogError(ex, "Failed to fetch orders from store '{Store}': external API unreachable.", config.Name);
             return StatusCode(502, new { error = "ExternalApiError", message = "Failed to fetch orders from the store: could not reach the external store API.", status = 502 });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to fetch orders from the store.");
+            _logger.LogError(ex, "Failed to fetch orders from store '{Store}'.", config.Name);
             return StatusCode(500, new { error = "InternalError", message = "Failed to fetch orders from the store due to an internal error.", status = 500 });
         }
 
         var orderList = orders.ToList();
         if (orderList.Count == 0)
-            return Ok(new { message = $"No orders found since {sinceDate:O}." });
+            return Ok(new { message = $"No orders found since {sinceDate:O} for store '{config.Name}'." });
 
         int processed = 0;
         int skipped = 0;
@@ -130,7 +167,7 @@ public class SyncController : ControllerBase
         {
             try
             {
-                var wasProcessed = await _syncService.ProcessOrderAsync(order);
+                var wasProcessed = await syncService.ProcessOrderAsync(order);
                 if (wasProcessed)
                     processed++;
                 else
@@ -138,12 +175,12 @@ public class SyncController : ControllerBase
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to process order {OrderId}.", order.ExternalOrderId);
+                _logger.LogError(ex, "Failed to process order {OrderId} from store '{Store}'.", order.ExternalOrderId, config.Name);
                 failed++;
             }
         }
 
-        return Ok(new { message = $"Processed {processed} order(s) since {sinceDate:O}. Skipped {skipped}.", failed });
+        return Ok(new { message = $"Processed {processed} order(s) since {sinceDate:O} for store '{config.Name}'. Skipped {skipped}.", failed });
     }
 
     /// <summary>
@@ -151,8 +188,11 @@ public class SyncController : ControllerBase
     /// </summary>
     [HttpPost("push-product/{productId:int}")]
     [IgnoreAntiforgeryToken]
-    public async Task<IActionResult> PushProduct(int productId)
+    public async Task<IActionResult> PushProduct(int productId, [FromQuery] string? store)
     {
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
+
         var product = await _productRepo.GetByIdAsync(productId);
         if (product is null)
             return NotFound(new { message = $"Product {productId} not found." });
@@ -160,23 +200,23 @@ public class SyncController : ControllerBase
         if (product.ExternalId is not null)
             return Conflict(new { message = $"Product {productId} is already linked to external id {product.ExternalId}." });
 
-        _logger.LogInformation("Push-product triggered for product id={ProductId}.", productId);
+        _logger.LogInformation("Push-product triggered for product id={ProductId} on store '{Store}'.", productId, config.Name);
         try
         {
-            await _syncService.PushProductToStoreAsync(productId);
+            await syncService.PushProductToStoreAsync(productId);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Push-product failed for product id={ProductId}: external API unreachable.", productId);
+            _logger.LogError(ex, "Push-product failed for product id={ProductId} on store '{Store}': external API unreachable.", productId, config.Name);
             return StatusCode(502, new { error = "ExternalApiError", message = $"Failed to push product {productId}: could not reach the external store API.", status = 502 });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Push-product failed for product id={ProductId}.", productId);
+            _logger.LogError(ex, "Push-product failed for product id={ProductId} on store '{Store}'.", productId, config.Name);
             return StatusCode(500, new { error = "InternalError", message = $"Failed to push product {productId} due to an internal error.", status = 500 });
         }
 
-        return Ok(new { message = $"Product {productId} pushed to store." });
+        return Ok(new { message = $"Product {productId} pushed to store '{config.Name}'." });
     }
 
     /// <summary>
@@ -184,24 +224,41 @@ public class SyncController : ControllerBase
     /// </summary>
     [HttpPost("categories")]
     [IgnoreAntiforgeryToken]
-    public async Task<IActionResult> SyncCategories()
+    public async Task<IActionResult> SyncCategories([FromQuery] string? store)
     {
-        _logger.LogInformation("Manual category sync triggered.");
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
+
+        _logger.LogInformation("Manual category sync triggered for store '{Store}'.", config.Name);
         try
         {
-            await _syncService.SyncCategoriesToStoreAsync();
+            await syncService.SyncCategoriesToStoreAsync();
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Category sync failed: external API unreachable.");
+            _logger.LogError(ex, "Category sync failed for store '{Store}': external API unreachable.", config.Name);
             return StatusCode(502, new { error = "ExternalApiError", message = "Category sync failed: could not reach the external store API.", status = 502 });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Category sync failed.");
+            _logger.LogError(ex, "Category sync failed for store '{Store}'.", config.Name);
             return StatusCode(500, new { error = "InternalError", message = "Category sync failed due to an internal error.", status = 500 });
         }
 
-        return Ok(new { message = "Category sync completed." });
+        return Ok(new { message = $"Category sync completed for store '{config.Name}'." });
+    }
+
+    [HttpGet("stores")]
+    [IgnoreAntiforgeryToken]
+    public IActionResult ListStores()
+    {
+        var stores = _registry.GetAllStores().Select(s => new
+        {
+            s.Name,
+            s.Platform,
+            s.Enabled,
+            s.StoreUrl
+        });
+        return Ok(stores);
     }
 }
