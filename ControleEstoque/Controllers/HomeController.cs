@@ -1,4 +1,4 @@
-using ControleEstoque.Integrations.Abstractions;
+using ControleEstoque.Integrations;
 using ControleEstoque.Models;
 using ControleEstoque.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -10,18 +10,18 @@ public class HomeController : Controller
     private readonly IProductRepository _productRepo;
     private readonly IStockMovementRepository _movementRepo;
     private readonly ICategoryRepository _categoryRepo;
-    private readonly IntegrationConfig? _integrationConfig;
+    private readonly PlatformRegistry _registry;
 
     public HomeController(
         IProductRepository productRepo,
         IStockMovementRepository movementRepo,
         ICategoryRepository categoryRepo,
-        IntegrationConfig? integrationConfig = null)
+        PlatformRegistry registry)
     {
         _productRepo = productRepo;
         _movementRepo = movementRepo;
         _categoryRepo = categoryRepo;
-        _integrationConfig = integrationConfig;
+        _registry = registry;
     }
 
     public async Task<IActionResult> Index()
@@ -33,7 +33,7 @@ public class HomeController : Controller
         ViewBag.TotalProducts = products.Count();
         ViewBag.ProductsBelowMinimum = belowMinimum.Count();
         ViewBag.RecentMovements = movements.Take(5).ToList();
-        ViewBag.IntegrationEnabled = _integrationConfig?.Enabled == true;
+        ViewBag.IntegrationEnabled = _registry.GetEnabledStores().Count > 0;
 
         return View();
     }

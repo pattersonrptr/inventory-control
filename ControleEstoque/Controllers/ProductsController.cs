@@ -1,4 +1,4 @@
-using ControleEstoque.Integrations.Abstractions;
+using ControleEstoque.Integrations;
 using ControleEstoque.Models;
 using ControleEstoque.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +12,7 @@ public class ProductsController : Controller
     private readonly IProductRepository _productRepo;
     private readonly ICategoryRepository _categoryRepo;
     private readonly ISupplierRepository _supplierRepo;
-    private readonly IntegrationConfig? _integrationConfig;
+    private readonly PlatformRegistry _registry;
     private readonly IWebHostEnvironment _environment;
 
     public ProductsController(
@@ -20,18 +20,18 @@ public class ProductsController : Controller
         ICategoryRepository categoryRepo,
         ISupplierRepository supplierRepo,
         IWebHostEnvironment environment,
-        IntegrationConfig? integrationConfig = null)
+        PlatformRegistry registry)
     {
         _productRepo = productRepo;
         _categoryRepo = categoryRepo;
         _supplierRepo = supplierRepo;
         _environment = environment;
-        _integrationConfig = integrationConfig;
+        _registry = registry;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 20)
     {
-        ViewBag.IntegrationEnabled = _integrationConfig?.Enabled == true;
+        ViewBag.IntegrationEnabled = _registry.GetEnabledStores().Count > 0;
         return View(await _productRepo.GetAllAsync(page, pageSize));
     }
 
