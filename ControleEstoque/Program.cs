@@ -255,6 +255,31 @@ using (var scope = app.Services.CreateScope())
     // leaving integer PK columns without SERIAL/IDENTITY. Add sequences idempotently.
     if (usePostgres)
     {
+        // Fix boolean columns: SQLite migrations create them as INTEGER, but Npgsql sends boolean values.
+        // Convert INTEGER columns that should be boolean to proper boolean type.
+        var fixBooleanColumnsSql = """
+            DO $$
+            DECLARE
+                tbl  TEXT;
+                col  TEXT;
+            BEGIN
+                FOR tbl, col IN
+                    VALUES ('AspNetUsers','EmailConfirmed'),
+                           ('AspNetUsers','PhoneNumberConfirmed'),
+                           ('AspNetUsers','TwoFactorEnabled'),
+                           ('AspNetUsers','LockoutEnabled')
+                LOOP
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_name = tbl AND column_name = col AND data_type = 'integer'
+                    ) THEN
+                        EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE boolean USING %I::boolean', tbl, col, col);
+                    END IF;
+                END LOOP;
+            END $$;
+            """;
+        db.Database.ExecuteSqlRaw(fixBooleanColumnsSql);
+
         var fixSequenceSql = """
             DO $$
             DECLARE
