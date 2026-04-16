@@ -28,8 +28,8 @@ into 6 phases following Semantic Versioning.
 | 7  | MEDIUM   | No retry / circuit breaker on Nuvemshop API calls | ✅ |
 | 8  | MEDIUM   | API returns generic 502 — no useful error details | ✅ |
 | 10 | LOW      | No audit trail (who / what / when / how) | ✅ |
-| 11 | LOW      | No CSV/Excel import for bulk data entry | 🔲 |
-| 12 | LOW      | No product images (upload or pull from store) | 🔲 |
+| 11 | LOW      | No CSV/Excel import for bulk data entry | ✅ |
+| 12 | LOW      | No product images (upload or pull from store) | ✅ |
 | 13 | LOW      | No authentication / authorization | ✅ |
 
 > Note: #9 was removed (category sync button already exists in UI).
@@ -42,10 +42,10 @@ into 6 phases following Semantic Versioning.
 | F2  | Pagination in all list views | HIGH |
 | F3  | Dashboard with Chart.js (movements/period, top sellers, stock/category, profitability) | ✅ |
 | F4  | Email notifications for low stock (SMTP) | ✅ |
-| F5  | CSV import for Products, Suppliers, Categories | MEDIUM |
+| F5  | CSV import for Products, Suppliers, Categories | ✅ |
 | F6  | Audit trail — logs who changed what, when, and how | MEDIUM |
-| F7  | Product images — upload local + push/pull from Nuvemshop | MEDIUM |
-| F8  | Public REST API with Swagger, API key auth, rate limiting | MEDIUM |
+| F7  | Product images — upload local + push/pull from Nuvemshop | ✅ |
+| F8  | Public REST API with Swagger, API key auth, rate limiting | ✅ |
 | F9  | Profitability report (cost vs selling price × quantity sold) | ✅ |
 | F10 | Multi-platform preparation — architecture for N e-commerce platforms | LOW |
 

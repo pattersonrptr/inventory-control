@@ -1,13 +1,16 @@
 using AspNetCoreRateLimit;
+using ControleEstoque.Authentication;
 using ControleEstoque.Data;
 using ControleEstoque.Models;
 using ControleEstoque.Repositories;
 using ControleEstoque.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.OpenApi;
 
 // Allow DateTime with Kind=Unspecified to be sent to PostgreSQL without requiring UTC conversion.
 // This is needed because HTML date inputs and DateTime.Today produce Unspecified-kind values.
@@ -84,6 +87,37 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
+// API key authentication (separate scheme for REST API endpoints)
+builder.Services.AddAuthentication()
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null);
+
+// Swagger / OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Inventory Control API",
+        Version = "v1",
+        Description = "REST API for inventory management"
+    });
+    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Description = "API key via X-Api-Key header",
+        Name = "X-Api-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "ApiKey"
+    });
+    options.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecuritySchemeReference("ApiKey"),
+            new List<string>()
+        }
+    });
+});
+
 // Health checks (used by Docker/TrueNAS to verify the app + DB are working)
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
@@ -157,6 +191,13 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
+
+// Swagger UI available in all environments at /swagger
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Control API v1");
+});
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

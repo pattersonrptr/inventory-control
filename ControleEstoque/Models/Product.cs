@@ -64,6 +64,10 @@ public class Product
 
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 
+    [StringLength(500)]
+    [Display(Name = "Imagem")]
+    public string? ImagePath { get; set; }
+
     [NotMapped]
     public bool IsBelowMinimumStock => CurrentStock <= MinimumStock;
 }

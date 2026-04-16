@@ -51,6 +51,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                   .HasFilter("\"Sku\" IS NOT NULL");
             entity.Property(p => p.ExternalId).HasMaxLength(200);
             entity.Property(p => p.ExternalIdSource).HasMaxLength(50);
+            entity.Property(p => p.ImagePath).HasMaxLength(500);
 
             entity.HasOne(p => p.Category)
                   .WithMany(c => c.Products)

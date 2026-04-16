@@ -13,16 +13,19 @@ public class ProductsController : Controller
     private readonly ICategoryRepository _categoryRepo;
     private readonly ISupplierRepository _supplierRepo;
     private readonly IntegrationConfig? _integrationConfig;
+    private readonly IWebHostEnvironment _environment;
 
     public ProductsController(
         IProductRepository productRepo,
         ICategoryRepository categoryRepo,
         ISupplierRepository supplierRepo,
+        IWebHostEnvironment environment,
         IntegrationConfig? integrationConfig = null)
     {
         _productRepo = productRepo;
         _categoryRepo = categoryRepo;
         _supplierRepo = supplierRepo;
+        _environment = environment;
         _integrationConfig = integrationConfig;
     }
 
@@ -47,13 +50,16 @@ public class ProductsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Product product)
+    public async Task<IActionResult> Create(Product product, IFormFile? image)
     {
         if (!ModelState.IsValid)
         {
             await PopulateDropdownsAsync(product.CategoryId, product.SupplierId);
             return View(product);
         }
+
+        if (image is not null)
+            product.ImagePath = await SaveImageAsync(image);
 
         await _productRepo.AddAsync(product);
         TempData["Success"] = "Produto criado com sucesso!";
@@ -70,7 +76,7 @@ public class ProductsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, Product product)
+    public async Task<IActionResult> Edit(int id, Product product, IFormFile? image)
     {
         if (id != product.Id) return BadRequest();
         if (!ModelState.IsValid)
@@ -78,6 +84,9 @@ public class ProductsController : Controller
             await PopulateDropdownsAsync(product.CategoryId, product.SupplierId);
             return View(product);
         }
+
+        if (image is not null)
+            product.ImagePath = await SaveImageAsync(image);
 
         await _productRepo.UpdateAsync(product);
         TempData["Success"] = "Produto atualizado com sucesso!";
@@ -113,5 +122,24 @@ public class ProductsController : Controller
         var suppliers = await _supplierRepo.GetAllAsync();
         ViewBag.CategoryId = new SelectList(categories, "Id", "Name", categoryId);
         ViewBag.SupplierId = new SelectList(suppliers, "Id", "Name", supplierId);
+    }
+
+    private static readonly HashSet<string> AllowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+
+    private async Task<string> SaveImageAsync(IFormFile image)
+    {
+        var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
+        if (!AllowedExtensions.Contains(extension))
+            extension = ".jpg";
+
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var uploadsDir = Path.Combine(_environment.WebRootPath, "images", "products");
+        Directory.CreateDirectory(uploadsDir);
+
+        var filePath = Path.Combine(uploadsDir, fileName);
+        using var stream = new FileStream(filePath, FileMode.Create);
+        await image.CopyToAsync(stream);
+
+        return $"/images/products/{fileName}";
     }
 }
