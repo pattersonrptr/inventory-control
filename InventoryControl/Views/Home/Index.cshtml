@@ -1,0 +1,354 @@
+@{
+    ViewData["Title"] = "Painel";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0"><i class="bi bi-speedometer2"></i> Painel</h1>
+    <small class="text-muted">@DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy")</small>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <i class="bi bi-box-seam fs-1"></i>
+                <div>
+                    <div class="card-title small mb-0 text-white-50">Total de Produtos</div>
+                    <div class="display-6 fw-bold">@ViewBag.TotalProducts</div>
+                </div>
+            </div>
+            <div class="card-footer bg-primary border-0">
+                <a asp-controller="Products" asp-action="Index" class="text-white text-decoration-none small">
+                    Ver todos <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white h-100 @(ViewBag.ProductsBelowMinimum > 0 ? "bg-danger" : "bg-success")">
+            <div class="card-body d-flex align-items-center gap-3">
+                <i class="bi bi-exclamation-triangle fs-1"></i>
+                <div>
+                    <div class="card-title small mb-0 text-white-50">Abaixo do Mínimo</div>
+                    <div class="display-6 fw-bold">@ViewBag.ProductsBelowMinimum</div>
+                </div>
+            </div>
+            <div class="card-footer border-0 @(ViewBag.ProductsBelowMinimum > 0 ? "bg-danger" : "bg-success")">
+                <a asp-controller="Reports" asp-action="BelowMinimum" class="text-white text-decoration-none small">
+                    Ver lista <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <i class="bi bi-arrow-left-right fs-1"></i>
+                <div>
+                    <div class="card-title small mb-0 text-white-50">Movimentações</div>
+                    <div class="fw-bold mt-1">Registrar entrada ou saída</div>
+                </div>
+            </div>
+            <div class="card-footer bg-info border-0 d-flex gap-3">
+                <a asp-controller="StockMovements" asp-action="Entry" class="text-white text-decoration-none small">
+                    <i class="bi bi-arrow-down-circle"></i> Entrada
+                </a>
+                <a asp-controller="StockMovements" asp-action="Exit" class="text-white text-decoration-none small">
+                    <i class="bi bi-arrow-up-circle"></i> Saída
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Movimentações por Mês</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="movementsByMonthChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Estoque por Categoria</h5>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="stockByCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-trophy"></i> Top 10 Produtos Mais Vendidos</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="topSellersChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (ViewBag.IntegrationEnabled == true)
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> Integração com Loja</h5>
+        </div>
+        <div class="card-body d-flex gap-3 flex-wrap">
+            <button id="btnSyncOrders" class="btn btn-primary" onclick="syncOrders()">
+                <span id="spinnerOrders" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                <i class="bi bi-bag-check" id="iconOrders"></i>
+                Sincronizar Pedidos
+            </button>
+            <button id="btnSyncProducts" class="btn btn-secondary" onclick="syncProducts()">
+                <span id="spinnerProducts" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                <i class="bi bi-arrow-repeat" id="iconProducts"></i>
+                Sincronizar Produtos
+            </button>
+            <button id="btnSyncCategories" class="btn btn-outline-secondary" onclick="syncCategories()">
+                <span id="spinnerCategories" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                <i class="bi bi-tags" id="iconCategories"></i>
+                Sincronizar Categorias
+            </button>
+        </div>
+    </div>
+
+    <div id="syncToast" class="toast align-items-center border-0 position-fixed bottom-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true" style="z-index:1100">
+        <div class="d-flex">
+            <div id="syncToastBody" class="toast-body fw-semibold"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button>
+        </div>
+    </div>
+
+    <script>
+        async function callSync(url, btnId, spinnerId, iconId) {
+            const btn = document.getElementById(btnId);
+            const spinner = document.getElementById(spinnerId);
+            const icon = document.getElementById(iconId);
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            icon.classList.add('d-none');
+            try {
+                const res = await fetch(url, { method: 'POST' });
+                const data = await res.json();
+                showToast(res.ok, data.message ?? (res.ok ? 'Concluído.' : 'Falhou.'));
+                if (res.ok) await refreshRecentMovements();
+            } catch (e) {
+                showToast(false, 'Falha na requisição: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                icon.classList.remove('d-none');
+            }
+        }
+
+        async function refreshRecentMovements() {
+            try {
+                const res = await fetch('/api/movements/recent');
+                if (!res.ok) return;
+                const movements = await res.json();
+                const tbody = document.getElementById('recentMovementsBody');
+                if (!tbody) return;
+                if (movements.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                        Nenhuma movimentação de estoque registrada.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = movements.map(m => `<tr>
+                    <td>${m.date}</td>
+                    <td>${m.product ?? ''}</td>
+                    <td>${m.type === 'entry'
+                        ? '<span class="badge bg-success"><i class="bi bi-arrow-down-circle"></i> Entrada</span>'
+                        : '<span class="badge bg-danger"><i class="bi bi-arrow-up-circle"></i> Saída</span>'}</td>
+                    <td class="text-end fw-bold">${m.quantity}</td>
+                </tr>`).join('');
+            } catch { /* silent */ }
+        }
+
+        function syncOrders() {
+            callSync('/api/sync/orders', 'btnSyncOrders', 'spinnerOrders', 'iconOrders');
+        }
+
+        function syncProducts() {
+            callSync('/api/sync/products', 'btnSyncProducts', 'spinnerProducts', 'iconProducts');
+        }
+
+        function syncCategories() {
+            callSync('/api/sync/categories', 'btnSyncCategories', 'spinnerCategories', 'iconCategories');
+        }
+
+        function showToast(success, message) {
+            const toastEl = document.getElementById('syncToast');
+            const toastBody = document.getElementById('syncToastBody');
+            toastEl.classList.remove('bg-success', 'bg-danger', 'text-white');
+            toastEl.classList.add(success ? 'bg-success' : 'bg-danger', 'text-white');
+            toastBody.textContent = message;
+            bootstrap.Toast.getOrCreateInstance(toastEl).show();
+        }
+    </script>
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Movimentações Recentes</h5>
+        <a asp-controller="StockMovements" asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            Ver todas
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Data</th>
+                    <th>Produto</th>
+                    <th>Tipo</th>
+                    <th class="text-end">Quantidade</th>
+                </tr>
+            </thead>
+            <tbody id="recentMovementsBody">
+                @{
+                    var recentMovements = ViewBag.RecentMovements as List<InventoryControl.Models.StockMovement>;
+                }
+                @if (recentMovements is not null && recentMovements.Any())
+                {
+                    foreach (var mov in recentMovements)
+                    {
+                        <tr>
+                            <td>@mov.Date.ToString("dd/MM/yyyy")</td>
+                            <td>@mov.Product?.Name</td>
+                            <td>
+                                @if (mov.Type == InventoryControl.Models.MovementType.Entry)
+                                {
+                                    <span class="badge bg-success"><i class="bi bi-arrow-down-circle"></i> Entrada</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger"><i class="bi bi-arrow-up-circle"></i> Saída</span>
+                                }
+                            </td>
+                            <td class="text-end fw-bold">@mov.Quantity</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                            Nenhuma movimentação de estoque registrada.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const chartColors = [
+        '#0d6efd', '#198754', '#dc3545', '#ffc107', '#0dcaf0',
+        '#6f42c1', '#fd7e14', '#20c997', '#d63384', '#6610f2'
+    ];
+
+    async function loadMovementsByMonth() {
+        try {
+            const res = await fetch('/api/dashboard/movements-by-month');
+            const data = await res.json();
+            if (!data.length) return;
+            new Chart(document.getElementById('movementsByMonthChart'), {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.month),
+                    datasets: [
+                        {
+                            label: 'Entradas',
+                            data: data.map(d => d.entries),
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Saídas',
+                            data: data.map(d => d.exits),
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        } catch { /* silent */ }
+    }
+
+    async function loadStockByCategory() {
+        try {
+            const res = await fetch('/api/dashboard/stock-by-category');
+            const data = await res.json();
+            if (!data.length) return;
+            new Chart(document.getElementById('stockByCategoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.category),
+                    datasets: [{
+                        data: data.map(d => d.stock),
+                        backgroundColor: chartColors.slice(0, data.length)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+                }
+            });
+        } catch { /* silent */ }
+    }
+
+    async function loadTopSellers() {
+        try {
+            const res = await fetch('/api/dashboard/top-sellers');
+            const data = await res.json();
+            if (!data.length) return;
+            new Chart(document.getElementById('topSellersChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.product),
+                    datasets: [{
+                        label: 'Unidades Vendidas',
+                        data: data.map(d => d.quantity),
+                        backgroundColor: '#0d6efd'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        } catch { /* silent */ }
+    }
+
+    loadMovementsByMonth();
+    loadStockByCategory();
+    loadTopSellers();
+</script>
+}

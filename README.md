@@ -62,17 +62,17 @@ git clone https://github.com/pattersonrptr/inventory-control.git
 cd inventory-control
 
 # Copy the example config and fill in your values
-cp ControleEstoque/appsettings.example.json ControleEstoque/appsettings.json
+cp InventoryControl/appsettings.example.json InventoryControl/appsettings.json
 # Edit appsettings.json with your settings (connection string, integration tokens, etc.)
 
 # Restore packages
-dotnet restore ControleEstoque/ControleEstoque.csproj
+dotnet restore InventoryControl/InventoryControl.csproj
 
 # Apply database migrations (creates the SQLite database automatically)
-dotnet ef database update --project ControleEstoque/ControleEstoque.csproj
+dotnet ef database update --project InventoryControl/InventoryControl.csproj
 
 # Run the application
-dotnet run --project ControleEstoque/ControleEstoque.csproj
+dotnet run --project InventoryControl/InventoryControl.csproj
 ```
 
 Open your browser at **https://localhost:5001** (or the URL shown in the terminal).
@@ -225,7 +225,7 @@ Adding a new e-commerce platform requires implementing `IStoreIntegration` and `
 
 ```
 inventory-control/
-├── ControleEstoque/
+├── InventoryControl/
 │   ├── BackgroundServices/    # Hosted services (order sync polling)
 │   ├── Controllers/           # MVC + API controllers
 │   ├── Data/                  # AppDbContext, EF Core config, audit interceptor
@@ -236,9 +236,30 @@ inventory-control/
 │   ├── ViewModels/            # View-specific models (reports, auth, user management)
 │   ├── Views/                 # Razor views
 │   └── wwwroot/               # Static assets (CSS, JS)
+├── InventoryControl.Tests/
+│   ├── E2E/
+│   │   ├── Playwright/        # Browser-based E2E tests (Playwright + Chromium)
+│   │   └── *.cs               # Workflow integration tests
+│   ├── Fixtures/              # Test data builders and database fixtures
+│   ├── Integration/           # Controller integration tests
+│   └── Unit/                  # Unit tests (models, repositories, services, view models)
 ├── CHANGELOG.md
 ├── LICENSE
 └── README.md
+```
+
+## Testing
+
+Run all tests (unit, integration, and E2E):
+
+```bash
+dotnet test
+```
+
+The E2E tests use [Playwright for .NET](https://playwright.dev/dotnet/) with headless Chromium. On first run, install the browser:
+
+```bash
+pwsh InventoryControl.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
 ```
 
 ## Contributing
