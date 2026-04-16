@@ -63,6 +63,11 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     else
         options.UseSqlite(connectionString);
 
+    // Suppress false positive: migrations are generated with SQLite but may run on PostgreSQL.
+    // The provider difference causes EF Core 10 to flag the snapshot as stale.
+    options.ConfigureWarnings(w =>
+        w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+
     options.AddInterceptors(serviceProvider.GetRequiredService<AuditInterceptor>());
 });
 
