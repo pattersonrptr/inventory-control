@@ -267,7 +267,7 @@ using (var scope = app.Services.CreateScope())
                 FOR tbl, col, typ IN
                     VALUES ('AuditLogs','Timestamp','timestamp without time zone'),
                            ('ProcessedOrders','ProcessedAt','timestamp without time zone'),
-                           ('SyncCursors','LastProcessedAt','timestamp without time zone'),
+                           ('SyncStates','LastProcessedAt','timestamp without time zone'),
                            ('StockMovements','Date','timestamp without time zone'),
                            ('AspNetUsers','LockoutEnd','timestamp with time zone')
                 LOOP
