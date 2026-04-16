@@ -1,3 +1,4 @@
+using ControleEstoque.Data;
 using ControleEstoque.Integrations;
 using ControleEstoque.Integrations.Abstractions;
 using ControleEstoque.Models;
@@ -16,16 +17,19 @@ public class SyncServiceTests
     private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
     private readonly Mock<IProcessedOrderRepository> _processedOrderRepoMock = new();
     private readonly IntegrationConfig _config = new() { Enabled = true, Platform = "test-platform" };
+    private readonly DatabaseFixture _fixture = new();
     private readonly SyncService _sut;
 
     public SyncServiceTests()
     {
+        var context = _fixture.CreateContext();
         _sut = new SyncService(
             _storeMock.Object,
             _productRepoMock.Object,
             _movementRepoMock.Object,
             _categoryRepoMock.Object,
             _processedOrderRepoMock.Object,
+            context,
             _config,
             Mock.Of<ILogger<SyncService>>());
     }

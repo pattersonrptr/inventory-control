@@ -1,90 +1,146 @@
-# Plan: Unified TrueNAS App + Database Backup
+# Plan: Improvements & Features Roadmap
 
 ## Context
 
-- **Current**: App container on Docker Hub + separate Postgres Custom App on TrueNAS
-- **Goal**: Single Custom App with `app` + `db` + `backup` + optional `offsite-backup` (Google Drive)
-- TrueNAS has 2× 1TB mirrored disks (ZFS)
-- Current DB has only test data — safe to start fresh
-- No Kubernetes needed (TrueNAS SCALE removed k3s; Custom Apps = Docker Compose)
+Inventory Control is a production ASP.NET Core MVC (.NET 10) system running on TrueNAS SCALE
+with PostgreSQL, automated local backups, and offsite sync to Google Drive (v3.0.0).
 
-## Architecture: 4 Containers
+This plan addresses **12 verified improvement points** and **10 new features**, organized
+into 6 phases following Semantic Versioning.
 
-| # | Service           | Image                                     | Purpose                              | Always runs? |
-|---|-------------------|-------------------------------------------|--------------------------------------|--------------|
-| 1 | `db`              | `postgres:16-alpine`                      | PostgreSQL database                  | Yes          |
-| 2 | `app`             | `pattersonrptr/inventory-control:latest`  | ASP.NET Core MVC app                 | Yes          |
-| 3 | `backup`          | `prodrigestivill/postgres-backup-local`   | pg_dump every 12h, local retention   | Yes          |
-| 4 | `offsite-backup`  | `rclone/rclone`                           | Sync backups to Google Drive         | **No** — opt-in via `--profile offsite` |
+## Users
 
-### How to run
+- **Admin** (owner): Full access, can manage users and roles, promote operators to admin.
+- **Operator** (sister): Day-to-day operations — register movements, view reports, sync.
 
-```bash
-# Default (3 containers — no Google Drive config needed):
-docker compose up -d
+---
 
-# With offsite backup (4 containers — requires rclone.conf):
-docker compose --profile offsite up -d
-```
+## Verified Improvement Points
 
-## Phases
+| #  | Severity | Issue |Status |
+|----|----------|-------|-------|
+| 1  | CRITICAL | No transactions in multi-step operations (SyncService + StockMovementsController) | 🔲 |
+| 2  | CRITICAL | No uniqueness constraint on Product.Sku | 🔲 |
+| 3  | HIGH     | No pagination in list views / repositories | 🔲 |
+| 4  | HIGH     | OrderSync fetches all orders in interval×2 window | 🔲 |
+| 5  | HIGH     | No rate limiting on API endpoints | 🔲 |
+| 6  | MEDIUM   | ProcessOrderAsync partial success — no rollback on item failure | 🔲 |
+| 7  | MEDIUM   | No retry / circuit breaker on Nuvemshop API calls | 🔲 |
+| 8  | MEDIUM   | API returns generic 502 — no useful error details | 🔲 |
+| 10 | LOW      | No audit trail (who / what / when / how) | 🔲 |
+| 11 | LOW      | No CSV/Excel import for bulk data entry | 🔲 |
+| 12 | LOW      | No product images (upload or pull from store) | 🔲 |
+| 13 | LOW      | No authentication / authorization | 🔲 |
 
-### Phase 1: Health Check Endpoint (app code)
+> Note: #9 was removed (category sync button already exists in UI).
 
-1. Add `Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore` package to `ControleEstoque.csproj`
-2. Register health checks in `Program.cs`:
-   - `builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();`
-3. Map health endpoint in `Program.cs`:
-   - `app.MapHealthChecks("/health");`
+## Planned Features
 
-**Files**: `Program.cs`, `ControleEstoque.csproj`
+| ID  | Feature | Priority |
+|-----|---------|----------|
+| F1  | Authentication with ASP.NET Core Identity + Roles (Admin / Operator) | HIGH |
+| F2  | Pagination in all list views | HIGH |
+| F3  | Dashboard with Chart.js (movements/period, top sellers, stock/category, profitability) | MEDIUM |
+| F4  | Email notifications for low stock (SMTP) | MEDIUM |
+| F5  | CSV import for Products, Suppliers, Categories | MEDIUM |
+| F6  | Audit trail — logs who changed what, when, and how | MEDIUM |
+| F7  | Product images — upload local + push/pull from Nuvemshop | MEDIUM |
+| F8  | Public REST API with Swagger, API key auth, rate limiting | MEDIUM |
+| F9  | Profitability report (cost vs selling price × quantity sold) | LOW |
+| F10 | Multi-platform preparation — architecture for N e-commerce platforms | LOW |
 
-### Phase 2: Backup Container (docker-compose)
+---
 
-4. Add `backup` service to `docker-compose.yml`:
-   - Image: `prodrigestivill/postgres-backup-local`
-   - Schedule: `0 */12 * * *` (every 12 hours)
-   - Retention: 7 daily, 4 weekly, 0 monthly
-   - Volume: `backups:/backups`
-   - Depends on `db` (service_healthy)
-5. Add `backups` named volume
+## Execution Phases
 
-**Files**: `docker-compose.yml`
+### Phase 1 — Data Integrity & Foundation (`v3.1.0` PATCH)
 
-### Phase 3: Offsite Backup (optional, opt-in)
+> Critical fixes that prevent **data inconsistency in production**.
 
-6. Add `offsite-backup` service with `profiles: ["offsite"]`
-   - Image: `rclone/rclone`
-   - Mounts `backups` volume (read-only) + `rclone-config` volume
-   - Runs `rclone sync` on a cron loop
-   - Only starts with `docker compose --profile offsite up -d`
-   - Without the profile flag: doesn't exist, no errors, no config needed
-7. Add `rclone-config` named volume
+| Item | What |
+|------|------|
+| #1 + #6 | Wrap multi-step operations in `IDbContextTransaction` (SyncService + StockMovementsController) |
+| #2 | Migration: add unique filtered index on `Product.Sku` (nullable) |
+| #8 | Improve API error responses with structured problem details |
 
-**Files**: `docker-compose.yml`
+**Branch**: `fix/data-integrity` → PR → merge → release `v3.1.0`
 
-### Phase 4: Docker Compose + Documentation
+### Phase 2 — Authentication & Audit Trail (`v4.0.0` MAJOR)
 
-8. Add `healthcheck` to `app` service in `docker-compose.yml`
-9. Update `README.md` — backup/restore instructions, rclone setup guide
-10. Update `CHANGELOG.md`
-11. Commit, PR, merge
+> Breaking change: all routes require login.
 
-**Files**: `docker-compose.yml`, `README.md`, `CHANGELOG.md`
+| Item | What |
+|------|------|
+| #13 / F1 | ASP.NET Core Identity — login, register, roles (Admin, Operator) |
+| — | Admin can manage users, assign roles, promote operators |
+| #10 / F6 | `AuditLog` model + EF Core SaveChanges interceptor |
+| — | Seed default admin user |
 
-## Verification
+**Branch**: `feat/authentication` → PR → release `v4.0.0`
 
-1. `docker compose up -d` → 3 containers start, `docker compose ps` shows healthy
-2. `curl http://localhost:8080/health` → `Healthy`
-3. Trigger manual backup → `.sql.gz` file appears in backup volume
-4. Test restore: `gunzip < backup.sql.gz | psql` → data intact
-5. (When ready) Configure rclone → `docker compose --profile offsite up -d` → files sync to Google Drive
+### Phase 3 — Performance & Resilience (`v4.1.0` MINOR)
+
+> Scale and resilience for growing order volume.
+
+| Item | What |
+|------|------|
+| #3 / F2 | Pagination in all repositories + views (skip/take + page controls) |
+| #4 | OrderSync: track `lastProcessedAt`, fetch only since last run |
+| #5 | Rate limiting middleware (`AspNetCoreRateLimit`) |
+| #7 | Polly retry + circuit breaker for `NuvemshopClient` |
+
+**Branch**: `feat/performance` → PR → release `v4.1.0`
+
+### Phase 4 — Dashboard & Notifications (`v4.2.0` MINOR)
+
+> Visibility and proactive alerts.
+
+| Item | What |
+|------|------|
+| F3 | Chart.js dashboard: movements/period, top sellers, stock/category, profitability |
+| F9 | Profitability report (CostPrice vs SellingPrice × quantity sold) |
+| F4 | Email alerts for stock below minimum (configurable SMTP) |
+
+**Branch**: `feat/dashboard-notifications` → PR → release `v4.2.0`
+
+### Phase 5 — Import, Images & API (`v4.3.0` MINOR)
+
+> Productivity and extensibility.
+
+| Item | What |
+|------|------|
+| F5 | CSV import for Products, Suppliers, Categories (upload → preview → confirm) |
+| F7 | Product images: upload local + push/pull from Nuvemshop |
+| F8 | Full REST API + Swagger UI + API key authentication |
+
+**Branch**: `feat/import-images-api` → PR → release `v4.3.0`
+
+### Phase 6 — Multi-platform Preparation (`v5.0.0` MAJOR)
+
+> Open-source readiness: support N e-commerce platforms.
+
+| Item | What |
+|------|------|
+| F10 | Multi-store config, platform registry pattern, store selector in UI |
+| — | Documentation: "How to add a new platform" contributor guide |
+
+**Branch**: `feat/multi-platform` → PR → release `v5.0.0`
+
+---
+
+## Execution Strategy
+
+1. **One phase at a time** — branch → implement → tests → PR → release → deploy to TrueNAS.
+2. **Full project re-read** at the start of each phase to maintain context.
+3. **Tests required** before every merge (unit + integration + E2E).
+4. **CHANGELOG + README** updated with every release.
+5. **Divide and conquer** — large phases are split into focused commits.
 
 ## Decisions
 
-- **No Kubernetes** — TrueNAS SCALE removed k3s; Docker Compose is native
-- **No DB streaming replication** — overkill for single-server home setup
-- **No data migration** — current DB is test data only
-- **`prodrigestivill/postgres-backup-local`** — battle-tested, handles retention automatically
-- **Offsite is opt-in** — app works fully without Google Drive configured
-- After verifying unified app → delete standalone Postgres Custom App on TrueNAS
+- **Identity over custom auth** — built-in, battle-tested, supports roles out of the box.
+- **Chart.js over paid libraries** — lightweight, MIT license, widely used.
+- **Polly for resilience** — standard .NET retry/circuit breaker library.
+- **AspNetCoreRateLimit** — simple middleware, no external dependencies.
+- **CSV over Excel** — simpler parsing, universal format. Can add Excel later.
+- **Multi-platform last** — architecture is already platform-agnostic via `IStoreIntegration`.

@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Database transactions wrapping stock entry/exit operations and order sync processing to ensure data consistency
+- Unique constraint on `Product.Sku` (filtered index allowing NULLs) with EF Core migration
+- Structured API error responses in sync and webhook endpoints, differentiating external API errors (502) from internal errors (500)
+- Error handling in Nuvemshop webhook controller with proper HTTP status codes
+
+### Changed
+
+- Test infrastructure: switched from EF Core InMemory provider to SQLite in-memory for transaction support
+
+## [3.0.1] - 2026-04-16
+
+### Fixed
+
+- `docker-compose.truenas.yml` (with real credentials) removed from git tracking and added to `.gitignore`
+
+## [3.0.0] - 2026-04-15
+
+### Added
+
 - TrueNAS-specific Docker Compose deployment files:
   - `docker-compose.truenas.yml` (production with real credentials)
   - `docker-compose.truenas.example.yml` (template with placeholders)
@@ -87,6 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSRF protection on all form-based POST/PUT/DELETE actions
 - No raw SQL — all queries through EF Core with LINQ
 
-[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/pattersonrptr/inventory-control/compare/v3.0.0...v3.0.1
+[3.0.0]: https://github.com/pattersonrptr/inventory-control/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/pattersonrptr/inventory-control/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/pattersonrptr/inventory-control/releases/tag/v1.0.0

@@ -1,3 +1,4 @@
+using ControleEstoque.Data;
 using ControleEstoque.Integrations.Abstractions;
 using ControleEstoque.Models;
 using ControleEstoque.Repositories.Interfaces;
@@ -16,6 +17,7 @@ public class SyncService
     private readonly IStockMovementRepository _movementRepo;
     private readonly ICategoryRepository _categoryRepo;
     private readonly IProcessedOrderRepository _processedOrderRepo;
+    private readonly AppDbContext _dbContext;
     private readonly IntegrationConfig _config;
     private readonly ILogger<SyncService> _logger;
 
@@ -36,6 +38,7 @@ public class SyncService
         IStockMovementRepository movementRepo,
         ICategoryRepository categoryRepo,
         IProcessedOrderRepository processedOrderRepo,
+        AppDbContext dbContext,
         IntegrationConfig config,
         ILogger<SyncService> logger)
     {
@@ -44,6 +47,7 @@ public class SyncService
         _movementRepo = movementRepo;
         _categoryRepo = categoryRepo;
         _processedOrderRepo = processedOrderRepo;
+        _dbContext = dbContext;
         _config = config;
         _logger = logger;
     }
@@ -227,57 +231,67 @@ public class SyncService
             return false;
         }
 
-        var localProducts = await _productRepo.GetAllAsync();
-
-        foreach (var item in order.Items)
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
         {
-            var product = FindMatchingProduct(localProducts, item);
+            var localProducts = await _productRepo.GetAllAsync();
 
-            if (product is null)
+            foreach (var item in order.Items)
             {
-                _logger.LogWarning(
-                    "Order {OrderId}: no local product matched externalProductId={ExternalProductId} / sku={Sku}. Item skipped.",
-                    order.ExternalOrderId, item.ExternalProductId, item.Sku);
-                continue;
+                var product = FindMatchingProduct(localProducts, item);
+
+                if (product is null)
+                {
+                    _logger.LogWarning(
+                        "Order {OrderId}: no local product matched externalProductId={ExternalProductId} / sku={Sku}. Item skipped.",
+                        order.ExternalOrderId, item.ExternalProductId, item.Sku);
+                    continue;
+                }
+
+                if (product.CurrentStock < item.Quantity)
+                {
+                    _logger.LogWarning(
+                        "Order {OrderId}: insufficient stock for product {ProductName} (available={Available}, requested={Requested}). Item skipped.",
+                        order.ExternalOrderId, product.Name, product.CurrentStock, item.Quantity);
+                    continue;
+                }
+
+                var movement = new StockMovement
+                {
+                    ProductId = product.Id,
+                    Type = MovementType.Exit,
+                    Quantity = item.Quantity,
+                    Date = order.CreatedAt,
+                    ExitReason = ExitReason.Sale,
+                    UnitCost = item.UnitPrice,
+                    Notes = $"Order {order.ExternalOrderId} from external store"
+                };
+
+                await _movementRepo.AddAsync(movement);
+                await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock - item.Quantity);
+
+                _logger.LogInformation(
+                    "Recorded exit of {Quantity} unit(s) of {ProductName} for order {OrderId}.",
+                    item.Quantity, product.Name, order.ExternalOrderId);
             }
 
-            if (product.CurrentStock < item.Quantity)
+            // Mark order as processed to prevent reprocessing
+            await _processedOrderRepo.AddAsync(new ProcessedOrder
             {
-                _logger.LogWarning(
-                    "Order {OrderId}: insufficient stock for product {ProductName} (available={Available}, requested={Requested}). Item skipped.",
-                    order.ExternalOrderId, product.Name, product.CurrentStock, item.Quantity);
-                continue;
-            }
+                ExternalOrderId = order.ExternalOrderId,
+                Status = order.Status,
+                PaymentStatus = order.PaymentStatus,
+                ProcessedAt = DateTime.Now
+            });
 
-            var movement = new StockMovement
-            {
-                ProductId = product.Id,
-                Type = MovementType.Exit,
-                Quantity = item.Quantity,
-                Date = order.CreatedAt,
-                ExitReason = ExitReason.Sale,
-                UnitCost = item.UnitPrice,
-                Notes = $"Order {order.ExternalOrderId} from external store"
-            };
-
-            await _movementRepo.AddAsync(movement);
-            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock - item.Quantity);
-
-            _logger.LogInformation(
-                "Recorded exit of {Quantity} unit(s) of {ProductName} for order {OrderId}.",
-                item.Quantity, product.Name, order.ExternalOrderId);
+            await transaction.CommitAsync();
+            return true;
         }
-
-        // Mark order as processed to prevent reprocessing
-        await _processedOrderRepo.AddAsync(new ProcessedOrder
+        catch
         {
-            ExternalOrderId = order.ExternalOrderId,
-            Status = order.Status,
-            PaymentStatus = order.PaymentStatus,
-            ProcessedAt = DateTime.Now
-        });
-
-        return true;
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     /// <summary>
@@ -290,43 +304,53 @@ public class SyncService
             "Order {OrderId} was refunded (payment_status changed from '{OldStatus}' to '{NewStatus}'). Reversing stock.",
             order.ExternalOrderId, existingRecord.PaymentStatus, order.PaymentStatus);
 
-        var localProducts = await _productRepo.GetAllAsync();
-
-        foreach (var item in order.Items)
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
         {
-            var product = FindMatchingProduct(localProducts, item);
+            var localProducts = await _productRepo.GetAllAsync();
 
-            if (product is null)
+            foreach (var item in order.Items)
             {
-                _logger.LogWarning(
-                    "Refund {OrderId}: no local product matched externalProductId={ExternalProductId} / sku={Sku}. Item skipped.",
-                    order.ExternalOrderId, item.ExternalProductId, item.Sku);
-                continue;
+                var product = FindMatchingProduct(localProducts, item);
+
+                if (product is null)
+                {
+                    _logger.LogWarning(
+                        "Refund {OrderId}: no local product matched externalProductId={ExternalProductId} / sku={Sku}. Item skipped.",
+                        order.ExternalOrderId, item.ExternalProductId, item.Sku);
+                    continue;
+                }
+
+                var movement = new StockMovement
+                {
+                    ProductId = product.Id,
+                    Type = MovementType.Entry,
+                    Quantity = item.Quantity,
+                    Date = DateTime.Now,
+                    UnitCost = item.UnitPrice,
+                    Notes = $"Refund for order {order.ExternalOrderId} from external store"
+                };
+
+                await _movementRepo.AddAsync(movement);
+                await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock + item.Quantity);
+
+                _logger.LogInformation(
+                    "Reversed {Quantity} unit(s) of {ProductName} for refunded order {OrderId}.",
+                    item.Quantity, product.Name, order.ExternalOrderId);
             }
 
-            var movement = new StockMovement
-            {
-                ProductId = product.Id,
-                Type = MovementType.Entry,
-                Quantity = item.Quantity,
-                Date = DateTime.Now,
-                UnitCost = item.UnitPrice,
-                Notes = $"Refund for order {order.ExternalOrderId} from external store"
-            };
+            // Update the processed order record with the new payment status
+            existingRecord.PaymentStatus = order.PaymentStatus;
+            await _processedOrderRepo.UpdateAsync(existingRecord);
 
-            await _movementRepo.AddAsync(movement);
-            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock + item.Quantity);
-
-            _logger.LogInformation(
-                "Reversed {Quantity} unit(s) of {ProductName} for refunded order {OrderId}.",
-                item.Quantity, product.Name, order.ExternalOrderId);
+            await transaction.CommitAsync();
+            return true;
         }
-
-        // Update the processed order record with the new payment status
-        existingRecord.PaymentStatus = order.PaymentStatus;
-        await _processedOrderRepo.UpdateAsync(existingRecord);
-
-        return true;
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     private static Product? FindMatchingProduct(IEnumerable<Product> localProducts, ExternalOrderItem item)

@@ -45,16 +45,24 @@ public class NuvemshopWebhookController : ControllerBase
 
         _logger.LogInformation("Webhook received: event={Event}, id={Id}", payload.Event, payload.Id);
 
-        // Handle paid/fulfilled orders: trigger stock exit movement
-        if (payload.Event is "order/paid" or "order/fulfilled")
+        try
         {
-            var order = await _store.GetOrderAsync(payload.Id.ToString());
-            if (order is not null)
+            // Handle paid/fulfilled orders: trigger stock exit movement
+            if (payload.Event is "order/paid" or "order/fulfilled")
             {
-                await _syncService.ProcessOrderAsync(order);
+                var order = await _store.GetOrderAsync(payload.Id.ToString());
+                if (order is not null)
+                {
+                    await _syncService.ProcessOrderAsync(order);
+                }
             }
-        }
 
-        return Ok();
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Webhook processing failed for event={Event}, id={Id}.", payload.Event, payload.Id);
+            return StatusCode(500, new { error = "WebhookProcessingError", message = "Failed to process webhook event." });
+        }
     }
 }
