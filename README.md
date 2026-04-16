@@ -24,6 +24,9 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 - **Low-stock alerts** for products below the minimum threshold
 - **Monthly reports** with entry/exit breakdown per product
 - **E-commerce sync** — pull products, push stock, and process orders from Nuvemshop
+- **Authentication** — ASP.NET Core Identity with email/password login and role-based access (Admin / Operator)
+- **User management** — admins can create, edit, and delete users and assign roles
+- **Audit trail** — automatic logging of every data change (who, what, when, old/new values)
 
 ## Tech Stack
 
@@ -31,6 +34,7 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 |---|---|
 | Web framework | ASP.NET Core MVC (.NET 10) |
 | ORM | Entity Framework Core 10 |
+| Authentication | ASP.NET Core Identity |
 | Database (dev) | SQLite |
 | Database (prod) | Configurable (PostgreSQL, Oracle, etc.) |
 | Front-end | Bootstrap 5.3 + Bootstrap Icons |
@@ -64,6 +68,8 @@ dotnet run --project ControleEstoque/ControleEstoque.csproj
 
 Open your browser at **https://localhost:5001** (or the URL shown in the terminal).
 
+A default admin user is created on first run using the `DefaultAdmin` settings in `appsettings.json`.
+
 ### Configuration
 
 Copy `appsettings.example.json` to `appsettings.json` and update the values:
@@ -76,6 +82,9 @@ Copy `appsettings.example.json` to `appsettings.json` and update the values:
 | `Integration:StoreId` | Your store ID |
 | `Integration:AccessToken` | API access token (keep secret!) |
 | `Integration:OrderSyncIntervalMinutes` | Auto-sync orders interval in minutes (default: `15`) |
+| `DefaultAdmin:Email` | Default admin email (seeded on first run) |
+| `DefaultAdmin:Password` | Default admin password (min 6 characters) |
+| `DefaultAdmin:FullName` | Default admin display name |
 
 > **Never commit `appsettings.json`** — it is listed in `.gitignore`. Use `appsettings.example.json` as a template.
 >
@@ -195,12 +204,12 @@ inventory-control/
 ├── ControleEstoque/
 │   ├── BackgroundServices/    # Hosted services (order sync polling)
 │   ├── Controllers/           # MVC + API controllers
-│   ├── Data/                  # AppDbContext and EF Core config
+│   ├── Data/                  # AppDbContext, EF Core config, audit interceptor
 │   ├── Integrations/          # E-commerce platform abstractions + Nuvemshop
 │   ├── Migrations/            # EF Core migrations
-│   ├── Models/                # Domain entities (Product, Category, Supplier, StockMovement)
+│   ├── Models/                # Domain entities + Identity user + audit log
 │   ├── Repositories/          # Data access layer (interfaces + implementations)
-│   ├── ViewModels/            # View-specific models
+│   ├── ViewModels/            # View-specific models (reports, auth, user management)
 │   ├── Views/                 # Razor views
 │   └── wwwroot/               # Static assets (CSS, JS)
 ├── CHANGELOG.md

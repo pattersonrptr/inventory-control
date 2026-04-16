@@ -27,10 +27,10 @@ into 6 phases following Semantic Versioning.
 | 6  | MEDIUM   | ProcessOrderAsync partial success — no rollback on item failure | ✅ |
 | 7  | MEDIUM   | No retry / circuit breaker on Nuvemshop API calls | 🔲 |
 | 8  | MEDIUM   | API returns generic 502 — no useful error details | ✅ |
-| 10 | LOW      | No audit trail (who / what / when / how) | 🔲 |
+| 10 | LOW      | No audit trail (who / what / when / how) | ✅ |
 | 11 | LOW      | No CSV/Excel import for bulk data entry | 🔲 |
 | 12 | LOW      | No product images (upload or pull from store) | 🔲 |
-| 13 | LOW      | No authentication / authorization | 🔲 |
+| 13 | LOW      | No authentication / authorization | ✅ |
 
 > Note: #9 was removed (category sync button already exists in UI).
 

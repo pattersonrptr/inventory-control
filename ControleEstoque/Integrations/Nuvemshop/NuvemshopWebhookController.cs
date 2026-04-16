@@ -1,9 +1,12 @@
 using ControleEstoque.Integrations.Abstractions;
 using ControleEstoque.Integrations.Nuvemshop.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ControleEstoque.Integrations.Nuvemshop;
 
+// Webhooks are called by external platforms — authentication is not applicable.
+[AllowAnonymous]
 [ApiController]
 [Route("api/webhooks/nuvemshop")]
 public class NuvemshopWebhookController : ControllerBase

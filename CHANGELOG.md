@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- ASP.NET Core Identity authentication with email/password login
+- Role-based authorization: Admin (full access) and Operator (day-to-day ops) roles
+- Global authentication filter — all routes require login (webhook endpoint exempt via `[AllowAnonymous]`)
+- User management UI for Admin: create, edit, delete users and assign roles
+- Default admin account seeded on first startup (configurable via `DefaultAdmin` settings)
+- Audit trail: `AuditLog` table with EF Core `SaveChanges` interceptor tracking all entity changes (who, what, when, old/new values)
+- Audit log viewer for Admin at `/AuditLogs`
+- Login page with Bootstrap styling and lockout protection
+- Access denied page for unauthorized role access
+- Admin menu in navbar: Users and Audit links (visible only to Admin role)
+- User dropdown in navbar with logout option
+
+### Changed
+
+- `AppDbContext` now extends `IdentityDbContext<ApplicationUser>` instead of `DbContext`
+- `appsettings.example.json` updated with `DefaultAdmin` configuration section
+- Test infrastructure updated with `TestAuthHandler` to auto-authenticate integration tests as Admin
+
 ## [3.1.0] - 2026-04-16
 
 ### Added
