@@ -294,7 +294,8 @@ using (var scope = app.Services.CreateScope())
                     VALUES ('AspNetUsers','EmailConfirmed'),
                            ('AspNetUsers','PhoneNumberConfirmed'),
                            ('AspNetUsers','TwoFactorEnabled'),
-                           ('AspNetUsers','LockoutEnabled')
+                           ('AspNetUsers','LockoutEnabled'),
+                           ('ProductImages','IsPrimary')
                 LOOP
                     IF EXISTS (
                         SELECT 1 FROM information_schema.columns
