@@ -323,7 +323,6 @@ using (var scope = app.Services.CreateScope())
                            ('Products','Id','products_id_seq','integer'),
                            ('StockMovements','Id','stockmovements_id_seq','integer'),
                            ('ProcessedOrders','Id','processedorders_id_seq','integer'),
-                           ('SyncStates','Id','syncstates_id_seq','integer'),
                            ('ProductImages','Id','productimages_id_seq','integer'),
                            ('AuditLogs','Id','auditlogs_id_seq','bigint'),
                            ('AspNetRoleClaims','Id','aspnetroleclaims_id_seq','integer'),
