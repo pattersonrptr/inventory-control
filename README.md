@@ -232,7 +232,7 @@ inventory-control/
 │   ├── Data/                  # AppDbContext, EF Core config, audit interceptor
 │   ├── Integrations/          # E-commerce platform abstractions + Nuvemshop
 │   ├── Migrations/            # EF Core migrations
-│   ├── Models/                # Domain entities (Product, ProductImage, Category, Supplier, StockMovement) + Identity + audit
+│   ├── Models/                # Domain entities (Product, ProductImage, Category, Supplier, StockMovement, ExternalMappings) + Identity + audit
 │   ├── Repositories/          # Data access layer (interfaces + implementations)
 │   ├── ViewModels/            # View-specific models (reports, auth, user management)
 │   ├── Views/                 # Razor views

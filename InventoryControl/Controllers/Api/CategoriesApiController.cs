@@ -77,8 +77,7 @@ public class CategoriesApiController : ControllerBase
         c.Id,
         c.Name,
         c.Description,
-        c.ExternalId,
-        c.ExternalIdSource,
+        ExternalMappings = c.ExternalMappings.Select(m => new { m.StoreName, m.ExternalId, m.Platform }),
         ProductCount = c.Products?.Count ?? 0
     };
 }

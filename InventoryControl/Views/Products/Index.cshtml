@@ -68,7 +68,7 @@
                                class="btn btn-sm btn-outline-danger" title="Excluir">
                                 <i class="bi bi-trash"></i>
                             </a>
-                            @if (ViewBag.IntegrationEnabled == true && item.ExternalId == null)
+                            @if (ViewBag.IntegrationEnabled == true && !item.ExternalMappings.Any())
                             {
                                 <button class="btn btn-sm btn-outline-success"
                                         title="Enviar para Loja"

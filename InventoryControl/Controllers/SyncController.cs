@@ -1,7 +1,9 @@
+using InventoryControl.Data;
 using InventoryControl.Integrations;
 using InventoryControl.Integrations.Abstractions;
 using InventoryControl.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventoryControl.Controllers;
 
@@ -12,17 +14,20 @@ public class SyncController : ControllerBase
     private readonly SyncServiceFactory _syncFactory;
     private readonly PlatformRegistry _registry;
     private readonly IProductRepository _productRepo;
+    private readonly AppDbContext _dbContext;
     private readonly ILogger<SyncController> _logger;
 
     public SyncController(
         SyncServiceFactory syncFactory,
         PlatformRegistry registry,
         IProductRepository productRepo,
+        AppDbContext dbContext,
         ILogger<SyncController> logger)
     {
         _syncFactory = syncFactory;
         _registry = registry;
         _productRepo = productRepo;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -100,9 +105,12 @@ public class SyncController : ControllerBase
             return NotFound(new { message = $"Product {productId} not found." });
         }
 
-        if (product.ExternalId is null)
+        var hasMapping = await _dbContext.ProductExternalMappings
+            .AnyAsync(m => m.ProductId == productId && m.StoreName == config.Name);
+
+        if (!hasMapping)
         {
-            return NotFound(new { message = $"Product {productId} has no linked external ID. Run a product sync first." });
+            return NotFound(new { message = $"Product {productId} has no linked external ID for store '{config.Name}'. Run a product sync first." });
         }
 
         _logger.LogInformation("Manual push-stock triggered for product id={ProductId} on store '{Store}'.", productId, config.Name);
@@ -197,8 +205,11 @@ public class SyncController : ControllerBase
         if (product is null)
             return NotFound(new { message = $"Product {productId} not found." });
 
-        if (product.ExternalId is not null)
-            return Conflict(new { message = $"Product {productId} is already linked to external id {product.ExternalId}." });
+        var existingMapping = await _dbContext.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == productId && m.StoreName == config.Name);
+
+        if (existingMapping is not null)
+            return Conflict(new { message = $"Product {productId} is already linked to external id {existingMapping.ExternalId} on store '{config.Name}'." });
 
         _logger.LogInformation("Push-product triggered for product id={ProductId} on store '{Store}'.", productId, config.Name);
         try

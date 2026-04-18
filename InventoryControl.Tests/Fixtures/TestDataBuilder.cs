@@ -23,8 +23,7 @@ public static class TestDataBuilder
         int categoryId = 1,
         int currentStock = 50,
         int minimumStock = 10,
-        string? sku = "WIDGET-001",
-        string? externalId = null)
+        string? sku = "WIDGET-001")
         => new()
         {
             Id = id,
@@ -35,8 +34,7 @@ public static class TestDataBuilder
             CurrentStock = currentStock,
             MinimumStock = minimumStock,
             CategoryId = categoryId,
-            Sku = sku,
-            ExternalId = externalId
+            Sku = sku
         };
 
     public static StockMovement CreateEntry(

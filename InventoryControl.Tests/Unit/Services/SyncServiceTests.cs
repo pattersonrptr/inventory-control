@@ -1,9 +1,10 @@
-using InventoryControl.Data;
+﻿using InventoryControl.Data;
 using InventoryControl.Integrations;
 using InventoryControl.Integrations.Abstractions;
 using InventoryControl.Models;
 using InventoryControl.Repositories.Interfaces;
 using InventoryControl.Tests.Fixtures;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -16,28 +17,44 @@ public class SyncServiceTests
     private readonly Mock<IStockMovementRepository> _movementRepoMock = new();
     private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
     private readonly Mock<IProcessedOrderRepository> _processedOrderRepoMock = new();
-    private readonly IntegrationConfig _config = new() { Enabled = true, Platform = "test-platform" };
+    private readonly IntegrationConfig _config = new() { Name = "test-store", Enabled = true, Platform = "test-platform" };
     private readonly DatabaseFixture _fixture = new();
+    private readonly AppDbContext _context;
     private readonly SyncService _sut;
 
     public SyncServiceTests()
     {
-        var context = _fixture.CreateContext();
+        _context = _fixture.CreateContext();
         _sut = new SyncService(
             _storeMock.Object,
             _productRepoMock.Object,
             _movementRepoMock.Object,
             _categoryRepoMock.Object,
             _processedOrderRepoMock.Object,
-            context,
+            _context,
             _config,
             Mock.Of<ILogger<SyncService>>());
     }
 
+    private async Task SeedProductAsync(Product product)
+    {
+        if (!await _context.Categories.AnyAsync(c => c.Id == product.CategoryId))
+            _context.Categories.Add(TestDataBuilder.CreateCategory(id: product.CategoryId));
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task SeedCategoryAsync(Category category)
+    {
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+    }
+
     [Fact]
-    public async Task SyncProductsFromStoreAsync_MatchesBySku_UpdatesExternalId()
+    public async Task SyncProductsFromStoreAsync_MatchesBySku_CreatesMapping()
     {
         var localProduct = TestDataBuilder.CreateProduct(sku: "SKU-1");
+        await SeedProductAsync(localProduct);
         _productRepoMock.Setup(r => r.GetAllAsync())
             .ReturnsAsync(new[] { localProduct });
         _storeMock.Setup(s => s.GetProductsAsync())
@@ -45,13 +62,15 @@ public class SyncServiceTests
 
         await _sut.SyncProductsFromStoreAsync();
 
-        Assert.Equal("ext-123", localProduct.ExternalId);
-        Assert.Equal("test-platform", localProduct.ExternalIdSource);
-        _productRepoMock.Verify(r => r.UpdateAsync(localProduct), Times.Once);
+        var mapping = await _context.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == localProduct.Id && m.StoreName == "test-store");
+        Assert.NotNull(mapping);
+        Assert.Equal("ext-123", mapping.ExternalId);
+        Assert.Equal("test-platform", mapping.Platform);
     }
 
     [Fact]
-    public async Task SyncProductsFromStoreAsync_NoSkuMatch_DoesNotUpdate()
+    public async Task SyncProductsFromStoreAsync_NoSkuMatch_DoesNotCreateMapping()
     {
         _productRepoMock.Setup(r => r.GetAllAsync())
             .ReturnsAsync(new[] { TestDataBuilder.CreateProduct(sku: "SKU-A") });
@@ -60,7 +79,7 @@ public class SyncServiceTests
 
         await _sut.SyncProductsFromStoreAsync();
 
-        _productRepoMock.Verify(r => r.UpdateAsync(It.IsAny<Product>()), Times.Never);
+        Assert.Empty(await _context.ProductExternalMappings.ToListAsync());
     }
 
     [Fact]
@@ -76,24 +95,27 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task PushProductToStoreAsync_Success_SavesExternalId()
+    public async Task PushProductToStoreAsync_Success_CreatesMapping()
     {
         var product = TestDataBuilder.CreateProduct();
-        _productRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(product);
+        await SeedProductAsync(product);
+        _productRepoMock.Setup(r => r.GetByIdAsync(product.Id)).ReturnsAsync(product);
         _storeMock.Setup(s => s.CreateProductAsync(
             product.Name, product.Description, product.SellingPrice, product.Sku, product.CurrentStock))
             .ReturnsAsync(new ExternalProduct { ExternalId = "ext-new" });
 
         await _sut.PushProductToStoreAsync(1);
 
-        Assert.Equal("ext-new", product.ExternalId);
-        _productRepoMock.Verify(r => r.UpdateAsync(product), Times.Once);
+        var mapping = await _context.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == product.Id && m.StoreName == "test-store");
+        Assert.NotNull(mapping);
+        Assert.Equal("ext-new", mapping.ExternalId);
     }
 
     [Fact]
-    public async Task PushStockToStoreAsync_NoExternalId_DoesNotPush()
+    public async Task PushStockToStoreAsync_NoMapping_DoesNotPush()
     {
-        var product = TestDataBuilder.CreateProduct(externalId: null);
+        var product = TestDataBuilder.CreateProduct();
         _productRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(product);
 
         await _sut.PushStockToStoreAsync(1);
@@ -102,10 +124,19 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task PushStockToStoreAsync_WithExternalId_PushesCurrentStock()
+    public async Task PushStockToStoreAsync_WithMapping_PushesCurrentStock()
     {
-        var product = TestDataBuilder.CreateProduct(currentStock: 42, externalId: "ext-1");
-        _productRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(product);
+        var product = TestDataBuilder.CreateProduct(currentStock: 42);
+        await SeedProductAsync(product);
+        _productRepoMock.Setup(r => r.GetByIdAsync(product.Id)).ReturnsAsync(product);
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = product.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-1",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
 
         await _sut.PushStockToStoreAsync(1);
 
@@ -113,11 +144,20 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task ProcessOrderAsync_MatchesByExternalId_CreatesExitMovement()
+    public async Task ProcessOrderAsync_MatchesByMapping_CreatesExitMovement()
     {
-        var product = TestDataBuilder.CreateProduct(currentStock: 50, externalId: "ext-1");
+        var product = TestDataBuilder.CreateProduct(currentStock: 50);
+        await SeedProductAsync(product);
         _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { product });
         _processedOrderRepoMock.Setup(r => r.GetByExternalOrderIdAsync("ORD-1")).ReturnsAsync((ProcessedOrder?)null);
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = product.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-1",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
 
         var order = new ExternalOrder
         {
@@ -147,9 +187,18 @@ public class SyncServiceTests
     [Fact]
     public async Task ProcessOrderAsync_InsufficientStock_SkipsItem()
     {
-        var product = TestDataBuilder.CreateProduct(currentStock: 2, externalId: "ext-1");
+        var product = TestDataBuilder.CreateProduct(currentStock: 2);
+        await SeedProductAsync(product);
         _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { product });
         _processedOrderRepoMock.Setup(r => r.GetByExternalOrderIdAsync("ORD-1")).ReturnsAsync((ProcessedOrder?)null);
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = product.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-1",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
 
         var order = new ExternalOrder
         {
@@ -192,23 +241,27 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task SyncCategoriesToStoreAsync_ExistingCategory_LinksExternalId()
+    public async Task SyncCategoriesToStoreAsync_ExistingCategory_CreatesMapping()
     {
         var localCategory = TestDataBuilder.CreateCategory(name: "Tech");
+        await SeedCategoryAsync(localCategory);
         _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { localCategory });
         _storeMock.Setup(s => s.GetCategoriesAsync())
             .ReturnsAsync(new[] { new ExternalCategory { ExternalId = "ext-cat-1", Name = "Tech" } });
 
         await _sut.SyncCategoriesToStoreAsync();
 
-        Assert.Equal("ext-cat-1", localCategory.ExternalId);
-        _categoryRepoMock.Verify(r => r.UpdateAsync(localCategory), Times.Once);
+        var mapping = await _context.CategoryExternalMappings
+            .FirstOrDefaultAsync(m => m.CategoryId == localCategory.Id && m.StoreName == "test-store");
+        Assert.NotNull(mapping);
+        Assert.Equal("ext-cat-1", mapping.ExternalId);
     }
 
     [Fact]
     public async Task SyncCategoriesToStoreAsync_NewCategory_CreatesOnStore()
     {
         var localCategory = TestDataBuilder.CreateCategory(name: "New");
+        await SeedCategoryAsync(localCategory);
         _categoryRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { localCategory });
         _storeMock.Setup(s => s.GetCategoriesAsync()).ReturnsAsync(Array.Empty<ExternalCategory>());
         _storeMock.Setup(s => s.CreateCategoryAsync("New"))
@@ -216,7 +269,10 @@ public class SyncServiceTests
 
         await _sut.SyncCategoriesToStoreAsync();
 
-        Assert.Equal("ext-new", localCategory.ExternalId);
+        var mapping = await _context.CategoryExternalMappings
+            .FirstOrDefaultAsync(m => m.CategoryId == localCategory.Id && m.StoreName == "test-store");
+        Assert.NotNull(mapping);
+        Assert.Equal("ext-new", mapping.ExternalId);
         _storeMock.Verify(s => s.CreateCategoryAsync("New"), Times.Once);
     }
 
@@ -300,9 +356,18 @@ public class SyncServiceTests
     [InlineData("authorized")]
     public async Task ProcessOrderAsync_ConfirmedPayment_ProcessesOrder(string paymentStatus)
     {
-        var product = TestDataBuilder.CreateProduct(currentStock: 50, externalId: "ext-1");
+        var product = TestDataBuilder.CreateProduct(currentStock: 50);
+        await SeedProductAsync(product);
         _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { product });
         _processedOrderRepoMock.Setup(r => r.GetByExternalOrderIdAsync("ORD-1")).ReturnsAsync((ProcessedOrder?)null);
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = product.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-1",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
 
         var order = new ExternalOrder
         {
@@ -329,10 +394,19 @@ public class SyncServiceTests
     [InlineData("voided")]
     public async Task ProcessOrderAsync_RefundedOrder_ReversesStockWithEntryMovement(string refundStatus)
     {
-        var product = TestDataBuilder.CreateProduct(currentStock: 47, externalId: "ext-1");
+        var product = TestDataBuilder.CreateProduct(currentStock: 47);
+        await SeedProductAsync(product);
         _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { product });
         _processedOrderRepoMock.Setup(r => r.GetByExternalOrderIdAsync("ORD-1"))
             .ReturnsAsync(new ProcessedOrder { ExternalOrderId = "ORD-1", Status = "open", PaymentStatus = "paid" });
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = product.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-1",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
 
         var order = new ExternalOrder
         {

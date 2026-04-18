@@ -114,8 +114,7 @@ public class ProductsApiController : ControllerBase
         ImagePath = p.PrimaryImagePath,
         p.CategoryId,
         CategoryName = p.Category?.Name,
-        p.ExternalId,
-        p.ExternalIdSource,
+        ExternalMappings = p.ExternalMappings.Select(m => new { m.StoreName, m.ExternalId, m.Platform }),
         IsBelowMinimumStock = p.IsBelowMinimumStock
     };
 }
