@@ -16,14 +16,12 @@ public class SupplierRepository : ISupplierRepository
 
     public async Task<IEnumerable<Supplier>> GetAllAsync()
         => await _context.Suppliers
-            .Include(s => s.Products)
             .OrderBy(s => s.Name)
             .ToListAsync();
 
     public async Task<PagedResult<Supplier>> GetAllAsync(int page, int pageSize)
     {
         var query = _context.Suppliers
-            .Include(s => s.Products)
             .OrderBy(s => s.Name);
 
         var totalCount = await query.CountAsync();

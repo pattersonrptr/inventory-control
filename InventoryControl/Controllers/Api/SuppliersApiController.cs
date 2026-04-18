@@ -82,8 +82,7 @@ public class SuppliersApiController : ControllerBase
         s.Name,
         s.Cnpj,
         s.Phone,
-        s.Email,
-        ProductCount = s.Products?.Count ?? 0
+        s.Email
     };
 }
 

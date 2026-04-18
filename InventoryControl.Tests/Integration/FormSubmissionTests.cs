@@ -112,8 +112,8 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
     [Fact]
     public async Task Products_Create_Post_ValidData_RedirectsToIndex()
     {
-        // Seed a category and supplier first
-        var (categoryId, supplierId) = await SeedCategoryAndSupplierAsync();
+        // Seed a category first
+        var categoryId = await SeedCategoryAsync();
 
         using var client = CreateCookieClient();
         var token = await GetAntiForgeryTokenAsync(client, "/Products/Create");
@@ -126,8 +126,7 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
             ["CostPrice"] = "10.00",
             ["SellingPrice"] = "20.00",
             ["MinimumStock"] = "5",
-            ["CategoryId"] = categoryId.ToString(),
-            ["SupplierId"] = supplierId.ToString()
+            ["CategoryId"] = categoryId.ToString()
         };
 
         var response = await PostFormAsync(client, "/Products/Create", formData);
@@ -273,9 +272,21 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
         return (category.Id, supplier.Id);
     }
 
+    private async Task<int> SeedCategoryAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var category = new InventoryControl.Models.Category { Name = "Test Cat " + Guid.NewGuid() };
+        db.Categories.Add(category);
+        await db.SaveChangesAsync();
+
+        return category.Id;
+    }
+
     private async Task<int> SeedProductAsync()
     {
-        var (categoryId, supplierId) = await SeedCategoryAndSupplierAsync();
+        var categoryId = await SeedCategoryAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -286,7 +297,6 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
             CostPrice = 10m,
             SellingPrice = 20m,
             CategoryId = categoryId,
-            SupplierId = supplierId,
             CurrentStock = 0
         };
         db.Products.Add(product);
@@ -297,7 +307,7 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
 
     private async Task<int> SeedProductWithStockAsync(int stock)
     {
-        var (categoryId, supplierId) = await SeedCategoryAndSupplierAsync();
+        var categoryId = await SeedCategoryAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -308,7 +318,6 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
             CostPrice = 10m,
             SellingPrice = 20m,
             CategoryId = categoryId,
-            SupplierId = supplierId,
             CurrentStock = stock
         };
         db.Products.Add(product);

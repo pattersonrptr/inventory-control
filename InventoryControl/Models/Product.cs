@@ -42,11 +42,6 @@ public class Product
     public int CategoryId { get; set; }
     public Category Category { get; set; } = null!;
 
-    [Required(ErrorMessage = "O fornecedor é obrigatório.")]
-    [Display(Name = "Fornecedor")]
-    public int SupplierId { get; set; }
-    public Supplier Supplier { get; set; } = null!;
-
     // Universal product code — platform-agnostic
     [StringLength(100)]
     [Display(Name = "SKU")]

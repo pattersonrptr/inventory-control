@@ -18,9 +18,9 @@ Integrates with e-commerce platforms (currently [Nuvemshop](https://www.nuvemsho
 ## Features
 
 - **Products** — register products with cost/selling prices, brand, current stock, minimum stock thresholds, and multiple images
-- **Categories & Suppliers** — organize products with hierarchical categories (parent/child) and track enriched supplier information (contact name, lead time, notes)
+- **Categories & Suppliers** — organize products with hierarchical categories (parent/child) and track enriched supplier information (contact name, lead time, notes); suppliers are linked to products through stock entry movements
 - **Multiple product images** — upload multiple images per product, set primary image, delete individual images via AJAX
-- **Inline creation** — create categories and suppliers directly from the product form via modal dialogs (no page navigation)
+- **Inline creation** — create categories directly from the product form via modal dialogs (no page navigation)
 - **Stock Movements** — record entries (with supplier, unit cost, date) and exits (sale, loss, return)
 - **Automatic stock updates** on every movement
 - **Low-stock alerts** for products below the minimum threshold

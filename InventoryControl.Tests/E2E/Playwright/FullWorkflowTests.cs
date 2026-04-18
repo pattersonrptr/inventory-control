@@ -51,12 +51,12 @@ public class FullWorkflowTests : IAsyncLifetime
 
         // === STEP 4: Create Products ===
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            product1Name, categoryId.ToString(), supplierId.ToString(),
+            product1Name, categoryId.ToString(),
             costPrice: "3000,00", sellingPrice: "4500,00",
             minimumStock: "3", sku: $"LAP-{suffix}");
 
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            product2Name, categoryId.ToString(), supplierId.ToString(),
+            product2Name, categoryId.ToString(),
             costPrice: "50,00", sellingPrice: "120,00",
             minimumStock: "10", sku: $"MOU-{suffix}");
 

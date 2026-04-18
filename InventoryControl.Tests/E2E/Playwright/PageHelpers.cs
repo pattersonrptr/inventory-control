@@ -52,7 +52,7 @@ public static class PageHelpers
     }
 
     public static async Task CreateProductAsync(IPage page, string baseUrl,
-        string name, string categoryId, string supplierId,
+        string name, string categoryId,
         string costPrice = "10,00", string sellingPrice = "20,00",
         string minimumStock = "5", string? sku = null, string? description = null)
     {
@@ -67,7 +67,6 @@ public static class PageHelpers
         if (sku != null) await page.FillAsync("#Sku", sku);
 
         await page.SelectOptionAsync("#CategoryId", categoryId);
-        await page.SelectOptionAsync("#SupplierId", supplierId);
 
         await page.ClickAsync("button.btn[type='submit']");
         await page.WaitForURLAsync($"**/Products", new() { Timeout = 10000 });

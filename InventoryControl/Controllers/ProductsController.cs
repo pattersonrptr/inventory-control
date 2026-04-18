@@ -12,7 +12,6 @@ public class ProductsController : Controller
 {
     private readonly IProductRepository _productRepo;
     private readonly ICategoryRepository _categoryRepo;
-    private readonly ISupplierRepository _supplierRepo;
     private readonly PlatformRegistry _registry;
     private readonly IWebHostEnvironment _environment;
     private readonly AppDbContext _context;
@@ -20,14 +19,12 @@ public class ProductsController : Controller
     public ProductsController(
         IProductRepository productRepo,
         ICategoryRepository categoryRepo,
-        ISupplierRepository supplierRepo,
         IWebHostEnvironment environment,
         PlatformRegistry registry,
         AppDbContext context)
     {
         _productRepo = productRepo;
         _categoryRepo = categoryRepo;
-        _supplierRepo = supplierRepo;
         _environment = environment;
         _registry = registry;
         _context = context;
@@ -58,7 +55,7 @@ public class ProductsController : Controller
     {
         if (!ModelState.IsValid)
         {
-            await PopulateDropdownsAsync(product.CategoryId, product.SupplierId);
+            await PopulateDropdownsAsync(product.CategoryId);
             return View(product);
         }
 
@@ -74,7 +71,7 @@ public class ProductsController : Controller
     {
         var product = await _productRepo.GetByIdAsync(id);
         if (product is null) return NotFound();
-        await PopulateDropdownsAsync(product.CategoryId, product.SupplierId);
+        await PopulateDropdownsAsync(product.CategoryId);
         return View(product);
     }
 
@@ -85,7 +82,7 @@ public class ProductsController : Controller
         if (id != product.Id) return BadRequest();
         if (!ModelState.IsValid)
         {
-            await PopulateDropdownsAsync(product.CategoryId, product.SupplierId);
+            await PopulateDropdownsAsync(product.CategoryId);
             return View(product);
         }
 
@@ -132,14 +129,12 @@ public class ProductsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task PopulateDropdownsAsync(int? categoryId = null, int? supplierId = null)
+    private async Task PopulateDropdownsAsync(int? categoryId = null)
     {
         var categories = await _categoryRepo.GetAllAsync();
-        var suppliers = await _supplierRepo.GetAllAsync();
         ViewBag.CategoryId = new SelectList(
             categories.Select(c => new { c.Id, Name = c.FullName }),
             "Id", "Name", categoryId);
-        ViewBag.SupplierId = new SelectList(suppliers, "Id", "Name", supplierId);
     }
 
     [HttpPost]

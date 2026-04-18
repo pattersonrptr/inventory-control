@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Product–Supplier direct relationship** — removed `SupplierId` foreign key and `Supplier` navigation property from `Product` model; suppliers are now linked to products only through stock movements (entries record the supplier). Removed supplier column from product views, product CSV import, and supplier product count from supplier views.
+
 ### Added
 
 - **Multiple images per product** — upload multiple images on create/edit, image gallery with primary image selection and individual delete via AJAX

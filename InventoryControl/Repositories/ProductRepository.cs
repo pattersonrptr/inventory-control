@@ -17,7 +17,6 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetAllAsync()
         => await _context.Products
             .Include(p => p.Category)
-            .Include(p => p.Supplier)
             .Include(p => p.Images)
             .OrderBy(p => p.Name)
             .ToListAsync();
@@ -26,7 +25,6 @@ public class ProductRepository : IProductRepository
     {
         var query = _context.Products
             .Include(p => p.Category)
-            .Include(p => p.Supplier)
             .Include(p => p.Images)
             .OrderBy(p => p.Name);
 
@@ -42,7 +40,6 @@ public class ProductRepository : IProductRepository
     public async Task<Product?> GetByIdAsync(int id)
         => await _context.Products
             .Include(p => p.Category)
-            .Include(p => p.Supplier)
             .Include(p => p.StockMovements)
             .Include(p => p.Images.OrderBy(i => i.DisplayOrder))
             .FirstOrDefaultAsync(p => p.Id == id);
@@ -50,7 +47,6 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetBelowMinimumAsync()
         => await _context.Products
             .Include(p => p.Category)
-            .Include(p => p.Supplier)
             .Include(p => p.Images)
             .Where(p => p.CurrentStock <= p.MinimumStock)
             .OrderBy(p => p.Name)
