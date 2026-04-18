@@ -19,6 +19,7 @@ public class CategoryRepository : ICategoryRepository
             .Include(c => c.Products)
             .Include(c => c.Parent)
             .Include(c => c.Children)
+            .Include(c => c.ExternalMappings)
             .OrderBy(c => c.Name)
             .ToListAsync();
 
@@ -28,6 +29,7 @@ public class CategoryRepository : ICategoryRepository
             .Include(c => c.Products)
             .Include(c => c.Parent)
             .Include(c => c.Children)
+            .Include(c => c.ExternalMappings)
             .OrderBy(c => c.Name);
 
         var totalCount = await query.CountAsync();

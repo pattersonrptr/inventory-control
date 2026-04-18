@@ -47,22 +47,13 @@ public class Product
     [Display(Name = "SKU")]
     public string? Sku { get; set; }
 
-    // ID of this product in an external store
-    [StringLength(200)]
-    [Display(Name = "ID Externo")]
-    public string? ExternalId { get; set; }
-
-    // Which platform the ExternalId comes from (e.g. "nuvemshop", "shopify")
-    [StringLength(50)]
-    [Display(Name = "Origem do ID Externo")]
-    public string? ExternalIdSource { get; set; }
-
     [StringLength(100)]
     [Display(Name = "Marca")]
     public string? Brand { get; set; }
 
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
     public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
+    public ICollection<ProductExternalMapping> ExternalMappings { get; set; } = new List<ProductExternalMapping>();
 
     [NotMapped]
     [Display(Name = "Imagem")]

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Multi-store external ID mapping** — replaced single `ExternalId`/`ExternalIdSource` columns on `Product` and `Category` with dedicated `ProductExternalMappings` and `CategoryExternalMappings` junction tables, enabling products and categories to be linked to multiple e-commerce stores simultaneously. Each mapping stores `StoreName`, `ExternalId`, and `Platform` with a composite unique index.
+
 ### Removed
 
 - **Product–Supplier direct relationship** — removed `SupplierId` foreign key and `Supplier` navigation property from `Product` model; suppliers are now linked to products only through stock movements (entries record the supplier). Removed supplier column from product views, product CSV import, and supplier product count from supplier views.
