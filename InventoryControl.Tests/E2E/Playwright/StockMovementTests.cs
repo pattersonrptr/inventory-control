@@ -38,7 +38,7 @@ public class StockMovementTests : IAsyncLifetime
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl,
             $"EntrySup_{suffix}");
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            $"EntryProd_{suffix}", categoryId.ToString(), supplierId.ToString(),
+            $"EntryProd_{suffix}", categoryId.ToString(),
             minimumStock: "5");
 
         // Get product ID
@@ -77,7 +77,7 @@ public class StockMovementTests : IAsyncLifetime
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl,
             $"ExitSup_{suffix}");
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            $"ExitProd_{suffix}", categoryId.ToString(), supplierId.ToString(),
+            $"ExitProd_{suffix}", categoryId.ToString(),
             minimumStock: "5");
 
         await _page.GotoAsync($"{_fixture.BaseUrl}/Products");
@@ -111,7 +111,7 @@ public class StockMovementTests : IAsyncLifetime
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl,
             $"HistSup_{suffix}");
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            $"HistProd_{suffix}", categoryId.ToString(), supplierId.ToString());
+            $"HistProd_{suffix}", categoryId.ToString());
 
         await _page.GotoAsync($"{_fixture.BaseUrl}/Products");
         var row = _page.Locator("table tbody tr", new() { HasText = $"HistProd_{suffix}" });
@@ -149,7 +149,7 @@ public class StockMovementTests : IAsyncLifetime
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl,
             $"OverSup_{suffix}");
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            $"OverProd_{suffix}", categoryId.ToString(), supplierId.ToString());
+            $"OverProd_{suffix}", categoryId.ToString());
 
         await _page.GotoAsync($"{_fixture.BaseUrl}/Products");
         var row = _page.Locator("table tbody tr", new() { HasText = $"OverProd_{suffix}" });
@@ -190,7 +190,7 @@ public class StockMovementTests : IAsyncLifetime
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl,
             supplierName);
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            productName, categoryId.ToString(), supplierId.ToString());
+            productName, categoryId.ToString());
 
         await _page.GotoAsync($"{_fixture.BaseUrl}/Products");
         var row = _page.Locator("table tbody tr", new() { HasText = productName });

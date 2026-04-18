@@ -1,0 +1,81 @@
+﻿Nome;SKU;Descrição;Custo;Venda;Mínimo;Categoria
+Caneta Esferográfica BIC Cristal Azul;CAN-BIC-AZ;Caneta esferográfica ponta média 1.0mm azul;1.20;3.50;20;CANETAS
+Caneta Esferográfica BIC Cristal Preta;CAN-BIC-PT;Caneta esferográfica ponta média 1.0mm preta;1.20;3.50;20;CANETAS
+Caneta Esferográfica BIC Cristal Vermelha;CAN-BIC-VM;Caneta esferográfica ponta média 1.0mm vermelha;1.20;3.50;15;CANETAS
+Caneta Gel Pentel EnerGel 0.5 Azul;CAN-PNTL-AZ;Caneta gel ponta fina retátil azul;8.50;16.90;8;CANETAS
+Caneta Gel Pentel EnerGel 0.5 Preta;CAN-PNTL-PT;Caneta gel ponta fina retátil preta;8.50;16.90;8;CANETAS
+Caneta Gel Uni-ball Signo 0.38 Azul;CAN-UNI-AZ;Caneta gel ultra fina japonesa;12.00;24.90;5;CANETAS
+Caneta Brush Pen Faber-Castell Kit 6;CAN-FC-BK6;Kit 6 canetas brush pen cores básicas;32.00;59.90;3;CANETAS
+Caneta Stabilo Point 88 Kit 10;CAN-STB-K10;Kit 10 canetas fineliner 0.4mm cores variadas;45.00;89.90;3;CANETAS
+Marca Texto Faber-Castell Grifpen Amarelo;MRC-FC-AM;Marca texto ponta chanfrada amarelo;2.80;6.90;15;MARCADORES
+Marca Texto Faber-Castell Grifpen Rosa;MRC-FC-RS;Marca texto ponta chanfrada rosa;2.80;6.90;10;MARCADORES
+Marca Texto Faber-Castell Grifpen Verde;MRC-FC-VD;Marca texto ponta chanfrada verde;2.80;6.90;10;MARCADORES
+Marca Texto BIC Brite Liner Kit 5;MRC-BIC-K5;Kit 5 cores neon marca texto;9.50;19.90;6;MARCADORES
+Lápis Grafite Staedtler Noris HB nº2;LAP-STD-HB;Lápis preto grafite HB escolar;1.50;4.50;25;LÁPIS E LAPISEIRAS
+Lápis Grafite Faber-Castell 9000 2B;LAP-FC-2B;Lápis grafite profissional para desenho 2B;3.20;8.90;10;LÁPIS E LAPISEIRAS
+Lapiseira Pentel P200 0.5mm;LAP-PNTL-05;Lapiseira mecânica profissional 0.5mm;18.00;34.90;5;LÁPIS E LAPISEIRAS
+Lapiseira Pentel P200 0.7mm;LAP-PNTL-07;Lapiseira mecânica profissional 0.7mm;18.00;34.90;5;LÁPIS E LAPISEIRAS
+Papel Sulfite A4 75g Chamex (resma 500);PAP-CHX-A4;Resma 500 folhas sulfite branco A4 75g/m²;22.00;42.90;10;PAPEL
+Papel Sulfite A4 90g Report (resma 500);PAP-RPT-A4;Resma 500 folhas sulfite branco A4 90g/m²;28.00;49.90;8;PAPEL
+Papel Color Plus A4 180g Azul (pct 25);PAP-CP-AZ;Pacote 25 folhas papel colorido A4 180g;8.50;16.90;6;PAPEL
+Papel Color Plus A4 180g Rosa (pct 25);PAP-CP-RS;Pacote 25 folhas papel colorido A4 180g;8.50;16.90;6;PAPEL
+Caderno Espiral Tilibra 10 matérias 200fls;CAD-TLB-10;Caderno universitário espiral capa dura 200 folhas;18.00;36.90;8;CADERNOS
+Caderno Espiral Tilibra 1 matéria 96fls;CAD-TLB-01;Caderno universitário espiral capa dura 96 folhas;8.50;18.90;12;CADERNOS
+Caderno Brochura Tilibra 96fls;CAD-TLB-BR;Caderno brochura capa dura escolar 96 folhas;5.50;12.90;15;CADERNOS
+Caderno Inteligente Grande Preto;CAD-INT-PT;Caderno de disco inteligente capa preta A4;35.00;69.90;4;CADERNOS
+Borracha Branca Faber-Castell;ACE-FC-BOR;Borracha branca escolar macia;0.80;2.90;20;ACESSÓRIOS
+Apontador com Depósito Faber-Castell;ACE-FC-APT;Apontador escolar com depósito plástico;2.50;6.90;15;ACESSÓRIOS
+Régua 30cm Waleu Transparente;ACE-WAL-RG;Régua escolar 30cm plástico transparente;1.50;4.50;12;ACESSÓRIOS
+Tesoura Escolar 13cm Bico Redondo;ACE-TES-13;Tesoura escolar sem ponta 13cm;3.80;9.90;10;ACESSÓRIOS
+Compasso Escolar Trident;ACE-TRD-CP;Compasso escolar metal com grafite;6.50;14.90;6;ACESSÓRIOS
+Nome;SKU;DescriÃ§Ã£o;Custo;Venda;MÃ­nimo;Categoria
+Caneta EsferogrÃ¡fica BIC Cristal Azul;CAN-BIC-AZ;Caneta esferogrÃ¡fica ponta mÃ©dia 1.0mm azul;1.20;3.50;20;CANETAS
+Caneta EsferogrÃ¡fica BIC Cristal Preta;CAN-BIC-PT;Caneta esferogrÃ¡fica ponta mÃ©dia 1.0mm preta;1.20;3.50;20;CANETAS
+Caneta EsferogrÃ¡fica BIC Cristal Vermelha;CAN-BIC-VM;Caneta esferogrÃ¡fica ponta mÃ©dia 1.0mm vermelha;1.20;3.50;15;CANETAS
+Caneta Gel Pentel EnerGel 0.5 Azul;CAN-PNTL-AZ;Caneta gel ponta fina retÃ¡til azul;8.50;16.90;8;CANETAS
+Caneta Gel Pentel EnerGel 0.5 Preta;CAN-PNTL-PT;Caneta gel ponta fina retÃ¡til preta;8.50;16.90;8;CANETAS
+Caneta Gel Uni-ball Signo 0.38 Azul;CAN-UNI-AZ;Caneta gel ultra fina japonesa;12.00;24.90;5;CANETAS
+Caneta Brush Pen Faber-Castell Kit 6;CAN-FC-BK6;Kit 6 canetas brush pen cores bÃ¡sicas;32.00;59.90;3;CANETAS
+Caneta Stabilo Point 88 Kit 10;CAN-STB-K10;Kit 10 canetas fineliner 0.4mm cores variadas;45.00;89.90;3;CANETAS
+Marca Texto Faber-Castell Grifpen Amarelo;MRC-FC-AM;Marca texto ponta chanfrada amarelo;2.80;6.90;15;MARCADORES
+Marca Texto Faber-Castell Grifpen Rosa;MRC-FC-RS;Marca texto ponta chanfrada rosa;2.80;6.90;10;MARCADORES
+Marca Texto Faber-Castell Grifpen Verde;MRC-FC-VD;Marca texto ponta chanfrada verde;2.80;6.90;10;MARCADORES
+Marca Texto BIC Brite Liner Kit 5;MRC-BIC-K5;Kit 5 cores neon marca texto;9.50;19.90;6;MARCADORES
+LÃ¡pis Grafite Staedtler Noris HB nÂº2;LAP-STD-HB;LÃ¡pis preto grafite HB escolar;1.50;4.50;25;LÃPIS E LAPISEIRAS
+LÃ¡pis Grafite Faber-Castell 9000 2B;LAP-FC-2B;LÃ¡pis grafite profissional para desenho 2B;3.20;8.90;10;LÃPIS E LAPISEIRAS
+Lapiseira Pentel P200 0.5mm;LAP-PNTL-05;Lapiseira mecÃ¢nica profissional 0.5mm;18.00;34.90;5;LÃPIS E LAPISEIRAS
+Lapiseira Pentel P200 0.7mm;LAP-PNTL-07;Lapiseira mecÃ¢nica profissional 0.7mm;18.00;34.90;5;LÃPIS E LAPISEIRAS
+Papel Sulfite A4 75g Chamex (resma 500);PAP-CHX-A4;Resma 500 folhas sulfite branco A4 75g/mÂ²;22.00;42.90;10;PAPEL
+Papel Sulfite A4 90g Report (resma 500);PAP-RPT-A4;Resma 500 folhas sulfite branco A4 90g/mÂ²;28.00;49.90;8;PAPEL
+Papel Color Plus A4 180g Azul (pct 25);PAP-CP-AZ;Pacote 25 folhas papel colorido A4 180g;8.50;16.90;6;PAPEL
+Papel Color Plus A4 180g Rosa (pct 25);PAP-CP-RS;Pacote 25 folhas papel colorido A4 180g;8.50;16.90;6;PAPEL
+Caderno Espiral Tilibra 10 matÃ©rias 200fls;CAD-TLB-10;Caderno universitÃ¡rio espiral capa dura 200 folhas;18.00;36.90;8;CADERNOS
+Caderno Espiral Tilibra 1 matÃ©ria 96fls;CAD-TLB-01;Caderno universitÃ¡rio espiral capa dura 96 folhas;8.50;18.90;12;CADERNOS
+Caderno Brochura Tilibra 96fls;CAD-TLB-BR;Caderno brochura capa dura escolar 96 folhas;5.50;12.90;15;CADERNOS
+Caderno Inteligente Grande Preto;CAD-INT-PT;Caderno de disco inteligente capa preta A4;35.00;69.90;4;CADERNOS
+Borracha Branca Faber-Castell;ACE-FC-BOR;Borracha branca escolar macia;0.80;2.90;20;ACESSÃ“RIOS
+Apontador com DepÃ³sito Faber-Castell;ACE-FC-APT;Apontador escolar com depÃ³sito plÃ¡stico;2.50;6.90;15;ACESSÃ“RIOS
+RÃ©gua 30cm Waleu Transparente;ACE-WAL-RG;RÃ©gua escolar 30cm plÃ¡stico transparente;1.50;4.50;12;ACESSÃ“RIOS
+Tesoura Escolar 13cm Bico Redondo;ACE-TES-13;Tesoura escolar sem ponta 13cm;3.80;9.90;10;ACESSÃ“RIOS
+Compasso Escolar Trident;ACE-TRD-CP;Compasso escolar metal com grafite;6.50;14.90;6;ACESSÃ“RIOS
+Fita Corretiva BRW 5mm x 6m;ACE-BRW-FC;Fita corretiva branca 5mm largura 6m comprimento;3.80;8.90;10;ACESSÃ“RIOS
+Porta LÃ¡pis AcrÃ­lico Transparente;ORG-ACR-PL;Porta lÃ¡pis de mesa acrÃ­lico transparente;8.00;18.90;5;ORGANIZAÃ‡ÃƒO
+Organizador de Mesa 6 DivisÃ³rias;ORG-MSA-6D;Organizador de mesa plÃ¡stico 6 divisÃ³rias;15.00;34.90;4;ORGANIZAÃ‡ÃƒO
+Pasta CatÃ¡logo 50 Envelopes;ORG-PST-50;Pasta catÃ¡logo preta com 50 envelopes A4;12.00;26.90;6;ORGANIZAÃ‡ÃƒO
+Arquivo Morto Polionda Amarelo;ORG-AMR-AM;Arquivo morto plÃ¡stico polionda amarelo;4.50;9.90;8;ORGANIZAÃ‡ÃƒO
+Tinta Guache Faber-Castell 6 cores;ART-FC-GC6;Kit guache escolar 6 cores 15ml cada;7.50;16.90;6;ARTE E PINTURA
+LÃ¡pis de Cor Faber-Castell 24 cores;ART-FC-LC24;Caixa lÃ¡pis de cor escolar 24 cores;18.00;38.90;5;ARTE E PINTURA
+Giz de Cera Faber-Castell 12 cores;ART-FC-GZ12;Caixa giz de cera escolar grosso 12 cores;5.50;12.90;8;ARTE E PINTURA
+Pincel ArtÃ­stico Kit 6 Tamanhos;ART-PCL-K6;Kit 6 pincÃ©is chatos tamanhos variados;12.00;24.90;4;ARTE E PINTURA
+Tela Canvas 30x40cm;ART-TLA-3040;Tela para pintura canvas algodÃ£o 30x40cm;8.00;19.90;5;ARTE E PINTURA
+Mochila Escolar ReforÃ§ada Azul;MCH-ESC-AZ;Mochila escolar poliÃ©ster reforÃ§ada azul;35.00;79.90;3;MOCHILAS E ESTOJOS
+Mochila Escolar ReforÃ§ada Rosa;MCH-ESC-RS;Mochila escolar poliÃ©ster reforÃ§ada rosa;35.00;79.90;3;MOCHILAS E ESTOJOS
+Estojo Duplo ZÃ­per Preto;MCH-EST-PT;Estojo escolar duplo com zÃ­per preto;12.00;27.90;6;MOCHILAS E ESTOJOS
+Estojo Box Grande Transparente;MCH-EST-TR;Estojo box grande plÃ¡stico transparente;8.50;19.90;5;MOCHILAS E ESTOJOS
+Etiqueta Adesiva Pimaco A4 100fls;ETQ-PIM-A4;Etiqueta adesiva Pimaco A4 100 folhas;28.00;54.90;4;ETIQUETAS
+Etiqueta Escolar Kit 8 unidades;ETQ-ESC-K8;Kit 8 cartelas etiqueta adesiva escolar;2.50;6.90;10;ETIQUETAS
+Cola BastÃ£o Pritt 20g;CLF-PRT-20;Cola bastÃ£o Pritt escolar 20g;4.50;9.90;12;COLAS E FITAS
+Cola Branca Tenaz 90g;CLF-TNZ-90;Cola branca escolar Tenaz 90 gramas;2.80;6.90;10;COLAS E FITAS
+Fita Adesiva Transparente 12mm x 30m;CLF-FTA-12;Fita adesiva transparente BOPP 12mm x 30m;1.50;4.50;15;COLAS E FITAS
+Fita Dupla Face 12mm x 10m;CLF-FDF-12;Fita adesiva dupla face 12mm x 10m;3.20;8.90;8;COLAS E FITAS
+Cola Glitter Kit 6 Cores 23g;CLF-GLT-K6;Kit 6 tubos cola glitter cores variadas 23g cada;8.00;18.90;5;COLAS E FITAS

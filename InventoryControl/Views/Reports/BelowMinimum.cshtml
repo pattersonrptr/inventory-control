@@ -31,7 +31,6 @@ else
                     <tr>
                         <th>Produto</th>
                         <th>Categoria</th>
-                        <th>Fornecedor</th>
                         <th class="text-center">Estoque Atual</th>
                         <th class="text-center">Estoque Mínimo</th>
                         <th class="text-center">Déficit</th>
@@ -45,7 +44,6 @@ else
                         <tr class="table-danger">
                             <td class="fw-semibold">@item.Name</td>
                             <td class="text-muted">@item.Category?.Name</td>
-                            <td class="text-muted">@item.Supplier?.Name</td>
                             <td class="text-center fw-bold text-danger">@item.CurrentStock</td>
                             <td class="text-center">@item.MinimumStock</td>
                             <td class="text-center">

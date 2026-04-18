@@ -36,5 +36,5 @@ public class Supplier
     [Display(Name = "Observações")]
     public string? Notes { get; set; }
 
-    public ICollection<Product> Products { get; set; } = new List<Product>();
+
 }

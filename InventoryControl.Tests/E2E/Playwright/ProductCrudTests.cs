@@ -47,7 +47,6 @@ public class ProductCrudTests : IAsyncLifetime
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
             productName,
             categoryId.ToString(),
-            supplierId.ToString(),
             costPrice: "15,50",
             sellingPrice: "29,90",
             minimumStock: "10",
@@ -60,7 +59,6 @@ public class ProductCrudTests : IAsyncLifetime
 
         var rowText = await row.TextContentAsync();
         Assert.Contains(categoryName, rowText);
-        Assert.Contains(supplierName, rowText);
 
         // Stock is 0, minimum is 10 — should be flagged as below minimum (warning row)
         await Assertions.Expect(row).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("table-warning"));
@@ -119,7 +117,7 @@ public class ProductCrudTests : IAsyncLifetime
         var categoryId = await PageHelpers.CreateCategoryAsync(_page, _fixture.BaseUrl, categoryName);
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl, supplierName);
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl, productName,
-            categoryId.ToString(), supplierId.ToString());
+            categoryId.ToString());
 
         // Get product ID from the table
         await _page.GotoAsync($"{_fixture.BaseUrl}/Products");
@@ -156,7 +154,7 @@ public class ProductCrudTests : IAsyncLifetime
         var categoryId = await PageHelpers.CreateCategoryAsync(_page, _fixture.BaseUrl, categoryName);
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl, supplierName);
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl, productName,
-            categoryId.ToString(), supplierId.ToString());
+            categoryId.ToString());
 
         // Try to delete the category — should fail because products are linked
         await _page.GotoAsync($"{_fixture.BaseUrl}/Categories/Delete/{categoryId}");

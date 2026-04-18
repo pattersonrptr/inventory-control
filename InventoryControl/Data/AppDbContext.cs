@@ -67,11 +67,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                   .HasForeignKey(p => p.CategoryId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(p => p.Supplier)
-                  .WithMany(s => s.Products)
-                  .HasForeignKey(p => p.SupplierId)
-                  .OnDelete(DeleteBehavior.Restrict);
-
             entity.Ignore(p => p.PrimaryImagePath);
         });
 

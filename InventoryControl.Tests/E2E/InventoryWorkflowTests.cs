@@ -27,7 +27,7 @@ public class InventoryWorkflowTests
         var movementRepo = new StockMovementRepository(context);
 
         // Act 1: Create a product with 0 stock
-        var product = TestDataBuilder.CreateProduct(id: 0, currentStock: 0, minimumStock: 5);
+        var product = TestDataBuilder.CreateProduct(id: 0, categoryId: category.Id, currentStock: 0, minimumStock: 5);
         await productRepo.AddAsync(product);
         var savedProduct = await productRepo.GetByIdAsync(product.Id);
 

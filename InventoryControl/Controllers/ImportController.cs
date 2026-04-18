@@ -36,10 +36,9 @@ public class ImportController : Controller
         }
 
         var categories = await _categoryRepo.GetAllAsync();
-        var suppliers = await _supplierRepo.GetAllAsync();
 
         using var stream = file.OpenReadStream();
-        var result = CsvImportService.ParseProducts(stream, categories, suppliers);
+        var result = CsvImportService.ParseProducts(stream, categories);
 
         ViewBag.Result = result;
         return View("Products");
@@ -68,7 +67,6 @@ public class ImportController : Controller
             // Reset navigation properties and Id for new entities
             product.Id = 0;
             product.Category = null!;
-            product.Supplier = null!;
             await _productRepo.AddAsync(product);
             imported++;
         }

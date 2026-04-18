@@ -21,7 +21,6 @@ public static class TestDataBuilder
         int id = 1,
         string name = "Widget",
         int categoryId = 1,
-        int supplierId = 1,
         int currentStock = 50,
         int minimumStock = 10,
         string? sku = "WIDGET-001",
@@ -36,7 +35,6 @@ public static class TestDataBuilder
             CurrentStock = currentStock,
             MinimumStock = minimumStock,
             CategoryId = categoryId,
-            SupplierId = supplierId,
             Sku = sku,
             ExternalId = externalId
         };

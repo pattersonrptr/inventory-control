@@ -39,7 +39,7 @@ public class ReportTests : IAsyncLifetime
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl,
             $"LowSup_{suffix}");
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            productName, categoryId.ToString(), supplierId.ToString(),
+            productName, categoryId.ToString(),
             minimumStock: "10");
 
         // Navigate to below minimum report
@@ -79,7 +79,7 @@ public class ReportTests : IAsyncLifetime
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl,
             $"MonthSup_{suffix}");
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            productName, categoryId.ToString(), supplierId.ToString());
+            productName, categoryId.ToString());
 
         await _page.GotoAsync($"{_fixture.BaseUrl}/Products");
         var row = _page.Locator("table tbody tr", new() { HasText = productName });
@@ -127,7 +127,7 @@ public class ReportTests : IAsyncLifetime
         var supplierId = await PageHelpers.CreateSupplierAsync(_page, _fixture.BaseUrl,
             $"ProfitSup_{suffix}");
         await PageHelpers.CreateProductAsync(_page, _fixture.BaseUrl,
-            productName, categoryId.ToString(), supplierId.ToString(),
+            productName, categoryId.ToString(),
             costPrice: "10,00", sellingPrice: "25,00");
 
         await _page.GotoAsync($"{_fixture.BaseUrl}/Products");

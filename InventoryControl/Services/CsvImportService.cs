@@ -21,11 +21,10 @@ public static class CsvImportService
 {
     private static readonly char[] Separators = [',', ';'];
 
-    public static CsvImportResult<Product> ParseProducts(Stream stream, IEnumerable<Category> categories, IEnumerable<Supplier> suppliers)
+    public static CsvImportResult<Product> ParseProducts(Stream stream, IEnumerable<Category> categories)
     {
         var result = new CsvImportResult<Product>();
         var categoryLookup = categories.ToDictionary(c => c.Name.Trim(), c => c.Id, StringComparer.OrdinalIgnoreCase);
-        var supplierLookup = suppliers.ToDictionary(s => s.Name.Trim(), s => s.Id, StringComparer.OrdinalIgnoreCase);
 
         using var reader = new StreamReader(stream);
         var headerLine = reader.ReadLine();
@@ -46,7 +45,6 @@ public static class CsvImportService
         var skuIdx = Array.FindIndex(headers, h => h is "sku");
         var descIdx = Array.FindIndex(headers, h => h is "description" or "descrição" or "descricao");
         var catIdx = Array.FindIndex(headers, h => h is "category" or "categoria");
-        var supIdx = Array.FindIndex(headers, h => h is "supplier" or "fornecedor");
 
         if (nameIdx < 0)
         {
@@ -105,21 +103,6 @@ public static class CsvImportService
                     else
                     {
                         result.Errors.Add(new CsvImportError { Row = row, Message = $"Category '{catName}' not found." });
-                        continue;
-                    }
-                }
-            }
-
-            if (supIdx >= 0)
-            {
-                var supName = GetCol(cols, supIdx)?.Trim();
-                if (!string.IsNullOrWhiteSpace(supName))
-                {
-                    if (supplierLookup.TryGetValue(supName, out var supId))
-                        product.SupplierId = supId;
-                    else
-                    {
-                        result.Errors.Add(new CsvImportError { Row = row, Message = $"Supplier '{supName}' not found." });
                         continue;
                     }
                 }

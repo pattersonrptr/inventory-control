@@ -55,8 +55,7 @@ public class ProductsApiController : ControllerBase
             SellingPrice = dto.SellingPrice,
             MinimumStock = dto.MinimumStock,
             Sku = dto.Sku,
-            CategoryId = dto.CategoryId,
-            SupplierId = dto.SupplierId
+            CategoryId = dto.CategoryId
         };
 
         await _repo.AddAsync(product);
@@ -76,7 +75,6 @@ public class ProductsApiController : ControllerBase
         product.MinimumStock = dto.MinimumStock;
         product.Sku = dto.Sku;
         product.CategoryId = dto.CategoryId;
-        product.SupplierId = dto.SupplierId;
 
         await _repo.UpdateAsync(product);
         return Ok(MapProduct(product));
@@ -116,8 +114,6 @@ public class ProductsApiController : ControllerBase
         ImagePath = p.PrimaryImagePath,
         p.CategoryId,
         CategoryName = p.Category?.Name,
-        p.SupplierId,
-        SupplierName = p.Supplier?.Name,
         p.ExternalId,
         p.ExternalIdSource,
         IsBelowMinimumStock = p.IsBelowMinimumStock
@@ -133,7 +129,6 @@ public class ProductCreateDto
     public int MinimumStock { get; set; }
     public string? Sku { get; set; }
     public int CategoryId { get; set; }
-    public int SupplierId { get; set; }
 }
 
 public class ProductUpdateDto
@@ -145,7 +140,6 @@ public class ProductUpdateDto
     public int MinimumStock { get; set; }
     public string? Sku { get; set; }
     public int CategoryId { get; set; }
-    public int SupplierId { get; set; }
 }
 
 public class StockUpdateDto
