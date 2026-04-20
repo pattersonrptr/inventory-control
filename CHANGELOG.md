@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Serilog file logging** — rolling daily log files under `logs/`, configurable retention (default 30 days prod / 7 days dev), 50 MB per-file limit; all HTTP requests logged via `UseSerilogRequestLogging()`
+- **Audit log cleanup** — `AuditLogCleanupService` background service purges audit log entries older than `AuditLog:RetentionDays` (default 90) every night at 02:00
+- **Database backup from UI** — Admin → Backup page lets admins download a full database dump (`pg_dump` for PostgreSQL, file copy for SQLite); every download is recorded in the audit log
+- **System log viewer** — Admin → Logs page displays rolling Serilog log files with date picker, level filter (ALL/ERR/WRN/INF), and text search; newest entries first, up to 2000 lines
+- **Google Drive offsite backup** — Admin → Backup page can upload a fresh backup to Google Drive via rclone; shows configuration status badge and setup instructions when rclone is not yet configured; every upload is recorded in the audit log
+- `IOffsiteBackupService` / `OffsiteBackupService` — thin wrapper around the `rclone copyto` CLI; config paths driven by `OffsiteBackup:RcloneConfigPath` and `OffsiteBackup:RemotePath` settings
+- `rclone` added to the Docker runtime image; `rclone-config` volume mounted read-only into the app container
+
+### Fixed
+
+- **Migration SQL on PostgreSQL** — quoted all table and column names with double-quotes in the `ExternalIdMappingTables` migration raw SQL; unquoted identifiers were being silently lowercased by PostgreSQL, causing "relation not found" errors at startup
+
 ### Changed
 
 - **Multi-store external ID mapping** — replaced single `ExternalId`/`ExternalIdSource` columns on `Product` and `Category` with dedicated `ProductExternalMappings` and `CategoryExternalMappings` junction tables, enabling products and categories to be linked to multiple e-commerce stores simultaneously. Each mapping stores `StoreName`, `ExternalId`, and `Platform` with a composite unique index.

@@ -54,19 +54,20 @@ namespace InventoryControl.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            // Migrate existing ExternalId data to new mapping tables
+            // Migrate existing ExternalId data to new mapping tables.
+            // Use double-quoted identifiers so the SQL works on both SQLite and PostgreSQL.
             migrationBuilder.Sql(@"
-                INSERT INTO ProductExternalMappings (ProductId, StoreName, ExternalId, Platform)
-                SELECT Id, COALESCE(ExternalIdSource, 'unknown'), ExternalId, COALESCE(ExternalIdSource, 'unknown')
-                FROM Products
-                WHERE ExternalId IS NOT NULL;
+                INSERT INTO ""ProductExternalMappings"" (""ProductId"", ""StoreName"", ""ExternalId"", ""Platform"")
+                SELECT ""Id"", COALESCE(""ExternalIdSource"", 'unknown'), ""ExternalId"", COALESCE(""ExternalIdSource"", 'unknown')
+                FROM ""Products""
+                WHERE ""ExternalId"" IS NOT NULL;
             ");
 
             migrationBuilder.Sql(@"
-                INSERT INTO CategoryExternalMappings (CategoryId, StoreName, ExternalId, Platform)
-                SELECT Id, COALESCE(ExternalIdSource, 'unknown'), ExternalId, COALESCE(ExternalIdSource, 'unknown')
-                FROM Categories
-                WHERE ExternalId IS NOT NULL;
+                INSERT INTO ""CategoryExternalMappings"" (""CategoryId"", ""StoreName"", ""ExternalId"", ""Platform"")
+                SELECT ""Id"", COALESCE(""ExternalIdSource"", 'unknown'), ""ExternalId"", COALESCE(""ExternalIdSource"", 'unknown')
+                FROM ""Categories""
+                WHERE ""ExternalId"" IS NOT NULL;
             ");
 
             migrationBuilder.DropColumn(
