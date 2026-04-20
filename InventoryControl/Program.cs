@@ -23,7 +23,26 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, loggerConfig) =>
-    loggerConfig.ReadFrom.Configuration(context.Configuration));
+{
+    loggerConfig.ReadFrom.Configuration(context.Configuration);
+
+    // Ensure a file sink is always active (config may be absent in production image)
+    var hasFileSink = context.Configuration
+        .GetSection("Serilog:WriteTo")
+        .GetChildren()
+        .Any(s => s["Name"] == "File");
+
+    if (!hasFileSink)
+    {
+        loggerConfig.WriteTo.File(
+            path: "logs/inventory-.log",
+            rollingInterval: Serilog.RollingInterval.Day,
+            retainedFileCountLimit: 30,
+            fileSizeLimitBytes: 52_428_800,
+            rollOnFileSizeLimit: true,
+            outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}");
+    }
+});
 
 builder.Services.AddControllersWithViews(options =>
 {
