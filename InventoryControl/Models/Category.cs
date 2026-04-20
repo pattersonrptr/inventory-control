@@ -20,17 +20,8 @@ public class Category
     public Category? Parent { get; set; }
     public ICollection<Category> Children { get; set; } = new List<Category>();
 
-    // ID of this category in an external store
-    [StringLength(200)]
-    [Display(Name = "ID Externo")]
-    public string? ExternalId { get; set; }
-
-    // Which platform the ExternalId comes from (e.g. "nuvemshop", "shopify")
-    [StringLength(50)]
-    [Display(Name = "Origem do ID Externo")]
-    public string? ExternalIdSource { get; set; }
-
     public ICollection<Product> Products { get; set; } = new List<Product>();
+    public ICollection<CategoryExternalMapping> ExternalMappings { get; set; } = new List<CategoryExternalMapping>();
 
     public string FullName => Parent is not null ? $"{Parent.Name} > {Name}" : Name;
 }

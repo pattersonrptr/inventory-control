@@ -16,6 +16,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProcessedOrder> ProcessedOrders => Set<ProcessedOrder>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<SyncState> SyncStates => Set<SyncState>();
+    public DbSet<ProductExternalMapping> ProductExternalMappings => Set<ProductExternalMapping>();
+    public DbSet<CategoryExternalMapping> CategoryExternalMappings => Set<CategoryExternalMapping>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,8 +28,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.HasKey(c => c.Id);
             entity.Property(c => c.Name).IsRequired().HasMaxLength(100);
             entity.Property(c => c.Description).HasMaxLength(500);
-            entity.Property(c => c.ExternalId).HasMaxLength(200);
-            entity.Property(c => c.ExternalIdSource).HasMaxLength(50);
 
             entity.HasOne(c => c.Parent)
                   .WithMany(c => c.Children)
@@ -57,8 +57,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(p => p.Sku)
                   .IsUnique()
                   .HasFilter("\"Sku\" IS NOT NULL");
-            entity.Property(p => p.ExternalId).HasMaxLength(200);
-            entity.Property(p => p.ExternalIdSource).HasMaxLength(50);
             entity.Property(p => p.Brand).HasMaxLength(100);
             entity.HasIndex(p => p.Brand);
 
@@ -126,6 +124,38 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.HasKey(s => s.Key);
             entity.Property(s => s.Key).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<ProductExternalMapping>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.StoreName).IsRequired().HasMaxLength(100);
+            entity.Property(m => m.ExternalId).IsRequired().HasMaxLength(200);
+            entity.Property(m => m.Platform).IsRequired().HasMaxLength(50);
+
+            entity.HasIndex(m => new { m.ProductId, m.StoreName }).IsUnique();
+            entity.HasIndex(m => new { m.StoreName, m.ExternalId });
+
+            entity.HasOne(m => m.Product)
+                  .WithMany(p => p.ExternalMappings)
+                  .HasForeignKey(m => m.ProductId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CategoryExternalMapping>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.StoreName).IsRequired().HasMaxLength(100);
+            entity.Property(m => m.ExternalId).IsRequired().HasMaxLength(200);
+            entity.Property(m => m.Platform).IsRequired().HasMaxLength(50);
+
+            entity.HasIndex(m => new { m.CategoryId, m.StoreName }).IsUnique();
+            entity.HasIndex(m => new { m.StoreName, m.ExternalId });
+
+            entity.HasOne(m => m.Category)
+                  .WithMany(c => c.ExternalMappings)
+                  .HasForeignKey(m => m.CategoryId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

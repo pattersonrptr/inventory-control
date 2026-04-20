@@ -1,9 +1,12 @@
 using AspNetCoreRateLimit;
 using InventoryControl.Authentication;
+using InventoryControl.BackgroundServices;
 using InventoryControl.Data;
 using InventoryControl.Models;
 using InventoryControl.Repositories;
 using InventoryControl.Repositories.Interfaces;
+using InventoryControl.Services;
+using InventoryControl.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -11,12 +14,16 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.OpenApi;
+using Serilog;
 
 // Allow DateTime with Kind=Unspecified to be sent to PostgreSQL without requiring UTC conversion.
 // This is needed because HTML date inputs and DateTime.Today produce Unspecified-kind values.
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, loggerConfig) =>
+    loggerConfig.ReadFrom.Configuration(context.Configuration));
 
 builder.Services.AddControllersWithViews(options =>
 {
@@ -205,14 +212,21 @@ builder.Services.AddScoped<InventoryControl.Integrations.SyncServiceFactory>();
 // Background order sync runs for all enabled stores
 if (storesConfig.Any(s => s.Enabled))
 {
-    builder.Services.AddHostedService<InventoryControl.BackgroundServices.OrderSyncBackgroundService>();
+    builder.Services.AddHostedService<OrderSyncBackgroundService>();
 }
 
 // Low stock email notifications (runs independently of e-commerce integration)
 if (builder.Configuration.GetValue<bool?>("EmailNotifications:Enabled") == true)
 {
-    builder.Services.AddHostedService<InventoryControl.BackgroundServices.LowStockNotificationService>();
+    builder.Services.AddHostedService<LowStockNotificationService>();
 }
+
+// AuditLog retention cleanup (runs daily)
+builder.Services.AddHostedService<AuditLogCleanupService>();
+
+// Manual database backup
+builder.Services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
+builder.Services.AddScoped<IOffsiteBackupService, OffsiteBackupService>();
 
 var app = builder.Build();
 
@@ -232,6 +246,7 @@ app.UseSwaggerUI(options =>
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRequestLocalization();
+app.UseSerilogRequestLogging();
 app.UseIpRateLimiting();
 app.UseRouting();
 app.UseAuthentication();

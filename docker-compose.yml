@@ -29,6 +29,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=caramelo_inventory;Username=caramelo;Password=${DB_PASSWORD:-#Caramelo123}
+      - OffsiteBackup__RcloneConfigPath=/config/rclone/rclone.conf
+      - OffsiteBackup__RemotePath=${RCLONE_REMOTE:-gdrive:inventory-control-backups/manual}
+    volumes:
+      - rclone-config:/config/rclone:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 30s

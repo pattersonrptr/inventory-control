@@ -22,8 +22,8 @@ WORKDIR /app
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
 
-# Install curl for Docker healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+# Install curl (healthcheck), postgresql-client (pg_dump), and rclone (offsite backup)
+RUN apt-get update && apt-get install -y --no-install-recommends curl postgresql-client rclone && rm -rf /var/lib/apt/lists/*
 
 # Copy published output
 COPY --from=build /app/publish .

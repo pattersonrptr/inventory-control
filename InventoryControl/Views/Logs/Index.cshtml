@@ -1,0 +1,129 @@
+@using InventoryControl.ViewModels
+@model LogViewerViewModel
+@{
+    ViewData["Title"] = "Logs do Sistema";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="bi bi-file-text"></i> Logs do Sistema</h2>
+    <a asp-action="Index" asp-route-date="@Model.SelectedDate"
+       asp-route-level="@Model.LevelFilter" asp-route-search="@Model.SearchTerm"
+       class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-clockwise"></i> Atualizar
+    </a>
+</div>
+
+@if (!Model.LogDirExists)
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        Nenhum arquivo de log encontrado. Os logs serão criados automaticamente quando houver atividade no sistema.
+    </div>
+}
+else if (!Model.AvailableDates.Any())
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Nenhum arquivo de log disponível ainda.
+    </div>
+}
+else
+{
+    <!-- Filters -->
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-auto">
+            <select name="date" class="form-select form-select-sm" onchange="this.form.submit()">
+                @foreach (var d in Model.AvailableDates)
+                {
+                    <option value="@d" selected="@(d == Model.SelectedDate)">@d</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group btn-group-sm" role="group">
+                <a asp-action="Index" asp-route-date="@Model.SelectedDate" asp-route-search="@Model.SearchTerm"
+                   class="btn @(string.IsNullOrEmpty(Model.LevelFilter) || Model.LevelFilter == "ALL" ? "btn-secondary" : "btn-outline-secondary")">
+                    Todos
+                </a>
+                <a asp-action="Index" asp-route-date="@Model.SelectedDate" asp-route-level="ERR"
+                   asp-route-search="@Model.SearchTerm"
+                   class="btn @(Model.LevelFilter == "ERR" ? "btn-danger" : "btn-outline-danger")">
+                    Erros
+                </a>
+                <a asp-action="Index" asp-route-date="@Model.SelectedDate" asp-route-level="WRN"
+                   asp-route-search="@Model.SearchTerm"
+                   class="btn @(Model.LevelFilter == "WRN" ? "btn-warning" : "btn-outline-warning")">
+                    Warnings
+                </a>
+                <a asp-action="Index" asp-route-date="@Model.SelectedDate" asp-route-level="INF"
+                   asp-route-search="@Model.SearchTerm"
+                   class="btn @(Model.LevelFilter == "INF" ? "btn-info" : "btn-outline-info")">
+                    Info
+                </a>
+            </div>
+        </div>
+        <div class="col">
+            <div class="input-group input-group-sm">
+                <input type="text" name="search" class="form-control" placeholder="Buscar..."
+                       value="@Model.SearchTerm" />
+                <button class="btn btn-outline-secondary" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <a asp-action="Index" asp-route-date="@Model.SelectedDate"
+                       asp-route-level="@Model.LevelFilter"
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-x"></i>
+                    </a>
+                }
+            </div>
+        </div>
+    </form>
+
+    <!-- Stats bar -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">
+            @if (Model.IsTruncated)
+            {
+                <span>Exibindo as últimas <strong>2000</strong> de <strong>@Model.TotalMatchedLines</strong> linhas</span>
+            }
+            else
+            {
+                <span><strong>@Model.TotalMatchedLines</strong> linha(s)</span>
+            }
+            @if (!string.IsNullOrEmpty(Model.SearchTerm))
+            {
+                <span> · busca: <em>@Model.SearchTerm</em></span>
+            }
+        </small>
+    </div>
+
+    <!-- Log output -->
+    @if (!Model.Lines.Any())
+    {
+        <div class="alert alert-secondary">Nenhuma entrada encontrada para os filtros selecionados.</div>
+    }
+    else
+    {
+        <pre class="log-viewer p-3 rounded bg-dark text-white" style="font-size:0.8rem;max-height:70vh;overflow-y:auto;">@foreach (var line in Model.Lines)
+{
+    var cssClass = line.Level switch
+    {
+        "ERR" or "FTL" => "text-danger",
+        "WRN"          => "text-warning",
+        "DBG" or "VRB" => "text-secondary",
+        _              => ""
+    };<span class="@cssClass">@line.Raw</span>
+}</pre>
+    }
+}
+
+@section Scripts {
+    <script>
+        // Auto-scroll to bottom of log viewer on load
+        document.addEventListener('DOMContentLoaded', function () {
+            const pre = document.querySelector('.log-viewer');
+            if (pre) pre.scrollTop = pre.scrollHeight;
+        });
+    </script>
+}

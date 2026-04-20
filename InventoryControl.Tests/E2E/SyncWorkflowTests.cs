@@ -3,6 +3,7 @@ using InventoryControl.Integrations.Abstractions;
 using InventoryControl.Models;
 using InventoryControl.Repositories;
 using InventoryControl.Tests.Fixtures;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -29,7 +30,7 @@ public class SyncWorkflowTests
         var categoryRepo = new CategoryRepository(context);
         var processedOrderRepo = new ProcessedOrderRepository(context);
         var storeMock = new Mock<IStoreIntegration>();
-        var config = new IntegrationConfig { Enabled = true, Platform = "test" };
+        var config = new IntegrationConfig { Name = "test-store", Enabled = true, Platform = "test" };
 
         var syncService = new SyncService(
             storeMock.Object, productRepo, movementRepo, categoryRepo,
@@ -41,8 +42,10 @@ public class SyncWorkflowTests
 
         await syncService.SyncProductsFromStoreAsync();
 
-        var synced = await productRepo.GetByIdAsync(product.Id);
-        Assert.Equal("ext-100", synced!.ExternalId);
+        var mapping = await context.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == product.Id && m.StoreName == "test-store");
+        Assert.NotNull(mapping);
+        Assert.Equal("ext-100", mapping.ExternalId);
 
         // Step 2: Process an order — deducts stock
         var order = new ExternalOrder

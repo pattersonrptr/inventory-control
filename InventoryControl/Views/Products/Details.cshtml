@@ -80,16 +80,21 @@
                     <dt class="col-sm-4">Estoque Mínimo</dt>
                     <dd class="col-sm-8">@Model.MinimumStock unidades</dd>
 
-                    @if (!string.IsNullOrEmpty(Model.Sku))
+                    @if (Model.Sku is not null)
                     {
                         <dt class="col-sm-4">SKU</dt>
                         <dd class="col-sm-8">@Model.Sku</dd>
                     }
 
-                    @if (!string.IsNullOrEmpty(Model.ExternalId))
+                    @if (Model.ExternalMappings.Any())
                     {
-                        <dt class="col-sm-4">ID Externo</dt>
-                        <dd class="col-sm-8">@Model.ExternalId (@Model.ExternalIdSource)</dd>
+                        <dt class="col-sm-4">IDs Externos</dt>
+                        <dd class="col-sm-8">
+                            @foreach (var mapping in Model.ExternalMappings)
+                            {
+                                <span class="badge bg-info me-1">@mapping.StoreName: @mapping.ExternalId</span>
+                            }
+                        </dd>
                     }
                 </dl>
 

@@ -2,6 +2,7 @@ using InventoryControl.Data;
 using InventoryControl.Integrations.Abstractions;
 using InventoryControl.Models;
 using InventoryControl.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace InventoryControl.Integrations;
@@ -69,12 +70,10 @@ public class SyncService
 
             if (local is not null)
             {
-                local.ExternalId = external.ExternalId;
-                local.ExternalIdSource = _config.Platform;
-                await _productRepo.UpdateAsync(local);
+                await UpsertProductMappingAsync(local.Id, external.ExternalId);
                 _logger.LogInformation(
-                    "Synced product {ProductName} (id={Id}) with external id {ExternalId} from {Platform}",
-                    local.Name, local.Id, external.ExternalId, _config.Platform);
+                    "Synced product {ProductName} (id={Id}) with external id {ExternalId} from store '{StoreName}'.",
+                    local.Name, local.Id, external.ExternalId, _config.Name);
             }
             else
             {
@@ -110,13 +109,11 @@ public class SyncService
             return;
         }
 
-        product.ExternalId = external.ExternalId;
-        product.ExternalIdSource = _config.Platform;
-        await _productRepo.UpdateAsync(product);
+        await UpsertProductMappingAsync(product.Id, external.ExternalId);
 
         _logger.LogInformation(
-            "Pushed product {ProductName} (id={Id}) to store, externalId={ExternalId}.",
-            product.Name, product.Id, external.ExternalId);
+            "Pushed product {ProductName} (id={Id}) to store '{StoreName}', externalId={ExternalId}.",
+            product.Name, product.Id, _config.Name, external.ExternalId);
     }
 
     /// <summary>
@@ -134,14 +131,15 @@ public class SyncService
 
             if (existing is not null)
             {
-                if (local.ExternalId != existing.ExternalId)
+                var currentMapping = await _dbContext.CategoryExternalMappings
+                    .FirstOrDefaultAsync(m => m.CategoryId == local.Id && m.StoreName == _config.Name);
+
+                if (currentMapping is null || currentMapping.ExternalId != existing.ExternalId)
                 {
-                    local.ExternalId = existing.ExternalId;
-                    local.ExternalIdSource = _config.Platform;
-                    await _categoryRepo.UpdateAsync(local);
+                    await UpsertCategoryMappingAsync(local.Id, existing.ExternalId);
                     _logger.LogInformation(
-                        "Linked category '{Name}' (id={Id}) to existing external id {ExternalId}.",
-                        local.Name, local.Id, existing.ExternalId);
+                        "Linked category '{Name}' (id={Id}) to existing external id {ExternalId} on store '{StoreName}'.",
+                        local.Name, local.Id, existing.ExternalId, _config.Name);
                 }
             }
             else
@@ -149,12 +147,10 @@ public class SyncService
                 var created = await _store.CreateCategoryAsync(local.Name);
                 if (created is not null)
                 {
-                    local.ExternalId = created.ExternalId;
-                    local.ExternalIdSource = _config.Platform;
-                    await _categoryRepo.UpdateAsync(local);
+                    await UpsertCategoryMappingAsync(local.Id, created.ExternalId);
                     _logger.LogInformation(
-                        "Created category '{Name}' (id={Id}) on store with externalId={ExternalId}.",
-                        local.Name, local.Id, created.ExternalId);
+                        "Created category '{Name}' (id={Id}) on store '{StoreName}' with externalId={ExternalId}.",
+                        local.Name, local.Id, _config.Name, created.ExternalId);
                 }
             }
         }
@@ -166,17 +162,28 @@ public class SyncService
     public async Task PushStockToStoreAsync(int productId)
     {
         var product = await _productRepo.GetByIdAsync(productId);
-        if (product?.ExternalId is null)
+        if (product is null)
         {
             _logger.LogWarning(
-                "Cannot push stock for product id={ProductId}: no ExternalId linked.", productId);
+                "Cannot push stock for product id={ProductId}: not found.", productId);
             return;
         }
 
-        await _store.UpdateStockAsync(product.ExternalId, product.CurrentStock);
+        var mapping = await _dbContext.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
+
+        if (mapping is null)
+        {
+            _logger.LogWarning(
+                "Cannot push stock for product id={ProductId}: no external mapping for store '{StoreName}'.",
+                productId, _config.Name);
+            return;
+        }
+
+        await _store.UpdateStockAsync(mapping.ExternalId, product.CurrentStock);
         _logger.LogInformation(
-            "Pushed stock={Stock} for product {ProductName} (externalId={ExternalId}).",
-            product.CurrentStock, product.Name, product.ExternalId);
+            "Pushed stock={Stock} for product {ProductName} (externalId={ExternalId}) to store '{StoreName}'.",
+            product.CurrentStock, product.Name, mapping.ExternalId, _config.Name);
     }
 
     /// <summary>
@@ -235,10 +242,13 @@ public class SyncService
         try
         {
             var localProducts = await _productRepo.GetAllAsync();
+            var storeMappings = await _dbContext.ProductExternalMappings
+                .Where(m => m.StoreName == _config.Name)
+                .ToDictionaryAsync(m => m.ExternalId, m => m.ProductId);
 
             foreach (var item in order.Items)
             {
-                var product = FindMatchingProduct(localProducts, item);
+                var product = FindMatchingProduct(localProducts, item, storeMappings);
 
                 if (product is null)
                 {
@@ -308,10 +318,13 @@ public class SyncService
         try
         {
             var localProducts = await _productRepo.GetAllAsync();
+            var storeMappings = await _dbContext.ProductExternalMappings
+                .Where(m => m.StoreName == _config.Name)
+                .ToDictionaryAsync(m => m.ExternalId, m => m.ProductId);
 
             foreach (var item in order.Items)
             {
-                var product = FindMatchingProduct(localProducts, item);
+                var product = FindMatchingProduct(localProducts, item, storeMappings);
 
                 if (product is null)
                 {
@@ -353,10 +366,69 @@ public class SyncService
         }
     }
 
-    private static Product? FindMatchingProduct(IEnumerable<Product> localProducts, ExternalOrderItem item)
+    private static Product? FindMatchingProduct(
+        IEnumerable<Product> localProducts,
+        ExternalOrderItem item,
+        Dictionary<string, int> storeMappings)
     {
+        // Match by external ID via mapping table
+        if (!string.IsNullOrEmpty(item.ExternalProductId)
+            && storeMappings.TryGetValue(item.ExternalProductId, out var mappedProductId))
+        {
+            var byMapping = localProducts.FirstOrDefault(p => p.Id == mappedProductId);
+            if (byMapping is not null) return byMapping;
+        }
+
+        // Fallback: match by SKU
         return localProducts.FirstOrDefault(p =>
-            p.ExternalId == item.ExternalProductId ||
-            (!string.IsNullOrEmpty(p.Sku) && p.Sku == item.Sku));
+            !string.IsNullOrEmpty(p.Sku) && p.Sku == item.Sku);
+    }
+
+    private async Task UpsertProductMappingAsync(int productId, string externalId)
+    {
+        var mapping = await _dbContext.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
+
+        if (mapping is not null)
+        {
+            mapping.ExternalId = externalId;
+            mapping.Platform = _config.Platform;
+        }
+        else
+        {
+            _dbContext.ProductExternalMappings.Add(new ProductExternalMapping
+            {
+                ProductId = productId,
+                StoreName = _config.Name,
+                ExternalId = externalId,
+                Platform = _config.Platform
+            });
+        }
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task UpsertCategoryMappingAsync(int categoryId, string externalId)
+    {
+        var mapping = await _dbContext.CategoryExternalMappings
+            .FirstOrDefaultAsync(m => m.CategoryId == categoryId && m.StoreName == _config.Name);
+
+        if (mapping is not null)
+        {
+            mapping.ExternalId = externalId;
+            mapping.Platform = _config.Platform;
+        }
+        else
+        {
+            _dbContext.CategoryExternalMappings.Add(new CategoryExternalMapping
+            {
+                CategoryId = categoryId,
+                StoreName = _config.Name,
+                ExternalId = externalId,
+                Platform = _config.Platform
+            });
+        }
+
+        await _dbContext.SaveChangesAsync();
     }
 }
