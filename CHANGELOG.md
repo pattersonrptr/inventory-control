@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-04-20
+
 ### Added
 
 - **Serilog file logging** — rolling daily log files under `logs/`, configurable retention (default 30 days prod / 7 days dev), 50 MB per-file limit; all HTTP requests logged via `UseSerilogRequestLogging()`
@@ -19,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Serilog file sink in production** — added `createDirectory: true` to File sink config and a code-level fallback that enables file logging when no `File` sink is found in configuration, ensuring log files are always written regardless of environment
 - **Migration SQL on PostgreSQL** — quoted all table and column names with double-quotes in the `ExternalIdMappingTables` migration raw SQL; unquoted identifiers were being silently lowercased by PostgreSQL, causing "relation not found" errors at startup
 
 ### Changed
@@ -284,7 +287,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSRF protection on all form-based POST/PUT/DELETE actions
 - No raw SQL — all queries through EF Core with LINQ
 
-[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v6.0.0...HEAD
+[Unreleased]: https://github.com/pattersonrptr/inventory-control/compare/v6.1.0...HEAD
+[6.1.0]: https://github.com/pattersonrptr/inventory-control/compare/v6.0.0...v6.1.0
 [6.0.0]: https://github.com/pattersonrptr/inventory-control/compare/v5.0.0...v6.0.0
 [5.0.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.3.0...v5.0.0
 [4.3.0]: https://github.com/pattersonrptr/inventory-control/compare/v4.2.0...v4.3.0
