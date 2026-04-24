@@ -1,6 +1,7 @@
 using InventoryControl.Integrations;
 using InventoryControl.Models;
 using InventoryControl.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InventoryControl.Controllers;
@@ -38,6 +39,7 @@ public class HomeController : Controller
         return View();
     }
 
+    [Authorize]
     [HttpGet]
     [Route("/api/dashboard/movements-by-month")]
     public async Task<IActionResult> MovementsByMonth()
@@ -62,6 +64,7 @@ public class HomeController : Controller
         return Json(data);
     }
 
+    [Authorize]
     [HttpGet]
     [Route("/api/dashboard/top-sellers")]
     public async Task<IActionResult> TopSellers()
@@ -82,6 +85,7 @@ public class HomeController : Controller
         return Json(data);
     }
 
+    [Authorize]
     [HttpGet]
     [Route("/api/dashboard/stock-by-category")]
     public async Task<IActionResult> StockByCategory()
@@ -100,6 +104,7 @@ public class HomeController : Controller
         return Json(data);
     }
 
+    [Authorize]
     [HttpGet]
     [Route("/api/movements/recent")]
     public async Task<IActionResult> RecentMovements()

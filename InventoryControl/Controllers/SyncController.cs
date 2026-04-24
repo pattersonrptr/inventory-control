@@ -2,11 +2,13 @@ using InventoryControl.Data;
 using InventoryControl.Integrations;
 using InventoryControl.Integrations.Abstractions;
 using InventoryControl.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace InventoryControl.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/sync")]
 public class SyncController : ControllerBase
