@@ -16,7 +16,7 @@ public class CategoriesController : Controller
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 20)
-        => View(await _repository.GetAllAsync(page, pageSize));
+        => View(await _repository.GetAllForListAsync(page, pageSize));
 
     public async Task<IActionResult> Create()
     {

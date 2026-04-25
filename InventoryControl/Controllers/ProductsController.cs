@@ -34,7 +34,7 @@ public class ProductsController : Controller
     public async Task<IActionResult> Index(int page = 1, int pageSize = 20)
     {
         ViewBag.IntegrationEnabled = _registry.GetEnabledStores().Count > 0;
-        return View(await _productRepo.GetAllAsync(page, pageSize));
+        return View(await _productRepo.GetAllForListAsync(page, pageSize));
     }
 
     public async Task<IActionResult> Details(int id)

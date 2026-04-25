@@ -25,15 +25,27 @@ public class CategoryRepository : ICategoryRepository
 
     public async Task<PagedResult<Category>> GetAllAsync(int page, int pageSize)
     {
-        var query = _context.Categories
+        var baseQuery = _context.Categories.OrderBy(c => c.Name);
+        var totalCount = await baseQuery.CountAsync();
+        var items = await baseQuery
             .Include(c => c.Products)
             .Include(c => c.Parent)
             .Include(c => c.Children)
             .Include(c => c.ExternalMappings)
-            .OrderBy(c => c.Name);
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .AsSplitQuery()
+            .ToListAsync();
 
-        var totalCount = await query.CountAsync();
-        var items = await query
+        return new PagedResult<Category>(items, totalCount, page, pageSize);
+    }
+
+    public async Task<PagedResult<Category>> GetAllForListAsync(int page, int pageSize)
+    {
+        var baseQuery = _context.Categories.OrderBy(c => c.Name);
+        var totalCount = await baseQuery.CountAsync();
+        var items = await baseQuery
+            .Include(c => c.Parent)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

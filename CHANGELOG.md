@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.4.0] - 2026-04-25
+
+### Performance
+
+- **Migration `AddPerformanceIndexes`:** composite index on `Products(CurrentStock, MinimumStock)` (covers the low-stock query); index on `StockMovements(Date)` (covers date-range and month/year queries).
+- **`GetAllForListAsync(page, pageSize)`** added to `IProductRepository` and `ICategoryRepository` — loads only the navigation property needed for display (`Category` / `Parent`), skipping heavy collections (`Images`, `ExternalMappings`, `Products`). Used by all list views and list API endpoints.
+- **`AsSplitQuery()`** added to the full `GetAllAsync(page, pageSize)` in `ProductRepository` and `CategoryRepository` — prevents Cartesian explosion when multiple collection-type includes are combined with pagination.
+- Count query in paginataed methods now runs against the base query (no includes) — EF Core no longer generates a COUNT with unnecessary JOINs.
+
+### Changed
+
+- `ProductsController.Index`, `CategoriesController.Index`, `ProductsApiController.GetAll`, `CategoriesApiController.GetAll` — switched to `GetAllForListAsync` (lightweight query).
+
 ## [6.3.0] - 2026-04-25
 
 ### Changed

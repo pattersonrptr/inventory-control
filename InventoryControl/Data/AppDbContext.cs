@@ -59,6 +59,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                   .HasFilter("\"Sku\" IS NOT NULL");
             entity.Property(p => p.Brand).HasMaxLength(100);
             entity.HasIndex(p => p.Brand);
+            entity.HasIndex(p => new { p.CurrentStock, p.MinimumStock });
 
             entity.HasOne(p => p.Category)
                   .WithMany(c => c.Products)
@@ -86,6 +87,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(m => m.Type).IsRequired();
             entity.Property(m => m.UnitCost).HasColumnType("decimal(10,2)");
             entity.Property(m => m.Notes).HasMaxLength(500);
+            entity.HasIndex(m => m.Date);
 
             entity.HasOne(m => m.Product)
                   .WithMany(p => p.StockMovements)

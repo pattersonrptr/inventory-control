@@ -21,7 +21,7 @@ public class CategoriesApiController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResult<object>>> GetAll(int page = 1, int pageSize = 20)
     {
-        var result = await _repo.GetAllAsync(page, pageSize);
+        var result = await _repo.GetAllForListAsync(page, pageSize);
         var mapped = new PagedResult<object>(
             result.Items.Select(c => MapCategory(c)).ToList(),
             result.TotalCount, result.Page, result.PageSize);

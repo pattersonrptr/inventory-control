@@ -24,14 +24,26 @@ public class ProductRepository : IProductRepository
 
     public async Task<PagedResult<Product>> GetAllAsync(int page, int pageSize)
     {
-        var query = _context.Products
+        var baseQuery = _context.Products.OrderBy(p => p.Name);
+        var totalCount = await baseQuery.CountAsync();
+        var items = await baseQuery
             .Include(p => p.Category)
             .Include(p => p.Images)
             .Include(p => p.ExternalMappings)
-            .OrderBy(p => p.Name);
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .AsSplitQuery()
+            .ToListAsync();
 
-        var totalCount = await query.CountAsync();
-        var items = await query
+        return new PagedResult<Product>(items, totalCount, page, pageSize);
+    }
+
+    public async Task<PagedResult<Product>> GetAllForListAsync(int page, int pageSize)
+    {
+        var baseQuery = _context.Products.OrderBy(p => p.Name);
+        var totalCount = await baseQuery.CountAsync();
+        var items = await baseQuery
+            .Include(p => p.Category)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
