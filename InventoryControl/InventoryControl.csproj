@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>InventoryControl</RootNamespace>
+    <Version>6.1.2</Version>
   </PropertyGroup>
 
   <ItemGroup>

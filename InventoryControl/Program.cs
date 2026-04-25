@@ -278,12 +278,14 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Swagger UI available in all environments at /swagger
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Control API v1");
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Control API v1");
+    });
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

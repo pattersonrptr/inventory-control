@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.2] - 2026-04-25
+
+### Security
+
+- **Unauthenticated dashboard API access** — dashboard and recent-movements API endpoints (`/api/dashboard/*`, `/api/movements/recent`) now return `401` instead of silently redirecting to the login page when called without authentication.
+- **SyncController explicit authorization** — added class-level `[Authorize]` to `SyncController` for defense in depth (endpoints were already protected by the global filter; now intent is explicit).
+- **API key per-key roles** — `ApiKeyAuthenticationHandler` now supports an `Api:Keys` array where each entry carries its own `Role`. A key configured as `ReadOnly` no longer silently receives `Admin` privileges.
+- **Swagger disabled in production** — Swagger UI and JSON schema are only registered in the Development environment; `/swagger/*` returns 404 in production.
+
+### Deprecated
+
+- `Api:Key` (single key, always grants `Admin`) — still works but emits a startup warning. Migrate to the `Api:Keys` array format (see `appsettings.example.json`). Will be removed in v7.0.0.
+
+## [6.1.1] - 2026-04-25
+
+### Added
+
+- CI workflow (`.github/workflows/ci.yml`): runs `dotnet build`, non-E2E tests, and format check on every push and PR.
+- Code coverage collection via `coverlet`; HTML report and TRX results uploaded as CI artifacts.
+- `TESTING.md`: TDD watch-mode workflow, coverage commands, test organization reference.
+- Characterization tests for `ApiKeyAuthenticationHandler`, dashboard API endpoints, `SyncController`, and `CsvImportService` (100 tests total).
+
 ## [6.1.0] - 2026-04-20
 
 ### Added
