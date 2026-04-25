@@ -17,9 +17,12 @@ namespace InventoryControl.BackgroundServices;
 /// </summary>
 public class OrderSyncBackgroundService : BackgroundService
 {
+    private static readonly TimeSpan BaseInterval = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan MaxInterval = TimeSpan.FromMinutes(30);
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<OrderSyncBackgroundService> _logger;
-    private readonly TimeSpan _defaultInterval;
+    private int _consecutiveFailures;
 
     public OrderSyncBackgroundService(
         IServiceScopeFactory scopeFactory,
@@ -27,7 +30,15 @@ public class OrderSyncBackgroundService : BackgroundService
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
-        _defaultInterval = TimeSpan.FromMinutes(15);
+    }
+
+    /// <summary>Exponential backoff: BaseInterval * 2^failures, capped at MaxInterval.</summary>
+    public static TimeSpan CalculateBackoffDelay(int consecutiveFailures)
+    {
+        if (consecutiveFailures <= 0) return BaseInterval;
+        var multiplier = Math.Pow(2, consecutiveFailures);
+        var delay = TimeSpan.FromMinutes(BaseInterval.TotalMinutes * multiplier);
+        return delay > MaxInterval ? MaxInterval : delay;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -39,27 +50,44 @@ public class OrderSyncBackgroundService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            await RunSyncForAllStoresAsync(stoppingToken);
-            await Task.Delay(_defaultInterval, stoppingToken);
+            var succeeded = await RunSyncForAllStoresAsync(stoppingToken);
+            _consecutiveFailures = succeeded ? 0 : _consecutiveFailures + 1;
+
+            var delay = CalculateBackoffDelay(_consecutiveFailures);
+            if (_consecutiveFailures > 0)
+                _logger.LogWarning(
+                    "OrderSyncBackgroundService: {Failures} consecutive failure(s); next retry in {Delay}.",
+                    _consecutiveFailures, delay);
+
+            await Task.Delay(delay, stoppingToken);
         }
     }
 
-    private async Task RunSyncForAllStoresAsync(CancellationToken stoppingToken)
+    private async Task<bool> RunSyncForAllStoresAsync(CancellationToken stoppingToken)
     {
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var registry = scope.ServiceProvider.GetRequiredService<PlatformRegistry>();
-        var enabledStores = registry.GetEnabledStores();
-
-        if (enabledStores.Count == 0)
+        try
         {
-            _logger.LogDebug("OrderSyncBackgroundService: no enabled stores configured. Skipping.");
-            return;
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var registry = scope.ServiceProvider.GetRequiredService<PlatformRegistry>();
+            var enabledStores = registry.GetEnabledStores();
+
+            if (enabledStores.Count == 0)
+            {
+                _logger.LogDebug("OrderSyncBackgroundService: no enabled stores configured. Skipping.");
+                return true;
+            }
+
+            foreach (var storeConfig in enabledStores)
+            {
+                if (stoppingToken.IsCancellationRequested) break;
+                await RunSyncForStoreAsync(scope.ServiceProvider, storeConfig, stoppingToken);
+            }
+            return true;
         }
-
-        foreach (var storeConfig in enabledStores)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            if (stoppingToken.IsCancellationRequested) break;
-            await RunSyncForStoreAsync(scope.ServiceProvider, storeConfig, stoppingToken);
+            _logger.LogError(ex, "OrderSyncBackgroundService: unhandled error during sync cycle.");
+            return false;
         }
     }
 

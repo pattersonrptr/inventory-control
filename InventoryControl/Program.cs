@@ -1,4 +1,5 @@
 using AspNetCoreRateLimit;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using InventoryControl.Authentication;
@@ -279,6 +280,23 @@ builder.Services.AddScoped<IOffsiteBackupService, OffsiteBackupService>();
 
 var app = builder.Build();
 
+// Warn if the rclone config file is world-readable (Linux deployments)
+if (OperatingSystem.IsLinux())
+{
+    var rcloneConfigPath = builder.Configuration["OffsiteBackup:RcloneConfigPath"];
+    if (!string.IsNullOrEmpty(rcloneConfigPath) && File.Exists(rcloneConfigPath))
+    {
+        var fileMode = File.GetUnixFileMode(rcloneConfigPath);
+        if ((fileMode & UnixFileMode.OtherRead) != 0)
+        {
+            var startupLog = app.Services.GetRequiredService<ILogger<Program>>();
+            startupLog.LogWarning(
+                "SECURITY: rclone config '{Path}' is world-readable. Run: chmod 600 \"{Path}\"",
+                rcloneConfigPath, rcloneConfigPath);
+        }
+    }
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler(errorApp =>
@@ -322,12 +340,37 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.MapHealthChecks("/health");
-
-// Apply pending migrations automatically on startup (relational providers only)
-using (var scope = app.Services.CreateScope())
+// /health/live  — basic ping, anonymous, used by Docker/TrueNAS liveness probes
+// /health/ready — includes DbContext check, used by readiness probes and monitoring
+app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
+    Predicate = _ => false  // no individual checks — just confirms the process is alive
+}).AllowAnonymous();
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = _ => true   // all registered checks including DbContext
+}).AllowAnonymous();
+
+// Database initialisation is intentionally NOT run on normal startup.
+// Use:  dotnet run -- migrate   (or dotnet InventoryControl.dll migrate)
+// This applies pending migrations, PostgreSQL fixes, and seeds roles/admin/dev data.
+// In docker-compose the dedicated 'db-migrate' service handles this before the app starts.
+if (args.Contains("migrate"))
+{
+    await ApplyMigrationsAsync(app.Services, usePostgres, app.Configuration, app.Environment);
+    return;
+}
+
+app.Run();
+
+static async Task ApplyMigrationsAsync(
+    IServiceProvider services, bool usePostgres,
+    IConfiguration configuration, IWebHostEnvironment environment)
+{
+    await using var scope = services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
     if (db.Database.IsRelational())
         db.Database.Migrate();
 
@@ -433,9 +476,9 @@ using (var scope = app.Services.CreateScope())
             await roleManager.CreateAsync(new IdentityRole(role));
     }
 
-    var adminEmail = builder.Configuration["DefaultAdmin:Email"] ?? "admin@inventory.local";
-    var adminPassword = builder.Configuration["DefaultAdmin:Password"] ?? "Admin123!";
-    var adminFullName = builder.Configuration["DefaultAdmin:FullName"] ?? "Administrador";
+    var adminEmail = configuration["DefaultAdmin:Email"] ?? "admin@inventory.local";
+    var adminPassword = configuration["DefaultAdmin:Password"] ?? "Admin123!";
+    var adminFullName = configuration["DefaultAdmin:FullName"] ?? "Administrador";
 
     if (await userManager.FindByEmailAsync(adminEmail) == null)
     {
@@ -451,14 +494,9 @@ using (var scope = app.Services.CreateScope())
             await userManager.AddToRoleAsync(admin, "Admin");
     }
 
-    // Seed development data
-    if (app.Environment.IsDevelopment())
-    {
+    if (environment.IsDevelopment())
         await SeedDevelopmentDataAsync(db);
-    }
 }
-
-app.Run();
 
 static async Task SeedDevelopmentDataAsync(AppDbContext db)
 {

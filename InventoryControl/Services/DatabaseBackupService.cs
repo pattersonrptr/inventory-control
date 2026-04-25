@@ -54,8 +54,6 @@ public class DatabaseBackupService : IDatabaseBackupService
         var port     = parts.GetValueOrDefault("Port",     "5432");
         var database = parts.GetValueOrDefault("Database", "postgres");
         var username = parts.GetValueOrDefault("Username", "postgres");
-        var password = parts.GetValueOrDefault("Password", "");
-
         var fileName = $"backup-{DateTime.UtcNow:yyyy-MM-dd_HH-mm-ss}.sql";
 
         var psi = new ProcessStartInfo("pg_dump")
@@ -67,10 +65,13 @@ public class DatabaseBackupService : IDatabaseBackupService
             CreateNoWindow         = true
         };
         // Pass password via environment variable — never via command-line args
-        psi.Environment["PGPASSWORD"] = password;
+        psi.Environment["PGPASSWORD"] = parts.GetValueOrDefault("Password", "");
 
         using var process = Process.Start(psi)
             ?? throw new InvalidOperationException("Failed to start pg_dump.");
+
+        // Clear PGPASSWORD immediately after the process has started
+        psi.Environment.Remove("PGPASSWORD");
 
         var ms     = new MemoryStream();
         var copyTask  = process.StandardOutput.BaseStream.CopyToAsync(ms, cancellationToken);

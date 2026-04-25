@@ -120,7 +120,7 @@ public class LowStockNotificationService : BackgroundService
                 : null
         };
 
-        var message = new MailMessage(
+        using var message = new MailMessage(
             from: fromEmail ?? smtpUser ?? "noreply@inventory.local",
             to: toEmail,
             subject: subject,

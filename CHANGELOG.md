@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.3.0] - 2026-04-25
+
+### Changed
+
+- **BREAKING (deploy):** Migrations no longer run on app startup. Run `dotnet InventoryControl.dll migrate` (or the `db-migrate` docker-compose service) before starting the app for the first time or after any upgrade that includes new migrations.
+- **Health check endpoints split:** `/health/live` (liveness — anonymous, process-only) and `/health/ready` (readiness — includes DbContext check). Both are anonymous. Docker/TrueNAS healthchecks updated to use `/health/live`.
+- **Background service exponential backoff:** `OrderSyncBackgroundService` now doubles the delay after each consecutive sync cycle failure, capped at 30 minutes.
+
+### Fixed
+
+- `MailMessage` is now properly disposed via `using` in `LowStockNotificationService.SendEmailAsync`, preventing resource leaks on SMTP failures.
+- `PGPASSWORD` environment variable cleared from `ProcessStartInfo` immediately after `pg_dump` starts.
+
+### Security
+
+- Startup logs a warning when the rclone config file is world-readable on Linux deployments.
+
 ## [6.2.0] - 2026-04-25
 
 ### Added
