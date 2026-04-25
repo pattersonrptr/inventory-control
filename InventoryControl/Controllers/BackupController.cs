@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using InventoryControl.Data;
-using InventoryControl.Models;
 using InventoryControl.Services.Interfaces;
 using InventoryControl.ViewModels;
 using Microsoft.AspNetCore.Authorization;

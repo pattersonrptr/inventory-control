@@ -1,14 +1,14 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace InventoryControl.Models;
+namespace InventoryControl.Domain.Products;
 
-public class CategoryExternalMapping
+public class ProductExternalMapping
 {
     public int Id { get; set; }
 
     [Required]
-    public int CategoryId { get; set; }
-    public Category Category { get; set; } = null!;
+    public int ProductId { get; set; }
+    public Product Product { get; set; } = null!;
 
     [Required]
     [MaxLength(100)]

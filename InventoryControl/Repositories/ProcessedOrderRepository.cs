@@ -1,5 +1,4 @@
 using InventoryControl.Data;
-using InventoryControl.Models;
 using InventoryControl.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 

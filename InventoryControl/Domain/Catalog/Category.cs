@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using InventoryControl.Domain.Products;
 
-namespace InventoryControl.Models;
+namespace InventoryControl.Domain.Catalog;
 
 public class Category
 {

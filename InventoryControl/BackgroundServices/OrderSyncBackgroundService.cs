@@ -1,7 +1,6 @@
 using InventoryControl.Data;
 using InventoryControl.Integrations;
 using InventoryControl.Integrations.Abstractions;
-using InventoryControl.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

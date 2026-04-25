@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 
-namespace InventoryControl.Models;
+namespace InventoryControl.Domain.Identity;
 
 public class ApplicationUser : IdentityUser
 {

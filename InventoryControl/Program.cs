@@ -5,7 +5,6 @@ using FluentValidation.AspNetCore;
 using InventoryControl.Authentication;
 using InventoryControl.BackgroundServices;
 using InventoryControl.Data;
-using InventoryControl.Models;
 using InventoryControl.Repositories;
 using InventoryControl.Repositories.Interfaces;
 using InventoryControl.Services;

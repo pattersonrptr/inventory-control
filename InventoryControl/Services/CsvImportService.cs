@@ -1,5 +1,4 @@
 using System.Globalization;
-using InventoryControl.Models;
 
 namespace InventoryControl.Services;
 

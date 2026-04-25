@@ -219,7 +219,7 @@
             </thead>
             <tbody id="recentMovementsBody">
                 @{
-                    var recentMovements = ViewBag.RecentMovements as List<InventoryControl.Models.StockMovement>;
+                    var recentMovements = ViewBag.RecentMovements as List<StockMovement>;
                 }
                 @if (recentMovements is not null && recentMovements.Any())
                 {
@@ -229,7 +229,7 @@
                             <td>@mov.Date.ToString("dd/MM/yyyy")</td>
                             <td>@mov.Product?.Name</td>
                             <td>
-                                @if (mov.Type == InventoryControl.Models.MovementType.Entry)
+                                @if (mov.Type == MovementType.Entry)
                                 {
                                     <span class="badge bg-success"><i class="bi bi-arrow-down-circle"></i> Entrada</span>
                                 }

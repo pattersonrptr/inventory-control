@@ -1,4 +1,3 @@
-using InventoryControl.Models;
 using InventoryControl.Repositories.Interfaces;
 using InventoryControl.ViewModels;
 using Microsoft.AspNetCore.Mvc;

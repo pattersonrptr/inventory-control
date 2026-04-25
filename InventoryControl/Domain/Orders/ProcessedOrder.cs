@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace InventoryControl.Models;
+namespace InventoryControl.Domain.Orders;
 
 public class ProcessedOrder
 {

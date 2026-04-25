@@ -262,8 +262,8 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var category = new InventoryControl.Models.Category { Name = "Test Cat " + Guid.NewGuid() };
-        var supplier = new InventoryControl.Models.Supplier { Name = "Test Sup " + Guid.NewGuid() };
+        var category = new Category { Name = "Test Cat " + Guid.NewGuid() };
+        var supplier = new Supplier { Name = "Test Sup " + Guid.NewGuid() };
 
         db.Categories.Add(category);
         db.Suppliers.Add(supplier);
@@ -277,7 +277,7 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var category = new InventoryControl.Models.Category { Name = "Test Cat " + Guid.NewGuid() };
+        var category = new Category { Name = "Test Cat " + Guid.NewGuid() };
         db.Categories.Add(category);
         await db.SaveChangesAsync();
 
@@ -291,7 +291,7 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var product = new InventoryControl.Models.Product
+        var product = new Product
         {
             Name = "Test Product " + Guid.NewGuid(),
             CostPrice = 10m,
@@ -312,7 +312,7 @@ public class FormSubmissionTests : IClassFixture<WebAppFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var product = new InventoryControl.Models.Product
+        var product = new Product
         {
             Name = "Test Product " + Guid.NewGuid(),
             CostPrice = 10m,

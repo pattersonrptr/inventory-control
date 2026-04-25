@@ -1,6 +1,5 @@
 using InventoryControl.Data;
 using InventoryControl.Integrations.Abstractions;
-using InventoryControl.Models;
 using InventoryControl.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

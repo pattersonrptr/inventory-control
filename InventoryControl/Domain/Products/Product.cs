@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using InventoryControl.Domain.Catalog;
+using InventoryControl.Domain.Stock;
 
-namespace InventoryControl.Models;
+namespace InventoryControl.Domain.Products;
 
 public class Product
 {
@@ -42,7 +44,6 @@ public class Product
     public int CategoryId { get; set; }
     public Category Category { get; set; } = null!;
 
-    // Universal product code — platform-agnostic
     [StringLength(100)]
     [Display(Name = "SKU")]
     public string? Sku { get; set; }

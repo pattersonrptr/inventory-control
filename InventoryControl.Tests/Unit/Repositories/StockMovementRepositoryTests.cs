@@ -1,4 +1,3 @@
-using InventoryControl.Models;
 using InventoryControl.Repositories;
 using InventoryControl.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;

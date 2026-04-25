@@ -1,4 +1,3 @@
-using InventoryControl.Models;
 
 namespace InventoryControl.Repositories.Interfaces;
 

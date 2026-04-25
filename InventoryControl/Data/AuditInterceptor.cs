@@ -1,5 +1,4 @@
 using System.Text.Json;
-using InventoryControl.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;

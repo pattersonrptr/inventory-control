@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace InventoryControl.Models;
+namespace InventoryControl.Domain.Catalog;
 
 public class Supplier
 {
@@ -35,6 +35,4 @@ public class Supplier
     [StringLength(1000, ErrorMessage = "As observações devem ter no máximo 1000 caracteres.")]
     [Display(Name = "Observações")]
     public string? Notes { get; set; }
-
-
 }

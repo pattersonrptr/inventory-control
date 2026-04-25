@@ -1,4 +1,4 @@
-namespace InventoryControl.Models;
+namespace InventoryControl.Domain.Stock;
 
 public enum MovementType
 {

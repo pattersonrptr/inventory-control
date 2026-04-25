@@ -1,4 +1,4 @@
-namespace InventoryControl.Models;
+namespace InventoryControl.Domain.Shared;
 
 public class PagedResult<T>
 {

@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using InventoryControl.Domain.Catalog;
+using InventoryControl.Domain.Products;
 
-namespace InventoryControl.Models;
+namespace InventoryControl.Domain.Stock;
 
 public class StockMovement
 {

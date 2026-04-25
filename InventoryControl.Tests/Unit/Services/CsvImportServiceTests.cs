@@ -1,5 +1,4 @@
 using System.Text;
-using InventoryControl.Models;
 using InventoryControl.Services;
 
 namespace InventoryControl.Tests.Unit.Services;

@@ -1,4 +1,3 @@
-using InventoryControl.Models;
 using InventoryControl.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
