@@ -1,59 +1,131 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 
 namespace InventoryControl.Tests.Integration;
 
 /// <summary>
-/// Characterization tests for ApiKeyAuthenticationHandler.
-/// Documents current behavior before Fase 1 refactors per-key role support.
+/// Characterization and behavior tests for ApiKeyAuthenticationHandler.
+/// Covers both legacy (Api:Key) and new (Api:Keys array) config formats.
 /// </summary>
 public class ApiKeyAuthenticationHandlerTests : IClassFixture<ApiKeyWebAppFactory>
 {
-    private readonly HttpClient _client;
+    private readonly ApiKeyWebAppFactory _factory;
 
     public ApiKeyAuthenticationHandlerTests(ApiKeyWebAppFactory factory)
     {
-        _client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        _factory = factory;
     }
 
-    [Fact]
-    public async Task ApiEndpoint_WithValidApiKey_Returns200()
+    private HttpClient CreateClient() => _factory.CreateClient(new WebApplicationFactoryClientOptions
     {
-        _client.DefaultRequestHeaders.Add("X-Api-Key", ApiKeyWebAppFactory.ValidApiKey);
+        AllowAutoRedirect = false
+    });
 
-        var response = await _client.GetAsync("/api/v1/products");
+    // ── Legacy Api:Key format ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task LegacyApiKey_ValidKey_Returns200()
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", ApiKeyWebAppFactory.ValidApiKey);
+
+        var response = await client.GetAsync("/api/v1/products");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
-    public async Task ApiEndpoint_WithInvalidApiKey_Returns401()
+    public async Task LegacyApiKey_InvalidKey_Returns401()
     {
-        _client.DefaultRequestHeaders.Add("X-Api-Key", "wrong-key");
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "wrong-key");
 
-        var response = await _client.GetAsync("/api/v1/products");
+        var response = await client.GetAsync("/api/v1/products");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
-    public async Task ApiEndpoint_WithMissingApiKey_Returns401()
+    public async Task LegacyApiKey_MissingKey_Returns401()
     {
-        var response = await _client.GetAsync("/api/v1/products");
+        var client = CreateClient();
+
+        var response = await client.GetAsync("/api/v1/products");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
-    public async Task ApiEndpoint_ValidApiKey_ResponseIsJson()
+    public async Task LegacyApiKey_ValidKey_ResponseIsJson()
     {
-        _client.DefaultRequestHeaders.Add("X-Api-Key", ApiKeyWebAppFactory.ValidApiKey);
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", ApiKeyWebAppFactory.ValidApiKey);
 
-        var response = await _client.GetAsync("/api/v1/products");
+        var response = await client.GetAsync("/api/v1/products");
 
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    // ── New Api:Keys array format ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task NewApiKeysFormat_ValidKey_Returns200()
+    {
+        const string newKey = "new-format-key-abc";
+        using var client = _factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, cfg) =>
+                cfg.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Api:Keys:0:Key"] = newKey,
+                    ["Api:Keys:0:Role"] = "Admin"
+                })))
+            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        client.DefaultRequestHeaders.Add("X-Api-Key", newKey);
+
+        var response = await client.GetAsync("/api/v1/products");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task NewApiKeysFormat_ValidKeyWithCustomRole_Returns200()
+    {
+        const string readOnlyKey = "readonly-key-xyz";
+        using var client = _factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, cfg) =>
+                cfg.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Api:Keys:0:Key"] = readOnlyKey,
+                    ["Api:Keys:0:Role"] = "ReadOnly"
+                })))
+            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        client.DefaultRequestHeaders.Add("X-Api-Key", readOnlyKey);
+
+        var response = await client.GetAsync("/api/v1/products");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task NewApiKeysFormat_KeyNotInList_Returns401()
+    {
+        using var client = _factory.WithWebHostBuilder(builder =>
+            builder.ConfigureAppConfiguration((_, cfg) =>
+                cfg.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Api:Keys:0:Key"] = "correct-key",
+                    ["Api:Keys:0:Role"] = "Admin",
+                    ["Api:Key"] = ""   // ensure legacy key is empty
+                })))
+            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        client.DefaultRequestHeaders.Add("X-Api-Key", "wrong-key");
+
+        var response = await client.GetAsync("/api/v1/products");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }
