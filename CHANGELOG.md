@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.2.0] - 2026-04-25
+
+### Added
+
+- **FluentValidation** (`FluentValidation.AspNetCore` 11.3.1) — auto-validation wired via `AddFluentValidationAutoValidation`; validators discovered by assembly scan.
+- **API DTO validators** — `ProductCreateDtoValidator`, `ProductUpdateDtoValidator`, `StockUpdateDtoValidator`, `CategoryDtoValidator`, `SupplierDtoValidator` enforce required fields, max lengths, non-negative numerics, valid email, and positive `CategoryId`.
+- **`IClock` / `SystemClock`** — testable time abstraction registered as a singleton; replaces all `DateTime.Now` usages in services and background jobs.
+- **`ImageUploadValidator`** — centralised image validation (allowed extensions: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`; max 10 MB); returns structured error list.
+
+### Fixed
+
+- **Silent image extension rename** — `ProductsController.SaveImagesAsync` no longer silently renames files with unsupported extensions to `.jpg`; invalid types and oversized files now surface as `ModelState` errors.
+- **`ex.Message` information leakage** — `BackupController` catch blocks now return a generic Portuguese error message; full exception details remain in the structured log only.
+- **`DateTime.Now` in UTC contexts** — replaced with `DateTime.UtcNow` in `AuditInterceptor`, `AuditLog`, `ProcessedOrder`, `SyncService`, `BackupController`, `AuditLogCleanupService`, and `LowStockNotificationService`.
+
+### Security
+
+- **Password policy hardened** — `RequireDigit`, `RequireUppercase`, `RequireNonAlphanumeric` set to `true`; minimum length raised from 6 to 10.
+- **Global exception handler for API routes** — unhandled exceptions on `/api/*` paths now return `{ "error": "An unexpected error occurred." }` with HTTP 500 instead of leaking stack traces or redirect responses.
+
 ## [6.1.2] - 2026-04-25
 
 ### Security

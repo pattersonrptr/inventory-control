@@ -2,6 +2,7 @@ using InventoryControl.Data;
 using InventoryControl.Integrations;
 using InventoryControl.Models;
 using InventoryControl.Repositories.Interfaces;
+using InventoryControl.Validators;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -60,7 +61,16 @@ public class ProductsController : Controller
         }
 
         if (images is not null)
+        {
+            var errors = ImageUploadValidator.Validate(images);
+            if (errors.Count > 0)
+            {
+                foreach (var e in errors) ModelState.AddModelError("images", e);
+                await PopulateDropdownsAsync(product.CategoryId);
+                return View(product);
+            }
             product.Images = await SaveImagesAsync(images);
+        }
 
         await _productRepo.AddAsync(product);
         TempData["Success"] = "Produto criado com sucesso!";
@@ -88,6 +98,13 @@ public class ProductsController : Controller
 
         if (images is { Length: > 0 })
         {
+            var errors = ImageUploadValidator.Validate(images);
+            if (errors.Count > 0)
+            {
+                foreach (var e in errors) ModelState.AddModelError("images", e);
+                await PopulateDropdownsAsync(product.CategoryId);
+                return View(product);
+            }
             var newImages = await SaveImagesAsync(images);
             var hasPrimary = await _context.ProductImages.AnyAsync(pi => pi.ProductId == id && pi.IsPrimary);
             if (!hasPrimary && newImages.Count > 0)
@@ -183,8 +200,6 @@ public class ProductsController : Controller
         return Json(new { success = true });
     }
 
-    private static readonly HashSet<string> AllowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-
     private async Task<List<ProductImage>> SaveImagesAsync(IFormFile[] files)
     {
         var result = new List<ProductImage>();
@@ -195,8 +210,6 @@ public class ProductsController : Controller
         {
             var file = files[i];
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!AllowedExtensions.Contains(extension))
-                extension = ".jpg";
 
             var fileName = $"{Guid.NewGuid()}{extension}";
             var filePath = Path.Combine(uploadsDir, fileName);

@@ -63,7 +63,7 @@ public class BackupController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Backup download failed for user '{User}'.", userName);
-            TempData["Error"] = $"Falha ao gerar o backup: {ex.Message}";
+            TempData["Error"] = "Falha ao gerar o backup. Por favor, tente novamente.";
             return RedirectToAction(nameof(Index));
         }
     }
@@ -95,7 +95,7 @@ public class BackupController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Cloud backup upload failed for user '{User}'.", userName);
-            TempData["Error"] = $"Falha no upload: {ex.Message}";
+            TempData["Error"] = "Falha no upload. Por favor, tente novamente.";
         }
 
         return RedirectToAction(nameof(Index));
@@ -114,7 +114,7 @@ public class BackupController : Controller
             Action     = action,
             EntityName = "Database",
             EntityId   = null,
-            Timestamp  = DateTime.Now,
+            Timestamp  = DateTime.UtcNow,
             OldValues  = null,
             NewValues  = $"{{\"FileName\":\"{fileName}\",\"RequestedAt\":\"{DateTime.UtcNow:O}\"}}"
         });

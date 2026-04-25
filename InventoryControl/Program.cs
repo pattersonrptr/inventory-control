@@ -1,4 +1,6 @@
 using AspNetCoreRateLimit;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using InventoryControl.Authentication;
 using InventoryControl.BackgroundServices;
 using InventoryControl.Data;
@@ -7,6 +9,7 @@ using InventoryControl.Repositories;
 using InventoryControl.Repositories.Interfaces;
 using InventoryControl.Services;
 using InventoryControl.Services.Interfaces;
+using SystemClock = InventoryControl.Services.SystemClock;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -55,6 +58,9 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AuthorizeFilter(policy));
 });
 
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
 // Support pt-BR culture: allows decimals with comma (1.234,56) and R$ currency
 var ptBR = new System.Globalization.CultureInfo("pt-BR");
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ModelBinding.Metadata.DefaultModelBindingMessageProvider>(p =>
@@ -100,10 +106,10 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 // ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    options.Password.RequireDigit = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 6;
+    options.Password.RequireDigit = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 10;
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 })
@@ -267,6 +273,7 @@ if (builder.Configuration.GetValue<bool?>("EmailNotifications:Enabled") == true)
 builder.Services.AddHostedService<AuditLogCleanupService>();
 
 // Manual database backup
+builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
 builder.Services.AddScoped<IOffsiteBackupService, OffsiteBackupService>();
 
@@ -274,7 +281,22 @@ var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+            }
+            else
+            {
+                context.Response.Redirect("/Home/Error");
+            }
+        });
+    });
     app.UseHsts();
 }
 

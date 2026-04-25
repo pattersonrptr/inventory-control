@@ -291,7 +291,7 @@ public class SyncService
                 ExternalOrderId = order.ExternalOrderId,
                 Status = order.Status,
                 PaymentStatus = order.PaymentStatus,
-                ProcessedAt = DateTime.Now
+                ProcessedAt = DateTime.UtcNow
             });
 
             await transaction.CommitAsync();
@@ -339,7 +339,7 @@ public class SyncService
                     ProductId = product.Id,
                     Type = MovementType.Entry,
                     Quantity = item.Quantity,
-                    Date = DateTime.Now,
+                    Date = DateTime.UtcNow,
                     UnitCost = item.UnitPrice,
                     Notes = $"Refund for order {order.ExternalOrderId} from external store"
                 };

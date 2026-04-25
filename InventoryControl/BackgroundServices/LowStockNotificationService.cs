@@ -82,7 +82,7 @@ public class LowStockNotificationService : BackgroundService
 
             body.AppendLine();
             body.AppendLine($"Total products below minimum: {lowStockProducts.Count}");
-            body.AppendLine($"Check time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            body.AppendLine($"Check time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
 
             await SendEmailAsync(
                 $"[Inventory Control] Low Stock Alert — {lowStockProducts.Count} product(s)",

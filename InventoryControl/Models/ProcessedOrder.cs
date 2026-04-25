@@ -18,5 +18,5 @@ public class ProcessedOrder
     [MaxLength(50)]
     public string PaymentStatus { get; set; } = string.Empty;
 
-    public DateTime ProcessedAt { get; set; } = DateTime.Now;
+    public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
 }

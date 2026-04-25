@@ -25,7 +25,7 @@ public class AuditLog
     [StringLength(100)]
     public string? EntityId { get; set; }
 
-    public DateTime Timestamp { get; set; } = DateTime.Now;
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     [StringLength(4000)]
     public string? OldValues { get; set; }

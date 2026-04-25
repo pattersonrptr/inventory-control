@@ -80,7 +80,7 @@ public class AuditInterceptor : SaveChangesInterceptor
                 Action = action,
                 EntityName = entityName,
                 EntityId = entityId,
-                Timestamp = DateTime.Now,
+                Timestamp = DateTime.UtcNow,
                 OldValues = Truncate(oldValues, 4000),
                 NewValues = Truncate(newValues, 4000)
             });

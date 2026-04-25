@@ -43,7 +43,7 @@ public class AuditLogCleanupService : BackgroundService
             await RunCleanupAsync(stoppingToken);
 
             // Schedule next run at 02:00 the following day
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var nextRun = now.Date.AddDays(1).AddHours(2);
             var delay = nextRun - now;
 
@@ -65,7 +65,7 @@ public class AuditLogCleanupService : BackgroundService
             await using var scope = _scopeFactory.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var cutoff = DateTime.Now.AddDays(-_retentionDays);
+            var cutoff = DateTime.UtcNow.AddDays(-_retentionDays);
 
             var deleted = await db.AuditLogs
                 .Where(a => a.Timestamp < cutoff)
