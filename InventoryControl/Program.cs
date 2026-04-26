@@ -468,7 +468,7 @@ static async Task ApplyMigrationsAsync(
     }
 
     var adminEmail = configuration["DefaultAdmin:Email"] ?? "admin@inventory.local";
-    var adminPassword = configuration["DefaultAdmin:Password"] ?? "Admin123!";
+    var adminPassword = configuration["DefaultAdmin:Password"] ?? "Admin1234!@";
     var adminFullName = configuration["DefaultAdmin:FullName"] ?? "Administrador";
 
     if (await userManager.FindByEmailAsync(adminEmail) == null)
@@ -483,6 +483,12 @@ static async Task ApplyMigrationsAsync(
         var result = await userManager.CreateAsync(admin, adminPassword);
         if (result.Succeeded)
             await userManager.AddToRoleAsync(admin, "Admin");
+        else
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            logger.LogError("Failed to seed admin account {Email}: {Errors}", adminEmail, errors);
+        }
     }
 
     if (environment.IsDevelopment())

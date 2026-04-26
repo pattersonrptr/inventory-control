@@ -38,4 +38,9 @@ EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
+LABEL org.opencontainers.image.title="inventory-control" \
+      org.opencontainers.image.description="ASP.NET Core inventory management system with Nuvemshop integration" \
+      org.opencontainers.image.source="https://github.com/pattersonrptr/inventory-control" \
+      org.opencontainers.image.licenses="MIT"
+
 ENTRYPOINT ["dotnet", "InventoryControl.dll"]
