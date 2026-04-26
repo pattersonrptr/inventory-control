@@ -271,6 +271,7 @@ builder.Services.AddScoped<IOffsiteBackupService, OffsiteBackupService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<StockChanged>, InventoryControl.Features.Sync.Handlers.PushStockOnStockChange>();
+builder.Services.AddScoped<IDomainEventHandler<ProductWentBelowMinimum>, InventoryControl.Features.Notifications.Handlers.EmailOnProductWentBelowMinimum>();
 
 var app = builder.Build();
 
