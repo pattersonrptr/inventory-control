@@ -1,12 +1,22 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using InventoryControl.Domain.Catalog;
+using InventoryControl.Domain.Products.Events;
+using InventoryControl.Domain.Shared;
 using InventoryControl.Domain.Stock;
 
 namespace InventoryControl.Domain.Products;
 
-public class Product
+public class Product : IHasDomainEvents
 {
+    private readonly List<IDomainEvent> _domainEvents = new();
+
+    [NotMapped]
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
+
+
     public int Id { get; set; }
 
     [Required(ErrorMessage = "O nome é obrigatório.")]
@@ -74,6 +84,7 @@ public class Product
         if (quantity <= 0)
             throw new ArgumentException("Quantity must be positive.", nameof(quantity));
         CurrentStock += quantity;
+        _domainEvents.Add(new StockChanged(Id, CurrentStock));
     }
 
     public void ApplyExit(int quantity)
@@ -82,6 +93,13 @@ public class Product
             throw new ArgumentException("Quantity must be positive.", nameof(quantity));
         if (quantity > CurrentStock)
             throw new InsufficientStockException(Name, CurrentStock, quantity);
+
+        var wasBelowMinimum = IsBelowMinimumStock;
         CurrentStock -= quantity;
+
+        _domainEvents.Add(new StockChanged(Id, CurrentStock));
+
+        if (!wasBelowMinimum && IsBelowMinimumStock)
+            _domainEvents.Add(new ProductWentBelowMinimum(Id, Name, CurrentStock, MinimumStock));
     }
 }
