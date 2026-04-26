@@ -268,6 +268,7 @@ builder.Services.AddHostedService<AuditLogCleanupService>();
 builder.Services.AddSingleton<IClock, InventoryControl.Infrastructure.SystemClock>();
 builder.Services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
 builder.Services.AddScoped<IOffsiteBackupService, OffsiteBackupService>();
+builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
 var app = builder.Build();
 
