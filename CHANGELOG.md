@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.3.0] - 2026-04-26
+
+### Fixed
+
+- **Admin seed password**: default `Admin123!` (8 chars) failed silently against the `RequiredLength=10` policy introduced in v6.2.0. Changed to `Admin1234!@` in both `Program.cs` fallback and `appsettings.example.json`. Seed failures are now logged as errors instead of silently discarded.
+
+### Added
+
+- **`.env.example`**: documents `DB_PASSWORD`, `RCLONE_REMOTE`, and `SYNC_INTERVAL` environment variables for Docker deployments.
+- **CI: vulnerability scan job** (`dotnet list package --vulnerable --include-transitive`): fails the build if any known-vulnerable NuGet package is detected; uploads a report artifact.
+- **Dockerfile: OCI image labels** (`title`, `description`, `source`, `licenses`).
+
+### Changed
+
+- **docker-compose**: app `start_period` increased from 40s to 60s to avoid spurious unhealthy marks on slow startup; `db` and `app` services now have a 512 MB memory limit.
+
 ## [7.2.0] - 2026-04-26
 
 ### Added
