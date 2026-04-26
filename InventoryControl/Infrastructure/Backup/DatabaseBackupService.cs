@@ -51,8 +51,8 @@ public class DatabaseBackupService : IDatabaseBackupService
             .Where(p => p.Length == 2)
             .ToDictionary(p => p[0].Trim(), p => p[1].Trim(), StringComparer.OrdinalIgnoreCase);
 
-        var host     = parts.GetValueOrDefault("Host",     "localhost");
-        var port     = parts.GetValueOrDefault("Port",     "5432");
+        var host = parts.GetValueOrDefault("Host", "localhost");
+        var port = parts.GetValueOrDefault("Port", "5432");
         var database = parts.GetValueOrDefault("Database", "postgres");
         var username = parts.GetValueOrDefault("Username", "postgres");
         var fileName = $"backup-{DateTime.UtcNow:yyyy-MM-dd_HH-mm-ss}.sql";
@@ -61,9 +61,9 @@ public class DatabaseBackupService : IDatabaseBackupService
         {
             Arguments = $"-h {host} -p {port} -U {username} -d {database} --no-password",
             RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            UseShellExecute        = false,
-            CreateNoWindow         = true
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
         // Pass password via environment variable — never via command-line args
         psi.Environment["PGPASSWORD"] = parts.GetValueOrDefault("Password", "");
@@ -74,8 +74,8 @@ public class DatabaseBackupService : IDatabaseBackupService
         // Clear PGPASSWORD immediately after the process has started
         psi.Environment.Remove("PGPASSWORD");
 
-        var ms     = new MemoryStream();
-        var copyTask  = process.StandardOutput.BaseStream.CopyToAsync(ms, cancellationToken);
+        var ms = new MemoryStream();
+        var copyTask = process.StandardOutput.BaseStream.CopyToAsync(ms, cancellationToken);
         var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
         await Task.WhenAll(copyTask, stderrTask);

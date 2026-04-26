@@ -22,7 +22,7 @@ public class ApiKeyWebAppFactory : WebApplicationFactory<Program>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Api:Keys:0:Key"]  = ValidApiKey,
+                ["Api:Keys:0:Key"] = ValidApiKey,
                 ["Api:Keys:0:Role"] = "Admin"
             });
         });
