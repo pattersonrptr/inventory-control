@@ -49,21 +49,23 @@ ASP.NET Core MVC (.NET 10) with server-rendered Razor views. Modular Monolith wi
 
 ```
 Domain/           — Core entities and repository interfaces. No EF Core dependency.
-  Products/       — Product, ProductImage, ProductExternalMapping, IProductRepository
+  Products/       — Product (rich entity: ApplyEntry/ApplyExit/Margin), ProductImage, ProductExternalMapping, IProductRepository, InsufficientStockException
+    Events/       — StockChanged, ProductWentBelowMinimum (raised by Product)
   Catalog/        — Category, CategoryExternalMapping, Supplier, ICategoryRepository, ISupplierRepository
   Stock/          — StockMovement, MovementType, ExitReason, IStockMovementRepository
   Orders/         — ProcessedOrder, IProcessedOrderRepository
   Integrations/   — SyncState
   Audit/          — AuditLog
   Identity/       — ApplicationUser
-  Shared/         — PagedResult<T>
+  Shared/         — PagedResult<T>, IDomainEvent, IHasDomainEvents
 
-Features/         — Vertical slices; each owns its controllers, DTOs, and validators.
+Features/         — Vertical slices; each owns its controllers, DTOs, validators, and event handlers.
   Products/       — ProductsController, ProductsApiController, ImportController, CsvImportService, DTOs
   Categories/     — CategoriesController, CategoriesApiController, CategoryDto
   Suppliers/      — SuppliersController, SuppliersApiController, SupplierDto
   Stock/          — StockMovementsController
-  Sync/           — SyncController, StoresController
+  Sync/           — SyncController, StoresController, Handlers/PushStockOnStockChange
+  Notifications/  — Handlers/EmailOnProductWentBelowMinimum
   Reports/        — ReportsController
   Backup/         — BackupController
   Logs/           — LogsController, AuditLogsController
@@ -71,7 +73,9 @@ Features/         — Vertical slices; each owns its controllers, DTOs, and vali
   Home/           — HomeController
 
 Infrastructure/   — Technical implementations. References Domain interfaces only.
-  Persistence/    — AppDbContext, AuditInterceptor, Repositories/
+  Persistence/    — AppDbContext (drains domain events on SaveChangesAsync), AuditInterceptor, Repositories/
+  Events/         — IDomainEventDispatcher, IDomainEventHandler<T>, DomainEventDispatcher
+  Email/          — IEmailSender, SmtpEmailSender
   Integrations/   — Abstractions (IStoreIntegration, IPlatformFactory), Nuvemshop adapter, PlatformRegistry, SyncService
   Auth/           — ApiKeyAuthenticationHandler
   BackgroundJobs/ — OrderSyncBackgroundService, LowStockNotificationService, AuditLogCleanupService
@@ -84,7 +88,7 @@ Validators/       — FluentValidation validators for API DTOs
 
 **Multi-store support:** `Stores[]` array in `appsettings.json`. `ExternalMappings` tables link internal entities to multiple external stores. Background service syncs all stores in parallel.
 
-**Key patterns:** Repository (Domain interfaces / Infrastructure implementations), Plugin/Registry (platform factories), Interceptor (audit trail), Feature Folder (vertical slices), Background Job.
+**Key patterns:** Repository (Domain interfaces / Infrastructure implementations), Plugin/Registry (platform factories), Interceptor (audit trail), Feature Folder (vertical slices), Background Job, **Domain Events** (entities raise events via `IHasDomainEvents`; `AppDbContext.SaveChangesAsync` drains and dispatches via `IDomainEventDispatcher` after commit; handlers live in their own feature slice).
 
 ## Conventions
 
