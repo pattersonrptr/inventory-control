@@ -269,6 +269,7 @@ builder.Services.AddSingleton<IClock, InventoryControl.Infrastructure.SystemCloc
 builder.Services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
 builder.Services.AddScoped<IOffsiteBackupService, OffsiteBackupService>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+builder.Services.AddScoped<IDomainEventHandler<StockChanged>, InventoryControl.Features.Sync.Handlers.PushStockOnStockChange>();
 
 var app = builder.Build();
 

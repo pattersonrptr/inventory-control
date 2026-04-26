@@ -1,5 +1,4 @@
 using InventoryControl.Infrastructure.Persistence;
-using InventoryControl.Infrastructure.Integrations;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -12,23 +11,17 @@ public class StockMovementsController : Controller
     private readonly IProductRepository _productRepo;
     private readonly ISupplierRepository _supplierRepo;
     private readonly AppDbContext _dbContext;
-    private readonly SyncService? _syncService;
-    private readonly ILogger<StockMovementsController> _logger;
 
     public StockMovementsController(
         IStockMovementRepository movementRepo,
         IProductRepository productRepo,
         ISupplierRepository supplierRepo,
-        AppDbContext dbContext,
-        ILogger<StockMovementsController> logger,
-        SyncService? syncService = null)
+        AppDbContext dbContext)
     {
         _movementRepo = movementRepo;
         _productRepo = productRepo;
         _supplierRepo = supplierRepo;
         _dbContext = dbContext;
-        _logger = logger;
-        _syncService = syncService;
     }
 
     public async Task<IActionResult> Index(int page = 1, int pageSize = 25)
@@ -61,21 +54,8 @@ public class StockMovementsController : Controller
         if (product is null) return NotFound();
 
         product.ApplyEntry(movement.Quantity);
-
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
-        try
-        {
-            await _movementRepo.AddAsync(movement);
-            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock);
-            await transaction.CommitAsync();
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
-
-        await TryPushStockAsync(product.Id, product.Name);
+        _dbContext.StockMovements.Add(movement);
+        await _dbContext.SaveChangesAsync();
 
         TempData["Success"] = $"Entrada de {movement.Quantity} unidade(s) de \"{product.Name}\" registrada com sucesso!";
         return RedirectToAction(nameof(Index));
@@ -118,41 +98,11 @@ public class StockMovementsController : Controller
             return View(movement);
         }
 
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
-        try
-        {
-            await _movementRepo.AddAsync(movement);
-            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock);
-            await transaction.CommitAsync();
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
-
-        await TryPushStockAsync(product.Id, product.Name);
+        _dbContext.StockMovements.Add(movement);
+        await _dbContext.SaveChangesAsync();
 
         TempData["Success"] = $"Saída de {movement.Quantity} unidade(s) de \"{product.Name}\" registrada com sucesso!";
         return RedirectToAction(nameof(Index));
-    }
-
-    private async Task TryPushStockAsync(int productId, string productName)
-    {
-        if (_syncService is null) return;
-        try
-        {
-            await _syncService.PushStockToStoreAsync(productId);
-            _logger.LogInformation(
-                "Auto-pushed stock for product {ProductName} (id={ProductId}) after movement.",
-                productName, productId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex,
-                "Failed to auto-push stock for product {ProductName} (id={ProductId}) after movement.",
-                productName, productId);
-        }
     }
 
     private async Task PopulateProductDropdownAsync(int? selectedId = null)
