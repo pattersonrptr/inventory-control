@@ -60,11 +60,13 @@ public class StockMovementsController : Controller
         var product = await _productRepo.GetByIdAsync(movement.ProductId);
         if (product is null) return NotFound();
 
+        product.ApplyEntry(movement.Quantity);
+
         await using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
         {
             await _movementRepo.AddAsync(movement);
-            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock + movement.Quantity);
+            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock);
             await transaction.CommitAsync();
         }
         catch
@@ -104,10 +106,14 @@ public class StockMovementsController : Controller
         var product = await _productRepo.GetByIdAsync(movement.ProductId);
         if (product is null) return NotFound();
 
-        if (product.CurrentStock < movement.Quantity)
+        try
+        {
+            product.ApplyExit(movement.Quantity);
+        }
+        catch (InsufficientStockException ex)
         {
             ModelState.AddModelError(nameof(StockMovement.Quantity),
-                $"Estoque insuficiente. Disponível: {product.CurrentStock} unidade(s).");
+                $"Estoque insuficiente. Disponível: {ex.Available} unidade(s).");
             await PopulateProductDropdownAsync(movement.ProductId);
             return View(movement);
         }
@@ -116,7 +122,7 @@ public class StockMovementsController : Controller
         try
         {
             await _movementRepo.AddAsync(movement);
-            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock - movement.Quantity);
+            await _productRepo.UpdateStockAsync(product.Id, product.CurrentStock);
             await transaction.CommitAsync();
         }
         catch
