@@ -33,8 +33,8 @@ public class BackupController : Controller
         var vm = new BackupViewModel
         {
             IsRcloneConfigured = await _offsiteBackupService.IsConfiguredAsync(cancellationToken),
-            ConfiguredRemotes  = await _offsiteBackupService.GetConfiguredRemotesAsync(cancellationToken),
-            RemotePath         = _offsiteBackupService.RemotePath
+            ConfiguredRemotes = await _offsiteBackupService.GetConfiguredRemotesAsync(cancellationToken),
+            RemotePath = _offsiteBackupService.RemotePath
         };
         return View(vm);
     }
@@ -105,18 +105,18 @@ public class BackupController : Controller
 
     private async Task WriteAuditAsync(string action, string fileName, CancellationToken ct)
     {
-        var userId   = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
         var userName = User.Identity?.Name ?? "unknown";
         _db.AuditLogs.Add(new AuditLog
         {
-            UserId     = userId,
-            UserName   = userName,
-            Action     = action,
+            UserId = userId,
+            UserName = userName,
+            Action = action,
             EntityName = "Database",
-            EntityId   = null,
-            Timestamp  = DateTime.UtcNow,
-            OldValues  = null,
-            NewValues  = $"{{\"FileName\":\"{fileName}\",\"RequestedAt\":\"{DateTime.UtcNow:O}\"}}"
+            EntityId = null,
+            Timestamp = DateTime.UtcNow,
+            OldValues = null,
+            NewValues = $"{{\"FileName\":\"{fileName}\",\"RequestedAt\":\"{DateTime.UtcNow:O}\"}}"
         });
         await _db.SaveChangesAsync(ct);
     }

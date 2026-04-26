@@ -29,7 +29,7 @@ public class OffsiteBackupService : IOffsiteBackupService
     {
         _logger = logger;
         _configPath = configuration["OffsiteBackup:RcloneConfigPath"] ?? "/config/rclone/rclone.conf";
-        RemotePath  = configuration["OffsiteBackup:RemotePath"] ?? "gdrive:inventory-control-backups/manual";
+        RemotePath = configuration["OffsiteBackup:RemotePath"] ?? "gdrive:inventory-control-backups/manual";
     }
 
     public async Task<bool> IsConfiguredAsync(CancellationToken cancellationToken = default)
@@ -117,10 +117,10 @@ public class OffsiteBackupService : IOffsiteBackupService
     private static ProcessStartInfo BuildProcess(string arguments) =>
         new("rclone")
         {
-            Arguments             = arguments,
+            Arguments = arguments,
             RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            UseShellExecute        = false,
-            CreateNoWindow         = true
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
 }

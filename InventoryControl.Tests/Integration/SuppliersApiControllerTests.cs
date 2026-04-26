@@ -31,7 +31,9 @@ public class SuppliersApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
     {
         var response = await _client.PostAsJsonAsync("/api/v1/suppliers", new
         {
-            Name = "Sup_" + Guid.NewGuid(), Cnpj = "00.000.000/0001-00", Email = "sup@test.com"
+            Name = "Sup_" + Guid.NewGuid(),
+            Cnpj = "00.000.000/0001-00",
+            Email = "sup@test.com"
         });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -114,7 +116,8 @@ public class SuppliersApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
     {
         var response = await _client.PostAsJsonAsync("/api/v1/suppliers", new
         {
-            Name = "Sup_" + Guid.NewGuid(), Cnpj = "00.000.000/0001-00"
+            Name = "Sup_" + Guid.NewGuid(),
+            Cnpj = "00.000.000/0001-00"
         });
         response.EnsureSuccessStatusCode();
         var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
