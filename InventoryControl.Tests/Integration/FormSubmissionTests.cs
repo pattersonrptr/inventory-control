@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
-using InventoryControl.Data;
+using InventoryControl.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 

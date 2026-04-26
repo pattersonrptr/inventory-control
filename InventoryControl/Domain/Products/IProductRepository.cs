@@ -1,5 +1,5 @@
 
-namespace InventoryControl.Repositories.Interfaces;
+namespace InventoryControl.Domain.Products;
 
 public interface IProductRepository
 {

@@ -6,7 +6,14 @@
       "Bash(dotnet test *)",
       "Bash(dotnet build *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git commit *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet add *)",
+      "Bash(xargs sed *)",
+      "Bash(git reset *)",
+      "Bash(git mv *)",
+      "Bash(python3 *)"
     ]
   }
 }

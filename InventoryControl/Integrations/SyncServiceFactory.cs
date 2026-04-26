@@ -1,6 +1,6 @@
-using InventoryControl.Data;
+using InventoryControl.Infrastructure.Persistence;
 using InventoryControl.Integrations.Abstractions;
-using InventoryControl.Repositories.Interfaces;
+
 using Microsoft.Extensions.Logging;
 
 namespace InventoryControl.Integrations;

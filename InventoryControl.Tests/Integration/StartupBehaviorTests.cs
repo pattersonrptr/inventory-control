@@ -1,4 +1,4 @@
-using InventoryControl.Data;
+using InventoryControl.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;

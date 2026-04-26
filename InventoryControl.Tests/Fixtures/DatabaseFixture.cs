@@ -1,4 +1,4 @@
-using InventoryControl.Data;
+using InventoryControl.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 

@@ -26,8 +26,8 @@ public class DependencyRuleTests
             string.Join(", ", result.FailingTypeNames ?? []));
     }
 
-    // Activated in sub-phase 5.4.5 — after Infrastructure/Persistence is wired up
-    [Fact(Skip = "Activate after sub-phase 5.4: Infrastructure/Persistence complete")]
+    // Activated in sub-phase 5.4.5
+    [Fact]
     public void Features_HaveNoDependencyOn_InfrastructurePersistenceImplementations()
     {
         var result = AppTypes
@@ -41,7 +41,7 @@ public class DependencyRuleTests
     }
 
     // Activated in sub-phase 5.4.5
-    [Fact(Skip = "Activate after sub-phase 5.4: Infrastructure/Persistence complete")]
+    [Fact]
     public void Infrastructure_MustNotDependOn_Features()
     {
         var result = AppTypes

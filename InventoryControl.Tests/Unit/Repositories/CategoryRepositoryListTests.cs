@@ -1,4 +1,4 @@
-using InventoryControl.Repositories;
+
 using InventoryControl.Tests.Fixtures;
 
 namespace InventoryControl.Tests.Unit.Repositories;

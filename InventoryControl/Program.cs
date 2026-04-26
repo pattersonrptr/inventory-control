@@ -4,9 +4,9 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using InventoryControl.Authentication;
 using InventoryControl.BackgroundServices;
-using InventoryControl.Data;
-using InventoryControl.Repositories;
-using InventoryControl.Repositories.Interfaces;
+using InventoryControl.Infrastructure.Persistence;
+
+
 using InventoryControl.Services;
 using InventoryControl.Services.Interfaces;
 using SystemClock = InventoryControl.Services.SystemClock;

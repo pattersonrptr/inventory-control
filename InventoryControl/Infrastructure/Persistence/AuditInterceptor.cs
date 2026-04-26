@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
-namespace InventoryControl.Data;
+namespace InventoryControl.Infrastructure.Persistence;
 
 public class AuditInterceptor : SaveChangesInterceptor
 {

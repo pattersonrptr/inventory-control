@@ -1,7 +1,7 @@
-using InventoryControl.Data;
+using InventoryControl.Infrastructure.Persistence;
 using InventoryControl.Integrations;
 using InventoryControl.Integrations.Abstractions;
-using InventoryControl.Repositories.Interfaces;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

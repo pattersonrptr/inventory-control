@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using System.Text;
-using InventoryControl.Repositories.Interfaces;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

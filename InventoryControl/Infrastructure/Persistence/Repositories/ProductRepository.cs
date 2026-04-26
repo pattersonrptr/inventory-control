@@ -1,8 +1,8 @@
-using InventoryControl.Data;
-using InventoryControl.Repositories.Interfaces;
+using InventoryControl.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
 
-namespace InventoryControl.Repositories;
+namespace InventoryControl.Infrastructure.Persistence.Repositories;
 
 public class ProductRepository : IProductRepository
 {

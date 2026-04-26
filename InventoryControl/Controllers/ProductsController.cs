@@ -1,6 +1,6 @@
-using InventoryControl.Data;
+using InventoryControl.Infrastructure.Persistence;
 using InventoryControl.Integrations;
-using InventoryControl.Repositories.Interfaces;
+
 using InventoryControl.Validators;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;

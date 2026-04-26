@@ -1,7 +1,7 @@
-﻿using InventoryControl.Data;
+﻿using InventoryControl.Infrastructure.Persistence;
 using InventoryControl.Integrations;
 using InventoryControl.Integrations.Abstractions;
-using InventoryControl.Repositories.Interfaces;
+
 using InventoryControl.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

@@ -1,5 +1,5 @@
 
-namespace InventoryControl.Repositories.Interfaces;
+namespace InventoryControl.Domain.Stock;
 
 public interface IStockMovementRepository
 {

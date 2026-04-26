@@ -1,4 +1,4 @@
-using InventoryControl.Repositories;
+
 using InventoryControl.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +8,7 @@ public class StockMovementRepositoryTests
 {
     private readonly DatabaseFixture _fixture = new();
 
-    private async Task SeedBaseDataAsync(Data.AppDbContext context)
+    private async Task SeedBaseDataAsync(AppDbContext context)
     {
         context.Categories.Add(TestDataBuilder.CreateCategory());
         context.Suppliers.Add(TestDataBuilder.CreateSupplier());

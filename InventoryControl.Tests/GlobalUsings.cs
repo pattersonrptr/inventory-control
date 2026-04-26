@@ -6,3 +6,5 @@ global using InventoryControl.Domain.Orders;
 global using InventoryControl.Domain.Products;
 global using InventoryControl.Domain.Shared;
 global using InventoryControl.Domain.Stock;
+global using InventoryControl.Infrastructure.Persistence;
+global using InventoryControl.Infrastructure.Persistence.Repositories;

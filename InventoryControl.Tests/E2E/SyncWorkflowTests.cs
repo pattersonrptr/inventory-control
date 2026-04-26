@@ -1,6 +1,6 @@
 using InventoryControl.Integrations;
 using InventoryControl.Integrations.Abstractions;
-using InventoryControl.Repositories;
+
 using InventoryControl.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
