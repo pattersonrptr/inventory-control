@@ -268,6 +268,7 @@ builder.Services.AddHostedService<AuditLogCleanupService>();
 builder.Services.AddSingleton<IClock, InventoryControl.Infrastructure.SystemClock>();
 builder.Services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
 builder.Services.AddScoped<IOffsiteBackupService, OffsiteBackupService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<StockChanged>, InventoryControl.Features.Sync.Handlers.PushStockOnStockChange>();
 

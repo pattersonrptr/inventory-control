@@ -30,6 +30,7 @@ global using InventoryControl.Infrastructure;
 global using InventoryControl.Infrastructure.Auth;
 global using InventoryControl.Infrastructure.Backup;
 global using InventoryControl.Infrastructure.BackgroundJobs;
+global using InventoryControl.Infrastructure.Email;
 global using InventoryControl.Infrastructure.Events;
 global using InventoryControl.Infrastructure.Integrations;
 global using InventoryControl.Infrastructure.Integrations.Abstractions;

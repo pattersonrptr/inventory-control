@@ -1,7 +1,6 @@
-using System.Net;
-using System.Net.Mail;
 using System.Text;
 
+using InventoryControl.Infrastructure.Email;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -84,7 +83,9 @@ public class LowStockNotificationService : BackgroundService
             body.AppendLine($"Total products below minimum: {lowStockProducts.Count}");
             body.AppendLine($"Check time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
 
-            await SendEmailAsync(
+            await using var innerScope = _scopeFactory.CreateAsyncScope();
+            var emailSender = innerScope.ServiceProvider.GetRequiredService<IEmailSender>();
+            await emailSender.SendAsync(
                 $"[Inventory Control] Low Stock Alert — {lowStockProducts.Count} product(s)",
                 body.ToString(),
                 stoppingToken);
@@ -93,41 +94,5 @@ public class LowStockNotificationService : BackgroundService
         {
             _logger.LogError(ex, "LowStockNotificationService: error during low stock check.");
         }
-    }
-
-    private async Task SendEmailAsync(string subject, string body, CancellationToken stoppingToken)
-    {
-        var smtpHost = _configuration["EmailNotifications:SmtpHost"];
-        var smtpPort = _configuration.GetValue<int?>("EmailNotifications:SmtpPort") ?? 587;
-        var smtpUser = _configuration["EmailNotifications:SmtpUser"];
-        var smtpPassword = _configuration["EmailNotifications:SmtpPassword"];
-        var fromEmail = _configuration["EmailNotifications:FromEmail"];
-        var toEmail = _configuration["EmailNotifications:ToEmail"];
-        var enableSsl = _configuration.GetValue<bool?>("EmailNotifications:EnableSsl") ?? true;
-
-        if (string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(toEmail))
-        {
-            _logger.LogWarning(
-                "LowStockNotificationService: SMTP not configured. Skipping email notification.");
-            return;
-        }
-
-        using var client = new SmtpClient(smtpHost, smtpPort)
-        {
-            EnableSsl = enableSsl,
-            Credentials = !string.IsNullOrWhiteSpace(smtpUser)
-                ? new NetworkCredential(smtpUser, smtpPassword)
-                : null
-        };
-
-        using var message = new MailMessage(
-            from: fromEmail ?? smtpUser ?? "noreply@inventory.local",
-            to: toEmail,
-            subject: subject,
-            body: body);
-
-        await client.SendMailAsync(message, stoppingToken);
-
-        _logger.LogInformation("LowStockNotificationService: email notification sent to {To}.", toEmail);
     }
 }
