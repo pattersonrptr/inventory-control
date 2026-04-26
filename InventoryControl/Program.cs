@@ -1,17 +1,9 @@
 using AspNetCoreRateLimit;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using InventoryControl.Infrastructure.Auth;
-using InventoryControl.Infrastructure.BackgroundJobs;
-using InventoryControl.Infrastructure.Persistence;
-
-
-using InventoryControl.Infrastructure.Backup;
-using InventoryControl.Services.Interfaces;
-using SystemClock = InventoryControl.Services.SystemClock;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -273,7 +265,7 @@ if (builder.Configuration.GetValue<bool?>("EmailNotifications:Enabled") == true)
 builder.Services.AddHostedService<AuditLogCleanupService>();
 
 // Manual database backup
-builder.Services.AddSingleton<IClock, SystemClock>();
+builder.Services.AddSingleton<IClock, InventoryControl.Infrastructure.SystemClock>();
 builder.Services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
 builder.Services.AddScoped<IOffsiteBackupService, OffsiteBackupService>();
 

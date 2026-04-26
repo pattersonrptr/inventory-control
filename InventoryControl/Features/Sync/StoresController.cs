@@ -2,7 +2,7 @@ using InventoryControl.Infrastructure.Integrations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Sync;
 
 [Authorize(Roles = "Admin")]
 public class StoresController : Controller

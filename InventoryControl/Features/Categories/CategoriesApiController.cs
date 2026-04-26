@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InventoryControl.Controllers.Api;
+namespace InventoryControl.Features.Categories;
 
 [ApiController]
 [Route("api/v1/categories")]

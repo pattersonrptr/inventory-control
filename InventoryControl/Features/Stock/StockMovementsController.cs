@@ -4,7 +4,7 @@ using InventoryControl.Infrastructure.Integrations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Stock;
 
 public class StockMovementsController : Controller
 {

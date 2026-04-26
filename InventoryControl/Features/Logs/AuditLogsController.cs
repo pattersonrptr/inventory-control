@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Logs;
 
 [Authorize(Roles = "Admin")]
 public class AuditLogsController : Controller

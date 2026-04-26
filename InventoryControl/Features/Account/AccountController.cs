@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Account;
 
 public class AccountController : Controller
 {

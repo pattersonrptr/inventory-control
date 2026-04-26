@@ -1,6 +1,4 @@
-using InventoryControl.Services.Interfaces;
-
-namespace InventoryControl.Services;
+namespace InventoryControl.Infrastructure;
 
 public class SystemClock : IClock
 {

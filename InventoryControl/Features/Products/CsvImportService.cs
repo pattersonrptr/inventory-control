@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace InventoryControl.Services;
+namespace InventoryControl.Features.Products;
 
 public class CsvImportResult<T>
 {

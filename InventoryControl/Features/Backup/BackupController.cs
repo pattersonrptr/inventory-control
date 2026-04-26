@@ -1,11 +1,12 @@
 using System.Security.Claims;
 using InventoryControl.Infrastructure.Persistence;
-using InventoryControl.Services.Interfaces;
+using InventoryControl.Infrastructure.Backup;
+using InventoryControl.Infrastructure;
 using InventoryControl.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Backup;
 
 [Authorize(Roles = "Admin")]
 public class BackupController : Controller

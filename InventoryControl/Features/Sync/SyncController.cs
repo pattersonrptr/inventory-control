@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Sync;
 
 [Authorize]
 [ApiController]

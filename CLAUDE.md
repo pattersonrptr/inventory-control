@@ -43,25 +43,48 @@ dotnet ef database update --project InventoryControl/InventoryControl.csproj
 
 ## Architecture
 
-ASP.NET Core MVC (.NET 10) with server-rendered Razor views. Database defaults to SQLite in development and PostgreSQL in production; the provider is auto-detected in `Program.cs` based on the connection string prefix (`Host=` or `postgresql://`).
+ASP.NET Core MVC (.NET 10) with server-rendered Razor views. Modular Monolith with Feature Folders. Database defaults to SQLite in development and PostgreSQL in production; the provider is auto-detected in `Program.cs` based on the connection string prefix (`Host=` or `postgresql://`).
 
-**Layers:**
+**Top-level structure:**
 
-- **Controllers** (`Controllers/`) — thin; delegate entirely to repositories and services. REST API endpoints live in `Controllers/Api/` and use X-Api-Key header authentication (`Authentication/ApiKeyAuthenticationHandler.cs`).
-- **Repositories** (`Repositories/`) — all data access behind `IRepository` interfaces; no direct `DbContext` usage in controllers.
-- **Services** (`Services/`) — business logic (CSV import, database backup, offsite backup).
-- **Background Services** (`BackgroundServices/`) — `IHostedService` implementations for order sync polling, low-stock email alerts, and audit log cleanup.
-- **Integration Layer** (`Integrations/`) — plugin architecture for e-commerce platforms:
-  - `IStoreIntegration` is the platform contract (products, stock, orders, categories).
-  - `IPlatformFactory` creates integration instances per platform type.
-  - `PlatformRegistry` is the service locator that discovers factories and resolves stores at runtime.
-  - `SyncService` pulls products/orders from platforms, pushes stock, processes orders.
-  - Currently implements **Nuvemshop**. See `docs/adding-a-platform.md` to add new platforms.
-- **Data** (`Data/`) — `AppDbContext` + `AuditInterceptor` (auto-logs all entity creates/updates/deletes via `SaveChanges` hook).
+```
+Domain/           — Core entities and repository interfaces. No EF Core dependency.
+  Products/       — Product, ProductImage, ProductExternalMapping, IProductRepository
+  Catalog/        — Category, CategoryExternalMapping, Supplier, ICategoryRepository, ISupplierRepository
+  Stock/          — StockMovement, MovementType, ExitReason, IStockMovementRepository
+  Orders/         — ProcessedOrder, IProcessedOrderRepository
+  Integrations/   — SyncState
+  Audit/          — AuditLog
+  Identity/       — ApplicationUser
+  Shared/         — PagedResult<T>
+
+Features/         — Vertical slices; each owns its controllers, DTOs, and validators.
+  Products/       — ProductsController, ProductsApiController, ImportController, CsvImportService, DTOs
+  Categories/     — CategoriesController, CategoriesApiController, CategoryDto
+  Suppliers/      — SuppliersController, SuppliersApiController, SupplierDto
+  Stock/          — StockMovementsController
+  Sync/           — SyncController, StoresController
+  Reports/        — ReportsController
+  Backup/         — BackupController
+  Logs/           — LogsController, AuditLogsController
+  Account/        — AccountController
+  Home/           — HomeController
+
+Infrastructure/   — Technical implementations. References Domain interfaces only.
+  Persistence/    — AppDbContext, AuditInterceptor, Repositories/
+  Integrations/   — Abstractions (IStoreIntegration, IPlatformFactory), Nuvemshop adapter, PlatformRegistry, SyncService
+  Auth/           — ApiKeyAuthenticationHandler
+  BackgroundJobs/ — OrderSyncBackgroundService, LowStockNotificationService, AuditLogCleanupService
+  Backup/         — DatabaseBackupService, OffsiteBackupService, IDatabaseBackupService, IOffsiteBackupService
+  IClock.cs + SystemClock.cs — testable time abstraction
+
+Web/              — (placeholder for future DI extensions)
+Validators/       — FluentValidation validators for API DTOs
+```
 
 **Multi-store support:** `Stores[]` array in `appsettings.json`. `ExternalMappings` tables link internal entities to multiple external stores. Background service syncs all stores in parallel.
 
-**Key patterns:** Repository, Plugin/Registry (platform factories), Interceptor (audit trail), Factory (sync service), Background Job.
+**Key patterns:** Repository (Domain interfaces / Infrastructure implementations), Plugin/Registry (platform factories), Interceptor (audit trail), Feature Folder (vertical slices), Background Job.
 
 ## Conventions
 
@@ -86,13 +109,14 @@ ASP.NET Core MVC (.NET 10) with server-rendered Razor views. Database defaults t
 | `DefaultAdmin` | Seed admin account on first run |
 | `AuditLog:RetentionDays` | Audit log retention (default 90) |
 | `EmailNotifications` | SMTP config for low-stock alerts |
-| `Api:Key` | REST API authentication token |
+| `Api:Keys` | REST API keys array: `[{ "Key": "...", "Role": "Admin\|ReadOnly" }]` |
 | `OffsiteBackup` | rclone config for Google Drive backups |
 
 ## Notable Behaviors
 
-- **Migrations run automatically on startup** for relational providers.
-- **Health check** at `/health` — used by Docker/TrueNAS liveness probes.
-- **Swagger UI** at `/swagger`.
+- **Migrations do NOT run automatically on startup.** Run `dotnet run -- migrate` (or the `db-migrate` docker-compose service) before the first start and after any upgrade with new migrations.
+- **Health checks:** `/health/live` (liveness — anonymous, process-only), `/health/ready` (readiness — includes DbContext check).
+- **Swagger UI** at `/swagger` (Development only).
 - **Audit trail** is automatic — every entity change is logged with user, timestamp, and old/new values via `AuditInterceptor`.
 - Legacy single-store `Integration` config section is auto-migrated to the `Stores[]` format on startup.
+- `Api:Key` (single legacy key) was removed in v7.0.0. Use `Api:Keys` array only.

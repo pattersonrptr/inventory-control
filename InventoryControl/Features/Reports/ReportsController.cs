@@ -2,7 +2,7 @@
 using InventoryControl.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Reports;
 
 public class ReportsController : Controller
 {

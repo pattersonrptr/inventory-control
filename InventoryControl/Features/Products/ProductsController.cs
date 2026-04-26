@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Products;
 
 public class ProductsController : Controller
 {

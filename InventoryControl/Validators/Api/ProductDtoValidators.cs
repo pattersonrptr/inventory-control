@@ -1,5 +1,7 @@
 using FluentValidation;
-using InventoryControl.Controllers.Api;
+using InventoryControl.Features.Products;
+using InventoryControl.Features.Categories;
+using InventoryControl.Features.Suppliers;
 
 namespace InventoryControl.Validators.Api;
 

@@ -1,5 +1,5 @@
 using FluentValidation.TestHelper;
-using InventoryControl.Controllers.Api;
+
 using InventoryControl.Validators.Api;
 
 namespace InventoryControl.Tests.Unit.Validators;

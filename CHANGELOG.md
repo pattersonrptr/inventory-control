@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-04-26
+
+### Breaking
+
+- **Deploy:** Migrations no longer run on app startup (first introduced 6.3.0; now strictly required). Run `dotnet InventoryControl.dll migrate` or the `db-migrate` docker-compose service before starting the app.
+- **Config:** Legacy `Api:Key` removed. Migrate to the `Api:Keys` array format (see `appsettings.example.json`).
+- **Internal structure:** Project reorganized into Modular Monolith with Feature Folders. Source directory layout changed: `Domain/`, `Features/`, `Infrastructure/`, `Web/`.
+
+### Added
+
+- **Architecture tests** (`NetArchTest.Rules`): `Domain_HasNoDependencyOn_EntityFrameworkCore` and `Infrastructure_MustNotDependOn_Features` are active and green. `Features_HaveNoDependencyOn_InfrastructurePersistence` is skipped pending service extraction (sub-phase 5.6 debt, documented in test).
+- **`GlobalUsings.cs`** in main and test projects: all type moves are backward-compatible at compile time without touching every file.
+
+### Changed
+
+- Source organized by feature/responsibility, not by technical layer:
+  - `Domain/<aggregate>/` — entities + repository interfaces (no EF Core dependency)
+  - `Features/<slice>/` — controllers, DTOs, validators per vertical
+  - `Infrastructure/` — persistence, integrations, auth, background jobs, backup
+- EF Core context and interceptor moved: `Data/` → `Infrastructure/Persistence/`
+- Repositories moved: `Repositories/` → `Infrastructure/Persistence/Repositories/`
+- Repository interfaces moved: `Repositories/Interfaces/` → `Domain/<aggregate>/`
+- Authentication moved: `Authentication/` → `Infrastructure/Auth/`
+- Background services moved: `BackgroundServices/` → `Infrastructure/BackgroundJobs/`
+- Integrations moved: `Integrations/` → `Infrastructure/Integrations/`
+- Backup services moved: `Services/` → `Infrastructure/Backup/` + `Features/Products/`
+- All controllers moved: `Controllers/` → `Features/<slice>/`
+- `IClock` / `SystemClock` moved: `Services/` → `Infrastructure/`
+- `CLAUDE.md` architecture section updated to reflect new structure.
+
 ## [6.4.0] - 2026-04-25
 
 ### Performance

@@ -3,7 +3,7 @@ using InventoryControl.Infrastructure.Backup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Products;
 
 [Authorize(Roles = "Admin")]
 public class ImportController : Controller

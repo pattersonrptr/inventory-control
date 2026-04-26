@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InventoryControl.Controllers.Api;
+namespace InventoryControl.Features.Products;
 
 [ApiController]
 [Route("api/v1/products")]

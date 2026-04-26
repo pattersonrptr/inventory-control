@@ -1,6 +1,6 @@
 // Global usings added during the Fase 5 modular monolith restructure.
 // These keep all existing code compiling without updating every individual file.
-// Explicit per-file usings will be cleaned up in sub-phase 5.9.
+// Explicit per-file usings will be cleaned up in subsequent phases.
 
 // Domain
 global using InventoryControl.Domain.Audit;
@@ -12,11 +12,20 @@ global using InventoryControl.Domain.Products;
 global using InventoryControl.Domain.Shared;
 global using InventoryControl.Domain.Stock;
 
-// Services (remaining — to be moved in later sub-phases)
-global using InventoryControl.Services;
-global using InventoryControl.Services.Interfaces;
+// Features
+global using InventoryControl.Features.Account;
+global using InventoryControl.Features.Backup;
+global using InventoryControl.Features.Categories;
+global using InventoryControl.Features.Home;
+global using InventoryControl.Features.Logs;
+global using InventoryControl.Features.Products;
+global using InventoryControl.Features.Reports;
+global using InventoryControl.Features.Stock;
+global using InventoryControl.Features.Suppliers;
+global using InventoryControl.Features.Sync;
 
-// Infrastructure — old namespace aliases for backward compatibility
+// Infrastructure
+global using InventoryControl.Infrastructure;
 global using InventoryControl.Infrastructure.Auth;
 global using InventoryControl.Infrastructure.Backup;
 global using InventoryControl.Infrastructure.BackgroundJobs;

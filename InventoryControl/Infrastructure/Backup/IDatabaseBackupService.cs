@@ -1,4 +1,4 @@
-namespace InventoryControl.Services.Interfaces;
+namespace InventoryControl.Infrastructure.Backup;
 
 public interface IDatabaseBackupService
 {

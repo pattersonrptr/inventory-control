@@ -3,7 +3,7 @@ using InventoryControl.Infrastructure.Integrations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace InventoryControl.Controllers;
+namespace InventoryControl.Features.Home;
 
 public class HomeController : Controller
 {
