@@ -40,8 +40,11 @@ public class ProductsApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
         var name = "ListProduct_" + Guid.NewGuid();
         await _client.PostAsJsonAsync("/api/v1/products", new
         {
-            Name = name, CostPrice = 10m, SellingPrice = 20m,
-            MinimumStock = 0, CategoryId = categoryId
+            Name = name,
+            CostPrice = 10m,
+            SellingPrice = 20m,
+            MinimumStock = 0,
+            CategoryId = categoryId
         });
 
         var response = await _client.GetAsync("/api/v1/products?pageSize=100");
@@ -88,8 +91,12 @@ public class ProductsApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Products.Add(new Product
         {
-            Name = name, CostPrice = 5m, SellingPrice = 10m,
-            CurrentStock = 0, MinimumStock = 5, CategoryId = categoryId
+            Name = name,
+            CostPrice = 5m,
+            SellingPrice = 10m,
+            CurrentStock = 0,
+            MinimumStock = 5,
+            CategoryId = categoryId
         });
         await db.SaveChangesAsync();
 
@@ -110,8 +117,10 @@ public class ProductsApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
         var response = await _client.PostAsJsonAsync("/api/v1/products", new
         {
             Name = "NewProduct_" + Guid.NewGuid(),
-            CostPrice = 10m, SellingPrice = 25m,
-            MinimumStock = 2, CategoryId = categoryId
+            CostPrice = 10m,
+            SellingPrice = 25m,
+            MinimumStock = 2,
+            CategoryId = categoryId
         });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -127,7 +136,10 @@ public class ProductsApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
 
         var response = await _client.PostAsJsonAsync("/api/v1/products", new
         {
-            Name = "", CostPrice = 10m, SellingPrice = 20m, CategoryId = categoryId
+            Name = "",
+            CostPrice = 10m,
+            SellingPrice = 20m,
+            CategoryId = categoryId
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -140,7 +152,10 @@ public class ProductsApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
 
         var response = await _client.PostAsJsonAsync("/api/v1/products", new
         {
-            Name = "Bad", CostPrice = -1m, SellingPrice = 20m, CategoryId = categoryId
+            Name = "Bad",
+            CostPrice = -1m,
+            SellingPrice = 20m,
+            CategoryId = categoryId
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -158,8 +173,11 @@ public class ProductsApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
 
         var response = await _client.PutAsJsonAsync($"/api/v1/products/{id}", new
         {
-            Name = updatedName, CostPrice = 15m, SellingPrice = 30m,
-            MinimumStock = 1, CategoryId = categoryId
+            Name = updatedName,
+            CostPrice = 15m,
+            SellingPrice = 30m,
+            MinimumStock = 1,
+            CategoryId = categoryId
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -174,8 +192,11 @@ public class ProductsApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
 
         var response = await _client.PutAsJsonAsync("/api/v1/products/999999", new
         {
-            Name = "X", CostPrice = 1m, SellingPrice = 2m,
-            MinimumStock = 0, CategoryId = categoryId
+            Name = "X",
+            CostPrice = 1m,
+            SellingPrice = 2m,
+            MinimumStock = 0,
+            CategoryId = categoryId
         });
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -257,8 +278,10 @@ public class ProductsApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
         var response = await _client.PostAsJsonAsync("/api/v1/products", new
         {
             Name = "Prod_" + Guid.NewGuid(),
-            CostPrice = costPrice, SellingPrice = sellingPrice,
-            MinimumStock = 0, CategoryId = categoryId
+            CostPrice = costPrice,
+            SellingPrice = sellingPrice,
+            MinimumStock = 0,
+            CategoryId = categoryId
         });
         response.EnsureSuccessStatusCode();
         var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

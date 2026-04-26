@@ -34,8 +34,12 @@ public class DomainEventDispatcherTests
 
         var product = new Product
         {
-            Name = "Widget", CostPrice = 1m, SellingPrice = 2m,
-            CategoryId = category.Id, CurrentStock = 5, MinimumStock = 3
+            Name = "Widget",
+            CostPrice = 1m,
+            SellingPrice = 2m,
+            CategoryId = category.Id,
+            CurrentStock = 5,
+            MinimumStock = 3
         };
         db.Products.Add(product);
         await db.SaveChangesAsync();
@@ -68,8 +72,12 @@ public class DomainEventDispatcherTests
 
         var product = new Product
         {
-            Name = "Widget", CostPrice = 1m, SellingPrice = 2m,
-            CategoryId = category.Id, CurrentStock = 10, MinimumStock = 1
+            Name = "Widget",
+            CostPrice = 1m,
+            SellingPrice = 2m,
+            CategoryId = category.Id,
+            CurrentStock = 10,
+            MinimumStock = 1
         };
         db.Products.Add(product);
         await db.SaveChangesAsync();

@@ -33,7 +33,8 @@ public class CategoriesApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
     {
         var response = await _client.PostAsJsonAsync("/api/v1/categories", new
         {
-            Name = "Cat_" + Guid.NewGuid(), Description = "Test"
+            Name = "Cat_" + Guid.NewGuid(),
+            Description = "Test"
         });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -116,7 +117,8 @@ public class CategoriesApiControllerTests : IClassFixture<ApiKeyWebAppFactory>
     {
         var response = await _client.PostAsJsonAsync("/api/v1/categories", new
         {
-            Name = "Cat_" + Guid.NewGuid(), Description = "test"
+            Name = "Cat_" + Guid.NewGuid(),
+            Description = "test"
         });
         response.EnsureSuccessStatusCode();
         var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
