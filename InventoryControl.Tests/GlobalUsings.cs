@@ -5,6 +5,7 @@ global using InventoryControl.Domain.Identity;
 global using InventoryControl.Domain.Integrations;
 global using InventoryControl.Domain.Orders;
 global using InventoryControl.Domain.Products;
+global using InventoryControl.Domain.Products.Events;
 global using InventoryControl.Domain.Shared;
 global using InventoryControl.Domain.Stock;
 

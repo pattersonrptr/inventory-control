@@ -13,7 +13,11 @@
       "Bash(xargs sed *)",
       "Bash(git reset *)",
       "Bash(git mv *)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(git push *)",
+      "Bash(gh pr *)",
+      "Bash(tasklist)",
+      "Bash(dotnet format *)"
     ]
   }
 }

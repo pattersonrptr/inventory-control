@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.4.0] - 2026-04-26
+
+### Added
+
+- **Domain events infrastructure**:
+  - `IDomainEvent` marker interface and `IHasDomainEvents` interface in `Domain/Shared/`.
+  - `IDomainEventDispatcher` + reflection-based `DomainEventDispatcher` resolves handlers via DI; handler exceptions are logged but never propagate.
+  - `AppDbContext.SaveChangesAsync` collects events from tracked entities, commits, then dispatches — handler failures cannot roll back the data change.
+- **Product domain events**:
+  - `StockChanged(ProductId, NewStock)` raised on every `ApplyEntry`/`ApplyExit`.
+  - `ProductWentBelowMinimum(ProductId, ProductName, CurrentStock, MinimumStock)` raised only on the threshold crossing (above → below); does not re-raise while the product is already below minimum.
+- **Event handlers**:
+  - `Features/Sync/Handlers/PushStockOnStockChange` — replaces the controller-side stock push.
+  - `Features/Notifications/Handlers/EmailOnProductWentBelowMinimum` — immediate per-product alert.
+- **`IEmailSender` / `SmtpEmailSender`** in `Infrastructure/Email/` — extracted from `LowStockNotificationService` for reuse.
+
+### Changed
+
+- **`StockMovementsController` no longer depends on `SyncService`** and no longer manages a manual transaction. A single `SaveChangesAsync` atomically persists the movement plus the product update and triggers the `StockChanged` event.
+- `LowStockNotificationService` (periodic batch summary) now delegates SMTP send to `IEmailSender`; it coexists with the immediate event-driven alert.
+
 ## [7.3.0] - 2026-04-26
 
 ### Fixed

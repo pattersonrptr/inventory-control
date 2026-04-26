@@ -1,3 +1,5 @@
+using InventoryControl.Domain.Shared;
+using InventoryControl.Infrastructure.Events;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,7 +7,14 @@ namespace InventoryControl.Infrastructure.Persistence;
 
 public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
+    private readonly IDomainEventDispatcher? _dispatcher;
+
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, IDomainEventDispatcher dispatcher) : base(options)
+    {
+        _dispatcher = dispatcher;
+    }
 
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
@@ -17,6 +26,28 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SyncState> SyncStates => Set<SyncState>();
     public DbSet<ProductExternalMapping> ProductExternalMappings => Set<ProductExternalMapping>();
     public DbSet<CategoryExternalMapping> CategoryExternalMappings => Set<CategoryExternalMapping>();
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entitiesWithEvents = ChangeTracker.Entries<IHasDomainEvents>()
+            .Where(e => e.Entity.DomainEvents.Count > 0)
+            .Select(e => e.Entity)
+            .ToList();
+
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        if (_dispatcher is not null)
+        {
+            var events = entitiesWithEvents.SelectMany(e => e.DomainEvents).ToList();
+            foreach (var entity in entitiesWithEvents)
+                entity.ClearDomainEvents();
+
+            foreach (var @event in events)
+                await _dispatcher.DispatchAsync(@event, cancellationToken);
+        }
+
+        return result;
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
