@@ -63,4 +63,25 @@ public class Product
 
     [NotMapped]
     public bool IsBelowMinimumStock => CurrentStock <= MinimumStock;
+
+    [NotMapped]
+    public decimal Margin => SellingPrice > 0
+        ? Math.Round((SellingPrice - CostPrice) / SellingPrice * 100, 2)
+        : 0m;
+
+    public void ApplyEntry(int quantity)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be positive.", nameof(quantity));
+        CurrentStock += quantity;
+    }
+
+    public void ApplyExit(int quantity)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be positive.", nameof(quantity));
+        if (quantity > CurrentStock)
+            throw new InsufficientStockException(Name, CurrentStock, quantity);
+        CurrentStock -= quantity;
+    }
 }
