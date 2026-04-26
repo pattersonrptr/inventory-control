@@ -114,7 +114,8 @@ public class ProductsApiController : ControllerBase
         p.CategoryId,
         CategoryName = p.Category?.Name,
         ExternalMappings = p.ExternalMappings.Select(m => new { m.StoreName, m.ExternalId, m.Platform }),
-        IsBelowMinimumStock = p.IsBelowMinimumStock
+        IsBelowMinimumStock = p.IsBelowMinimumStock,
+        Margin = p.Margin
     };
 }
 
