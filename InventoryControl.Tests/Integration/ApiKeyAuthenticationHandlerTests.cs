@@ -73,7 +73,7 @@ public class ApiKeyAuthenticationHandlerTests : IClassFixture<ApiKeyWebAppFactor
             builder.ConfigureAppConfiguration((_, cfg) =>
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Api:Keys:0:Key"]  = newKey,
+                    ["Api:Keys:0:Key"] = newKey,
                     ["Api:Keys:0:Role"] = "Admin"
                 })))
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -93,7 +93,7 @@ public class ApiKeyAuthenticationHandlerTests : IClassFixture<ApiKeyWebAppFactor
             builder.ConfigureAppConfiguration((_, cfg) =>
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Api:Keys:0:Key"]  = readOnlyKey,
+                    ["Api:Keys:0:Key"] = readOnlyKey,
                     ["Api:Keys:0:Role"] = "ReadOnly"
                 })))
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -112,7 +112,7 @@ public class ApiKeyAuthenticationHandlerTests : IClassFixture<ApiKeyWebAppFactor
             builder.ConfigureAppConfiguration((_, cfg) =>
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Api:Keys:0:Key"]  = "correct-key",
+                    ["Api:Keys:0:Key"] = "correct-key",
                     ["Api:Keys:0:Role"] = "Admin"
                 })))
             .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
