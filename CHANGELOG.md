@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.1.0] - 2026-04-26
+
+### Added
+
+- **`Product.ApplyEntry(int qty)`**: domain method for stock entries — guards positive quantity, increments `CurrentStock`.
+- **`Product.ApplyExit(int qty)`**: domain method for stock exits — guards positive quantity and sufficient stock; throws `InsufficientStockException` with `ProductName`, `Available`, and `Requested` details.
+- **`Product.Margin`**: computed gross margin percentage `(SellingPrice - CostPrice) / SellingPrice * 100`.
+- **`InsufficientStockException`**: domain exception replacing the in-controller stock check.
+- **Unit tests** for all new domain behaviors (11 tests in `Unit/Domain/ProductDomainTests`).
+
+### Changed
+
+- `StockMovementsController`: Entry and Exit POST actions now delegate stock arithmetic to domain methods instead of computing inline. The insufficient-stock validation is handled by `InsufficientStockException` from the domain.
+
 ## [7.0.0] - 2026-04-26
 
 ### Breaking
