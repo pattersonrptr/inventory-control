@@ -1,5 +1,4 @@
-using InventoryControl.Models;
-using InventoryControl.Repositories;
+
 using InventoryControl.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +8,7 @@ public class StockMovementRepositoryTests
 {
     private readonly DatabaseFixture _fixture = new();
 
-    private async Task SeedBaseDataAsync(Data.AppDbContext context)
+    private async Task SeedBaseDataAsync(AppDbContext context)
     {
         context.Categories.Add(TestDataBuilder.CreateCategory());
         context.Suppliers.Add(TestDataBuilder.CreateSupplier());
@@ -36,13 +35,18 @@ public class StockMovementRepositoryTests
         await SeedBaseDataAsync(context);
         context.StockMovements.Add(new StockMovement
         {
-            ProductId = 1, Type = MovementType.Entry, Quantity = 5,
+            ProductId = 1,
+            Type = MovementType.Entry,
+            Quantity = 5,
             Date = new DateTime(2026, 1, 1)
         });
         context.StockMovements.Add(new StockMovement
         {
-            ProductId = 1, Type = MovementType.Exit, Quantity = 2,
-            Date = new DateTime(2026, 3, 1), ExitReason = ExitReason.Sale
+            ProductId = 1,
+            Type = MovementType.Exit,
+            Quantity = 2,
+            Date = new DateTime(2026, 3, 1),
+            ExitReason = ExitReason.Sale
         });
         await context.SaveChangesAsync();
 
@@ -78,12 +82,16 @@ public class StockMovementRepositoryTests
         await SeedBaseDataAsync(context);
         context.StockMovements.Add(new StockMovement
         {
-            ProductId = 1, Type = MovementType.Entry, Quantity = 10,
+            ProductId = 1,
+            Type = MovementType.Entry,
+            Quantity = 10,
             Date = new DateTime(2026, 3, 15)
         });
         context.StockMovements.Add(new StockMovement
         {
-            ProductId = 1, Type = MovementType.Entry, Quantity = 5,
+            ProductId = 1,
+            Type = MovementType.Entry,
+            Quantity = 5,
             Date = new DateTime(2026, 4, 1)
         });
         await context.SaveChangesAsync();

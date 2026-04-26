@@ -1,0 +1,10 @@
+
+namespace InventoryControl.Domain.Orders;
+
+public interface IProcessedOrderRepository
+{
+    Task<bool> ExistsAsync(string externalOrderId);
+    Task<ProcessedOrder?> GetByExternalOrderIdAsync(string externalOrderId);
+    Task AddAsync(ProcessedOrder processedOrder);
+    Task UpdateAsync(ProcessedOrder processedOrder);
+}

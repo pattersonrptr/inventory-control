@@ -1,5 +1,5 @@
 using System.Net;
-using InventoryControl.Data;
+using InventoryControl.Infrastructure.Persistence;
 using InventoryControl.Tests.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 

@@ -1,14 +1,9 @@
 using AspNetCoreRateLimit;
-using InventoryControl.Authentication;
-using InventoryControl.BackgroundServices;
-using InventoryControl.Data;
-using InventoryControl.Models;
-using InventoryControl.Repositories;
-using InventoryControl.Repositories.Interfaces;
-using InventoryControl.Services;
-using InventoryControl.Services.Interfaces;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +50,9 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AuthorizeFilter(policy));
 });
 
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
 // Support pt-BR culture: allows decimals with comma (1.234,56) and R$ currency
 var ptBR = new System.Globalization.CultureInfo("pt-BR");
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ModelBinding.Metadata.DefaultModelBindingMessageProvider>(p =>
@@ -100,10 +98,10 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 // ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    options.Password.RequireDigit = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 6;
+    options.Password.RequireDigit = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequiredLength = 10;
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
 })
@@ -116,6 +114,29 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromDays(7);
     options.SlidingExpiration = true;
+
+    // Return 401/403 for API paths instead of redirecting to the login page.
+    // Without this, MVC redirects API callers to the HTML login page (302 → 200).
+    options.Events.OnRedirectToLogin = ctx =>
+    {
+        if (ctx.Request.Path.StartsWithSegments("/api"))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+        ctx.Response.Redirect(ctx.RedirectUri);
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = ctx =>
+    {
+        if (ctx.Request.Path.StartsWithSegments("/api"))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+        ctx.Response.Redirect(ctx.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 // API key authentication (separate scheme for REST API endpoints)
@@ -188,13 +209,13 @@ builder.Services.AddScoped<IProcessedOrderRepository, ProcessedOrderRepository>(
 // Backward compatibility: if "Integration" section exists (single store), it is auto-migrated.
 var storesConfig = builder.Configuration
     .GetSection("Stores")
-    .Get<List<InventoryControl.Integrations.Abstractions.IntegrationConfig>>()
-    ?? new List<InventoryControl.Integrations.Abstractions.IntegrationConfig>();
+    .Get<List<IntegrationConfig>>()
+    ?? new List<IntegrationConfig>();
 
 // Backward compatibility: migrate legacy single-store "Integration" config
 var legacyConfig = builder.Configuration
     .GetSection("Integration")
-    .Get<InventoryControl.Integrations.Abstractions.IntegrationConfig>();
+    .Get<IntegrationConfig>();
 if (legacyConfig?.Enabled == true && !storesConfig.Any(s => s.Enabled))
 {
     if (string.IsNullOrEmpty(legacyConfig.Name))
@@ -208,8 +229,8 @@ if (legacyConfig?.Enabled == true && !storesConfig.Any(s => s.Enabled))
 builder.Services.AddSingleton(storesConfig);
 
 // Platform factory registry — register all known platform adapters
-builder.Services.AddSingleton<InventoryControl.Integrations.Abstractions.IPlatformFactory,
-    InventoryControl.Integrations.NuvemshopPlatformFactory>();
+builder.Services.AddSingleton<IPlatformFactory,
+    NuvemshopPlatformFactory>();
 
 // Named HttpClient per platform with resilience handlers
 builder.Services.AddHttpClient("Platform_nuvemshop")
@@ -225,8 +246,8 @@ builder.Services.AddHttpClient("Platform_nuvemshop")
         options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(45);
     });
 
-builder.Services.AddSingleton<InventoryControl.Integrations.PlatformRegistry>();
-builder.Services.AddScoped<InventoryControl.Integrations.SyncServiceFactory>();
+builder.Services.AddSingleton<PlatformRegistry>();
+builder.Services.AddScoped<SyncServiceFactory>();
 
 // Background order sync runs for all enabled stores
 if (storesConfig.Any(s => s.Enabled))
@@ -244,23 +265,58 @@ if (builder.Configuration.GetValue<bool?>("EmailNotifications:Enabled") == true)
 builder.Services.AddHostedService<AuditLogCleanupService>();
 
 // Manual database backup
+builder.Services.AddSingleton<IClock, InventoryControl.Infrastructure.SystemClock>();
 builder.Services.AddScoped<IDatabaseBackupService, DatabaseBackupService>();
 builder.Services.AddScoped<IOffsiteBackupService, OffsiteBackupService>();
 
 var app = builder.Build();
 
+// Warn if the rclone config file is world-readable (Linux deployments)
+if (OperatingSystem.IsLinux())
+{
+    var rcloneConfigPath = builder.Configuration["OffsiteBackup:RcloneConfigPath"];
+    if (!string.IsNullOrEmpty(rcloneConfigPath) && File.Exists(rcloneConfigPath))
+    {
+        var fileMode = File.GetUnixFileMode(rcloneConfigPath);
+        if ((fileMode & UnixFileMode.OtherRead) != 0)
+        {
+            var startupLog = app.Services.GetRequiredService<ILogger<Program>>();
+            startupLog.LogWarning(
+                "SECURITY: rclone config '{Path}' is world-readable. Run: chmod 600 \"{Path}\"",
+                rcloneConfigPath, rcloneConfigPath);
+        }
+    }
+}
+
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+            }
+            else
+            {
+                context.Response.Redirect("/Home/Error");
+            }
+        });
+    });
     app.UseHsts();
 }
 
-// Swagger UI available in all environments at /swagger
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Control API v1");
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Inventory Control API v1");
+    });
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
@@ -275,12 +331,37 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.MapHealthChecks("/health");
-
-// Apply pending migrations automatically on startup (relational providers only)
-using (var scope = app.Services.CreateScope())
+// /health/live  — basic ping, anonymous, used by Docker/TrueNAS liveness probes
+// /health/ready — includes DbContext check, used by readiness probes and monitoring
+app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
+    Predicate = _ => false  // no individual checks — just confirms the process is alive
+}).AllowAnonymous();
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = _ => true   // all registered checks including DbContext
+}).AllowAnonymous();
+
+// Database initialisation is intentionally NOT run on normal startup.
+// Use:  dotnet run -- migrate   (or dotnet InventoryControl.dll migrate)
+// This applies pending migrations, PostgreSQL fixes, and seeds roles/admin/dev data.
+// In docker-compose the dedicated 'db-migrate' service handles this before the app starts.
+if (args.Contains("migrate"))
+{
+    await ApplyMigrationsAsync(app.Services, usePostgres, app.Configuration, app.Environment);
+    return;
+}
+
+app.Run();
+
+static async Task ApplyMigrationsAsync(
+    IServiceProvider services, bool usePostgres,
+    IConfiguration configuration, IWebHostEnvironment environment)
+{
+    await using var scope = services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
     if (db.Database.IsRelational())
         db.Database.Migrate();
 
@@ -386,9 +467,9 @@ using (var scope = app.Services.CreateScope())
             await roleManager.CreateAsync(new IdentityRole(role));
     }
 
-    var adminEmail = builder.Configuration["DefaultAdmin:Email"] ?? "admin@inventory.local";
-    var adminPassword = builder.Configuration["DefaultAdmin:Password"] ?? "Admin123!";
-    var adminFullName = builder.Configuration["DefaultAdmin:FullName"] ?? "Administrador";
+    var adminEmail = configuration["DefaultAdmin:Email"] ?? "admin@inventory.local";
+    var adminPassword = configuration["DefaultAdmin:Password"] ?? "Admin123!";
+    var adminFullName = configuration["DefaultAdmin:FullName"] ?? "Administrador";
 
     if (await userManager.FindByEmailAsync(adminEmail) == null)
     {
@@ -404,14 +485,9 @@ using (var scope = app.Services.CreateScope())
             await userManager.AddToRoleAsync(admin, "Admin");
     }
 
-    // Seed development data
-    if (app.Environment.IsDevelopment())
-    {
+    if (environment.IsDevelopment())
         await SeedDevelopmentDataAsync(db);
-    }
 }
-
-app.Run();
 
 static async Task SeedDevelopmentDataAsync(AppDbContext db)
 {

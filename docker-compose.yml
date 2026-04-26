@@ -15,6 +15,21 @@ services:
       retries: 5
     restart: unless-stopped
 
+  db-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pattersonrptr/inventory-control:latest
+    container_name: inventory-migrate
+    command: ["dotnet", "InventoryControl.dll", "migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=caramelo_inventory;Username=caramelo;Password=${DB_PASSWORD:-#Caramelo123}
+    restart: "no"
+
   app:
     build:
       context: .
@@ -24,8 +39,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      db:
-        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=caramelo_inventory;Username=caramelo;Password=${DB_PASSWORD:-#Caramelo123}
@@ -34,7 +49,7 @@ services:
     volumes:
       - rclone-config:/config/rclone:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -7,6 +7,108 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-04-26
+
+### Breaking
+
+- **Deploy:** Migrations no longer run on app startup (first introduced 6.3.0; now strictly required). Run `dotnet InventoryControl.dll migrate` or the `db-migrate` docker-compose service before starting the app.
+- **Config:** Legacy `Api:Key` removed. Migrate to the `Api:Keys` array format (see `appsettings.example.json`).
+- **Internal structure:** Project reorganized into Modular Monolith with Feature Folders. Source directory layout changed: `Domain/`, `Features/`, `Infrastructure/`, `Web/`.
+
+### Added
+
+- **Architecture tests** (`NetArchTest.Rules`): `Domain_HasNoDependencyOn_EntityFrameworkCore` and `Infrastructure_MustNotDependOn_Features` are active and green. `Features_HaveNoDependencyOn_InfrastructurePersistence` is skipped pending service extraction (sub-phase 5.6 debt, documented in test).
+- **`GlobalUsings.cs`** in main and test projects: all type moves are backward-compatible at compile time without touching every file.
+
+### Changed
+
+- Source organized by feature/responsibility, not by technical layer:
+  - `Domain/<aggregate>/` — entities + repository interfaces (no EF Core dependency)
+  - `Features/<slice>/` — controllers, DTOs, validators per vertical
+  - `Infrastructure/` — persistence, integrations, auth, background jobs, backup
+- EF Core context and interceptor moved: `Data/` → `Infrastructure/Persistence/`
+- Repositories moved: `Repositories/` → `Infrastructure/Persistence/Repositories/`
+- Repository interfaces moved: `Repositories/Interfaces/` → `Domain/<aggregate>/`
+- Authentication moved: `Authentication/` → `Infrastructure/Auth/`
+- Background services moved: `BackgroundServices/` → `Infrastructure/BackgroundJobs/`
+- Integrations moved: `Integrations/` → `Infrastructure/Integrations/`
+- Backup services moved: `Services/` → `Infrastructure/Backup/` + `Features/Products/`
+- All controllers moved: `Controllers/` → `Features/<slice>/`
+- `IClock` / `SystemClock` moved: `Services/` → `Infrastructure/`
+- `CLAUDE.md` architecture section updated to reflect new structure.
+
+## [6.4.0] - 2026-04-25
+
+### Performance
+
+- **Migration `AddPerformanceIndexes`:** composite index on `Products(CurrentStock, MinimumStock)` (covers the low-stock query); index on `StockMovements(Date)` (covers date-range and month/year queries).
+- **`GetAllForListAsync(page, pageSize)`** added to `IProductRepository` and `ICategoryRepository` — loads only the navigation property needed for display (`Category` / `Parent`), skipping heavy collections (`Images`, `ExternalMappings`, `Products`). Used by all list views and list API endpoints.
+- **`AsSplitQuery()`** added to the full `GetAllAsync(page, pageSize)` in `ProductRepository` and `CategoryRepository` — prevents Cartesian explosion when multiple collection-type includes are combined with pagination.
+- Count query in paginataed methods now runs against the base query (no includes) — EF Core no longer generates a COUNT with unnecessary JOINs.
+
+### Changed
+
+- `ProductsController.Index`, `CategoriesController.Index`, `ProductsApiController.GetAll`, `CategoriesApiController.GetAll` — switched to `GetAllForListAsync` (lightweight query).
+
+## [6.3.0] - 2026-04-25
+
+### Changed
+
+- **BREAKING (deploy):** Migrations no longer run on app startup. Run `dotnet InventoryControl.dll migrate` (or the `db-migrate` docker-compose service) before starting the app for the first time or after any upgrade that includes new migrations.
+- **Health check endpoints split:** `/health/live` (liveness — anonymous, process-only) and `/health/ready` (readiness — includes DbContext check). Both are anonymous. Docker/TrueNAS healthchecks updated to use `/health/live`.
+- **Background service exponential backoff:** `OrderSyncBackgroundService` now doubles the delay after each consecutive sync cycle failure, capped at 30 minutes.
+
+### Fixed
+
+- `MailMessage` is now properly disposed via `using` in `LowStockNotificationService.SendEmailAsync`, preventing resource leaks on SMTP failures.
+- `PGPASSWORD` environment variable cleared from `ProcessStartInfo` immediately after `pg_dump` starts.
+
+### Security
+
+- Startup logs a warning when the rclone config file is world-readable on Linux deployments.
+
+## [6.2.0] - 2026-04-25
+
+### Added
+
+- **FluentValidation** (`FluentValidation.AspNetCore` 11.3.1) — auto-validation wired via `AddFluentValidationAutoValidation`; validators discovered by assembly scan.
+- **API DTO validators** — `ProductCreateDtoValidator`, `ProductUpdateDtoValidator`, `StockUpdateDtoValidator`, `CategoryDtoValidator`, `SupplierDtoValidator` enforce required fields, max lengths, non-negative numerics, valid email, and positive `CategoryId`.
+- **`IClock` / `SystemClock`** — testable time abstraction registered as a singleton; replaces all `DateTime.Now` usages in services and background jobs.
+- **`ImageUploadValidator`** — centralised image validation (allowed extensions: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`; max 10 MB); returns structured error list.
+
+### Fixed
+
+- **Silent image extension rename** — `ProductsController.SaveImagesAsync` no longer silently renames files with unsupported extensions to `.jpg`; invalid types and oversized files now surface as `ModelState` errors.
+- **`ex.Message` information leakage** — `BackupController` catch blocks now return a generic Portuguese error message; full exception details remain in the structured log only.
+- **`DateTime.Now` in UTC contexts** — replaced with `DateTime.UtcNow` in `AuditInterceptor`, `AuditLog`, `ProcessedOrder`, `SyncService`, `BackupController`, `AuditLogCleanupService`, and `LowStockNotificationService`.
+
+### Security
+
+- **Password policy hardened** — `RequireDigit`, `RequireUppercase`, `RequireNonAlphanumeric` set to `true`; minimum length raised from 6 to 10.
+- **Global exception handler for API routes** — unhandled exceptions on `/api/*` paths now return `{ "error": "An unexpected error occurred." }` with HTTP 500 instead of leaking stack traces or redirect responses.
+
+## [6.1.2] - 2026-04-25
+
+### Security
+
+- **Unauthenticated dashboard API access** — dashboard and recent-movements API endpoints (`/api/dashboard/*`, `/api/movements/recent`) now return `401` instead of silently redirecting to the login page when called without authentication.
+- **SyncController explicit authorization** — added class-level `[Authorize]` to `SyncController` for defense in depth (endpoints were already protected by the global filter; now intent is explicit).
+- **API key per-key roles** — `ApiKeyAuthenticationHandler` now supports an `Api:Keys` array where each entry carries its own `Role`. A key configured as `ReadOnly` no longer silently receives `Admin` privileges.
+- **Swagger disabled in production** — Swagger UI and JSON schema are only registered in the Development environment; `/swagger/*` returns 404 in production.
+
+### Deprecated
+
+- `Api:Key` (single key, always grants `Admin`) — still works but emits a startup warning. Migrate to the `Api:Keys` array format (see `appsettings.example.json`). Will be removed in v7.0.0.
+
+## [6.1.1] - 2026-04-25
+
+### Added
+
+- CI workflow (`.github/workflows/ci.yml`): runs `dotnet build`, non-E2E tests, and format check on every push and PR.
+- Code coverage collection via `coverlet`; HTML report and TRX results uploaded as CI artifacts.
+- `TESTING.md`: TDD watch-mode workflow, coverage commands, test organization reference.
+- Characterization tests for `ApiKeyAuthenticationHandler`, dashboard API endpoints, `SyncController`, and `CsvImportService` (100 tests total).
+
 ## [6.1.0] - 2026-04-20
 
 ### Added

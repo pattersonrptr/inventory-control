@@ -1,6 +1,5 @@
-using InventoryControl.Data;
-using InventoryControl.Models;
-using InventoryControl.Repositories;
+using InventoryControl.Infrastructure.Persistence;
+
 using InventoryControl.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

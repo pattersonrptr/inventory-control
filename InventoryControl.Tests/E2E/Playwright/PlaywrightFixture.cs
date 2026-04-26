@@ -1,5 +1,5 @@
 using System.Net;
-using InventoryControl.Data;
+using InventoryControl.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
