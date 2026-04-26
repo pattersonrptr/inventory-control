@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.0] - 2026-04-26
+
+### Added
+
+- **33 integration tests** for `ProductsApiController`, `CategoriesApiController`, and `SuppliersApiController` — full CRUD coverage including 201/404/400 paths, pagination, below-minimum endpoint, stock patch, and Margin in response.
+- **`Product.Margin` exposed in REST API response** (`GET /api/v1/products` and `GET /api/v1/products/{id}`).
+
+### Changed
+
+- Total non-E2E test count: 189 → 222.
+
 ## [7.1.0] - 2026-04-26
 
 ### Added
