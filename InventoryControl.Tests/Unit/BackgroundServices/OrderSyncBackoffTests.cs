@@ -1,4 +1,4 @@
-using InventoryControl.BackgroundServices;
+
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace InventoryControl.Tests.Unit.BackgroundServices;

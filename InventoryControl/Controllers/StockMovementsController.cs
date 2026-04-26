@@ -1,5 +1,5 @@
 using InventoryControl.Infrastructure.Persistence;
-using InventoryControl.Integrations;
+using InventoryControl.Infrastructure.Integrations;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;

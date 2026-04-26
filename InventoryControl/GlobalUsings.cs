@@ -12,6 +12,16 @@ global using InventoryControl.Domain.Products;
 global using InventoryControl.Domain.Shared;
 global using InventoryControl.Domain.Stock;
 
+// Services (remaining — to be moved in later sub-phases)
+global using InventoryControl.Services;
+global using InventoryControl.Services.Interfaces;
+
 // Infrastructure — old namespace aliases for backward compatibility
+global using InventoryControl.Infrastructure.Auth;
+global using InventoryControl.Infrastructure.Backup;
+global using InventoryControl.Infrastructure.BackgroundJobs;
+global using InventoryControl.Infrastructure.Integrations;
+global using InventoryControl.Infrastructure.Integrations.Abstractions;
+global using InventoryControl.Infrastructure.Integrations.Nuvemshop;
 global using InventoryControl.Infrastructure.Persistence;
 global using InventoryControl.Infrastructure.Persistence.Repositories;

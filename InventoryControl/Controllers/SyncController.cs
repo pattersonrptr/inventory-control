@@ -1,6 +1,6 @@
 using InventoryControl.Infrastructure.Persistence;
-using InventoryControl.Integrations;
-using InventoryControl.Integrations.Abstractions;
+using InventoryControl.Infrastructure.Integrations;
+using InventoryControl.Infrastructure.Integrations.Abstractions;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -2,12 +2,12 @@ using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using InventoryControl.Authentication;
-using InventoryControl.BackgroundServices;
+using InventoryControl.Infrastructure.Auth;
+using InventoryControl.Infrastructure.BackgroundJobs;
 using InventoryControl.Infrastructure.Persistence;
 
 
-using InventoryControl.Services;
+using InventoryControl.Infrastructure.Backup;
 using InventoryControl.Services.Interfaces;
 using SystemClock = InventoryControl.Services.SystemClock;
 using Microsoft.AspNetCore.Authentication;
@@ -217,13 +217,13 @@ builder.Services.AddScoped<IProcessedOrderRepository, ProcessedOrderRepository>(
 // Backward compatibility: if "Integration" section exists (single store), it is auto-migrated.
 var storesConfig = builder.Configuration
     .GetSection("Stores")
-    .Get<List<InventoryControl.Integrations.Abstractions.IntegrationConfig>>()
-    ?? new List<InventoryControl.Integrations.Abstractions.IntegrationConfig>();
+    .Get<List<IntegrationConfig>>()
+    ?? new List<IntegrationConfig>();
 
 // Backward compatibility: migrate legacy single-store "Integration" config
 var legacyConfig = builder.Configuration
     .GetSection("Integration")
-    .Get<InventoryControl.Integrations.Abstractions.IntegrationConfig>();
+    .Get<IntegrationConfig>();
 if (legacyConfig?.Enabled == true && !storesConfig.Any(s => s.Enabled))
 {
     if (string.IsNullOrEmpty(legacyConfig.Name))
@@ -237,8 +237,8 @@ if (legacyConfig?.Enabled == true && !storesConfig.Any(s => s.Enabled))
 builder.Services.AddSingleton(storesConfig);
 
 // Platform factory registry — register all known platform adapters
-builder.Services.AddSingleton<InventoryControl.Integrations.Abstractions.IPlatformFactory,
-    InventoryControl.Integrations.NuvemshopPlatformFactory>();
+builder.Services.AddSingleton<IPlatformFactory,
+    NuvemshopPlatformFactory>();
 
 // Named HttpClient per platform with resilience handlers
 builder.Services.AddHttpClient("Platform_nuvemshop")
@@ -254,8 +254,8 @@ builder.Services.AddHttpClient("Platform_nuvemshop")
         options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(45);
     });
 
-builder.Services.AddSingleton<InventoryControl.Integrations.PlatformRegistry>();
-builder.Services.AddScoped<InventoryControl.Integrations.SyncServiceFactory>();
+builder.Services.AddSingleton<PlatformRegistry>();
+builder.Services.AddScoped<SyncServiceFactory>();
 
 // Background order sync runs for all enabled stores
 if (storesConfig.Any(s => s.Enabled))

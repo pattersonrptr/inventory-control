@@ -1,4 +1,4 @@
-using InventoryControl.Integrations;
+using InventoryControl.Infrastructure.Integrations;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
