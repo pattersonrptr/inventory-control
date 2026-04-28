@@ -63,6 +63,10 @@ public class SyncService
         var externalProducts = (await _store.GetProductsAsync()).ToList();
         var localProducts = (await _productRepo.GetAllAsync()).ToList();
 
+        _logger.LogInformation(
+            "Product sync: pulled {ExternalCount} external products from store '{Store}'; {LocalCount} local product(s) currently exist.",
+            externalProducts.Count, _config.Name, localProducts.Count);
+
         var summary = new ProductSyncSummary();
         Category? fallbackCategory = null;
 

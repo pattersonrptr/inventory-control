@@ -412,6 +412,7 @@ static async Task ApplyMigrationsAsync(
 
         // Fix boolean columns: SQLite migrations create them as INTEGER, but Npgsql sends boolean values.
         // Convert INTEGER columns that should be boolean to proper boolean type.
+        // DROP DEFAULT first because integer defaults (0/1) cannot auto-cast to boolean.
         var fixBooleanColumnsSql = """
             DO $$
             DECLARE
@@ -431,7 +432,9 @@ static async Task ApplyMigrationsAsync(
                         SELECT 1 FROM information_schema.columns
                         WHERE table_name = tbl AND column_name = col AND data_type = 'integer'
                     ) THEN
+                        EXECUTE format('ALTER TABLE %I ALTER COLUMN %I DROP DEFAULT', tbl, col);
                         EXECUTE format('ALTER TABLE %I ALTER COLUMN %I TYPE boolean USING %I::boolean', tbl, col, col);
+                        EXECUTE format('ALTER TABLE %I ALTER COLUMN %I SET DEFAULT false', tbl, col);
                     END IF;
                 END LOOP;
             END $$;
