@@ -1,0 +1,53 @@
+@model Product
+@{
+    ViewData["Title"] = "Reativar Produto";
+    var hasMappings = Model.ExternalMappings.Any();
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="bi bi-arrow-counterclockwise"></i> Confirmar Reativação</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill"></i>
+                    Tem certeza que deseja reativar o produto <strong>@Model.Name</strong>?
+                </div>
+
+                <p>Ao reativar:</p>
+                <ul>
+                    <li>O produto voltará a aparecer nas listagens, busca e relatórios.</li>
+                    <li>Movimentações de estoque poderão ser registradas novamente.</li>
+                    @if (hasMappings)
+                    {
+                        <li>O produto será <strong>publicado novamente</strong> nas lojas integradas:
+                            <strong>@string.Join(", ", Model.ExternalMappings.Select(m => m.StoreName))</strong>.</li>
+                    }
+                </ul>
+
+                <dl class="row">
+                    <dt class="col-sm-4">Nome</dt>
+                    <dd class="col-sm-8">@Model.Name</dd>
+                    <dt class="col-sm-4">Arquivado em</dt>
+                    <dd class="col-sm-8">@(Model.ArchivedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</dd>
+                    <dt class="col-sm-4">Estoque Atual</dt>
+                    <dd class="col-sm-8">@Model.CurrentStock</dd>
+                </dl>
+
+                <form asp-action="Unarchive" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-arrow-counterclockwise"></i> Confirmar Reativação
+                        </button>
+                        <a asp-action="Index" asp-route-showArchived="true" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

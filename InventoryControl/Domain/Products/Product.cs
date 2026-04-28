@@ -62,6 +62,12 @@ public class Product : IHasDomainEvents
     [Display(Name = "Marca")]
     public string? Brand { get; set; }
 
+    [Display(Name = "Arquivado")]
+    public bool IsArchived { get; set; }
+
+    [Display(Name = "Arquivado em")]
+    public DateTime? ArchivedAt { get; set; }
+
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
     public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
     public ICollection<ProductExternalMapping> ExternalMappings { get; set; } = new List<ProductExternalMapping>();
@@ -81,6 +87,8 @@ public class Product : IHasDomainEvents
 
     public void ApplyEntry(int quantity)
     {
+        if (IsArchived)
+            throw new ProductArchivedException(Name);
         if (quantity <= 0)
             throw new ArgumentException("Quantity must be positive.", nameof(quantity));
         CurrentStock += quantity;
@@ -89,6 +97,8 @@ public class Product : IHasDomainEvents
 
     public void ApplyExit(int quantity)
     {
+        if (IsArchived)
+            throw new ProductArchivedException(Name);
         if (quantity <= 0)
             throw new ArgumentException("Quantity must be positive.", nameof(quantity));
         if (quantity > CurrentStock)
@@ -101,5 +111,19 @@ public class Product : IHasDomainEvents
 
         if (!wasBelowMinimum && IsBelowMinimumStock)
             _domainEvents.Add(new ProductWentBelowMinimum(Id, Name, CurrentStock, MinimumStock));
+    }
+
+    public void Archive(DateTime nowUtc)
+    {
+        if (IsArchived) return;
+        IsArchived = true;
+        ArchivedAt = nowUtc;
+    }
+
+    public void Unarchive()
+    {
+        if (!IsArchived) return;
+        IsArchived = false;
+        ArchivedAt = null;
     }
 }

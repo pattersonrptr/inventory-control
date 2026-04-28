@@ -113,4 +113,12 @@ public class NuvemshopClient
         var response = await _http.PutAsync($"products/{productId}/variants/{variantId}", content);
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task SetProductPublishedAsync(long productId, bool published)
+    {
+        var payload = JsonSerializer.Serialize(new { published });
+        var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+        var response = await _http.PutAsync($"products/{productId}", content);
+        response.EnsureSuccessStatusCode();
+    }
 }

@@ -21,4 +21,16 @@ public class ProductExternalMapping
     [Required]
     [MaxLength(50)]
     public string Platform { get; set; } = string.Empty;
+
+    public ExternalSyncStatus SyncStatus { get; set; } = ExternalSyncStatus.Synced;
+
+    [MaxLength(1000)]
+    public string? LastSyncError { get; set; }
+
+    public DateTime? LastSyncAttemptAt { get; set; }
+
+    public bool HasConflict { get; set; }
+
+    [MaxLength(2000)]
+    public string? ConflictDetails { get; set; }
 }

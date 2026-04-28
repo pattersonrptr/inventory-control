@@ -69,16 +69,90 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task SyncProductsFromStoreAsync_NoSkuMatch_DoesNotCreateMapping()
+    public async Task SyncProductsFromStoreAsync_NoSkuMatch_CreatesLocalProductAndMapping()
     {
         _productRepoMock.Setup(r => r.GetAllAsync())
             .ReturnsAsync(new[] { TestDataBuilder.CreateProduct(sku: "SKU-A") });
+        _productRepoMock.Setup(r => r.AddAsync(It.IsAny<Product>()))
+            .Callback<Product>(p =>
+            {
+                _context.Products.Add(p);
+                _context.SaveChanges();
+            })
+            .Returns(Task.CompletedTask);
+        _categoryRepoMock.Setup(r => r.AddAsync(It.IsAny<Category>()))
+            .Callback<Category>(c =>
+            {
+                _context.Categories.Add(c);
+                _context.SaveChanges();
+            })
+            .Returns(Task.CompletedTask);
+
         _storeMock.Setup(s => s.GetProductsAsync())
-            .ReturnsAsync(new[] { new ExternalProduct { ExternalId = "ext-1", Sku = "SKU-B" } });
+            .ReturnsAsync(new[]
+            {
+                new ExternalProduct
+                {
+                    ExternalId = "ext-1",
+                    Sku = "SKU-B",
+                    Name = "Pulled Product",
+                    Price = 19.90m,
+                    Stock = 5
+                }
+            });
 
-        await _sut.SyncProductsFromStoreAsync();
+        var summary = await _sut.SyncProductsFromStoreAsync();
 
-        Assert.Empty(await _context.ProductExternalMappings.ToListAsync());
+        Assert.Equal(1, summary.Created);
+        Assert.Equal(1, summary.NeedsCostReview);
+
+        var created = await _context.Products.FirstOrDefaultAsync(p => p.Sku == "SKU-B");
+        Assert.NotNull(created);
+        Assert.Equal("Pulled Product", created.Name);
+        Assert.Equal(0m, created.CostPrice);
+        Assert.Equal(19.90m, created.SellingPrice);
+        Assert.Equal(5, created.CurrentStock);
+
+        var mapping = await _context.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ExternalId == "ext-1");
+        Assert.NotNull(mapping);
+        Assert.Equal(created.Id, mapping.ProductId);
+
+        var fallback = await _context.Categories.FirstOrDefaultAsync(c => c.Name == "Sem categoria");
+        Assert.NotNull(fallback);
+    }
+
+    [Fact]
+    public async Task SyncProductsFromStoreAsync_MatchingSkuWithDivergentName_FlagsConflict()
+    {
+        var local = TestDataBuilder.CreateProduct(sku: "SKU-X");
+        local.Name = "Local Name";
+        local.SellingPrice = 10m;
+        await SeedProductAsync(local);
+
+        _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { local });
+        _storeMock.Setup(s => s.GetProductsAsync())
+            .ReturnsAsync(new[]
+            {
+                new ExternalProduct
+                {
+                    ExternalId = "ext-9",
+                    Sku = "SKU-X",
+                    Name = "External Name",
+                    Price = 12m
+                }
+            });
+
+        var summary = await _sut.SyncProductsFromStoreAsync();
+
+        Assert.Equal(1, summary.Conflicts);
+
+        var mapping = await _context.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == local.Id);
+        Assert.NotNull(mapping);
+        Assert.True(mapping.HasConflict);
+        Assert.Contains("Name", mapping.ConflictDetails);
+        Assert.Contains("Price", mapping.ConflictDetails);
     }
 
     [Fact]

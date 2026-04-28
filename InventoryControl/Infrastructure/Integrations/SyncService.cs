@@ -53,34 +53,116 @@ public class SyncService
     }
 
     /// <summary>
-    /// Pulls products from the external store and syncs SKU / ExternalId fields
-    /// on matching local products.
+    /// Pulls products from the external store. Existing local products (matched by SKU)
+    /// only get linked / conflict-checked — fields are never overwritten. External products
+    /// without a local SKU match are CREATED locally with CostPrice=0 (needs-review marker)
+    /// and assigned to a fallback "Sem categoria" so the user can curate them later.
     /// </summary>
-    public async Task SyncProductsFromStoreAsync()
+    public async Task<ProductSyncSummary> SyncProductsFromStoreAsync()
     {
-        var externalProducts = await _store.GetProductsAsync();
-        var localProducts = await _productRepo.GetAllAsync();
+        var externalProducts = (await _store.GetProductsAsync()).ToList();
+        var localProducts = (await _productRepo.GetAllAsync()).ToList();
+
+        var summary = new ProductSyncSummary();
+        Category? fallbackCategory = null;
 
         foreach (var external in externalProducts)
         {
             // Match by SKU when available
-            var local = localProducts.FirstOrDefault(p =>
-                !string.IsNullOrEmpty(p.Sku) && p.Sku == external.Sku);
+            var local = !string.IsNullOrEmpty(external.Sku)
+                ? localProducts.FirstOrDefault(p =>
+                    !string.IsNullOrEmpty(p.Sku) && p.Sku == external.Sku)
+                : null;
 
             if (local is not null)
             {
                 await UpsertProductMappingAsync(local.Id, external.ExternalId);
+                var conflict = DetectConflict(local, external);
+                await SetMappingConflictAsync(local.Id, conflict);
+
+                if (conflict is not null)
+                    summary.Conflicts++;
+                else
+                    summary.Linked++;
+
                 _logger.LogInformation(
-                    "Synced product {ProductName} (id={Id}) with external id {ExternalId} from store '{StoreName}'.",
-                    local.Name, local.Id, external.ExternalId, _config.Name);
+                    "Linked product {ProductName} (id={Id}) with external id {ExternalId}{ConflictNote}.",
+                    local.Name, local.Id, external.ExternalId,
+                    conflict is null ? "" : $" (conflict: {conflict})");
             }
             else
             {
-                _logger.LogDebug(
-                    "No local product matched external SKU '{Sku}' (externalId={ExternalId}).",
-                    external.Sku, external.ExternalId);
+                fallbackCategory ??= await EnsureFallbackCategoryAsync();
+                var created = await CreateLocalFromExternalAsync(external, fallbackCategory.Id);
+                await UpsertProductMappingAsync(created.Id, external.ExternalId);
+
+                summary.Created++;
+                if (created.CostPrice == 0m) summary.NeedsCostReview++;
+
+                _logger.LogInformation(
+                    "Created local product {ProductName} (id={Id}) from external id {ExternalId}. CostPrice=0 (needs review).",
+                    created.Name, created.Id, external.ExternalId);
             }
         }
+
+        return summary;
+    }
+
+    private static string? DetectConflict(Product local, ExternalProduct external)
+    {
+        var diffs = new List<string>();
+
+        if (!string.Equals(local.Name?.Trim(), external.Name?.Trim(), StringComparison.Ordinal))
+            diffs.Add($"Name: '{local.Name}' vs '{external.Name}'");
+
+        if (local.SellingPrice != external.Price)
+            diffs.Add($"Price: {local.SellingPrice:F2} vs {external.Price:F2}");
+
+        return diffs.Count > 0 ? string.Join("; ", diffs) : null;
+    }
+
+    private async Task SetMappingConflictAsync(int productId, string? conflictDetails)
+    {
+        var mapping = await _dbContext.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
+        if (mapping is null) return;
+
+        mapping.HasConflict = conflictDetails is not null;
+        mapping.ConflictDetails = conflictDetails;
+        await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task<Category> EnsureFallbackCategoryAsync()
+    {
+        const string fallbackName = "Sem categoria";
+        var existing = await _dbContext.Categories
+            .FirstOrDefaultAsync(c => c.Name == fallbackName && c.ParentId == null);
+        if (existing is not null) return existing;
+
+        var created = new Category
+        {
+            Name = fallbackName,
+            Description = "Produtos puxados de lojas externas sem categoria mapeada. Curar manualmente."
+        };
+        await _categoryRepo.AddAsync(created);
+        return created;
+    }
+
+    private async Task<Product> CreateLocalFromExternalAsync(ExternalProduct external, int fallbackCategoryId)
+    {
+        var product = new Product
+        {
+            Name = string.IsNullOrWhiteSpace(external.Name) ? $"Produto {external.ExternalId}" : external.Name,
+            Description = external.Description,
+            CostPrice = 0m,
+            SellingPrice = external.Price > 0 ? external.Price : 0.01m,
+            CurrentStock = external.Stock,
+            MinimumStock = 0,
+            Sku = string.IsNullOrWhiteSpace(external.Sku) ? null : external.Sku,
+            CategoryId = fallbackCategoryId
+        };
+        await _productRepo.AddAsync(product);
+        return product;
     }
 
     /// <summary>
@@ -430,4 +512,13 @@ public class SyncService
 
         await _dbContext.SaveChangesAsync();
     }
+}
+
+public class ProductSyncSummary
+{
+    public int Linked { get; set; }
+    public int Created { get; set; }
+    public int Conflicts { get; set; }
+    public int NeedsCostReview { get; set; }
+    public int Total => Linked + Created + Conflicts;
 }

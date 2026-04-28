@@ -72,9 +72,10 @@ public class SyncController : ControllerBase
         if (error is not null) return error;
 
         _logger.LogInformation("Manual product sync triggered for store '{Store}'.", config.Name);
+        ProductSyncSummary summary;
         try
         {
-            await syncService.SyncProductsFromStoreAsync();
+            summary = await syncService.SyncProductsFromStoreAsync();
         }
         catch (HttpRequestException ex)
         {
@@ -87,7 +88,19 @@ public class SyncController : ControllerBase
             return StatusCode(500, new { error = "InternalError", message = "Product sync failed due to an internal error.", status = 500 });
         }
 
-        return Ok(new { message = $"Product sync completed for store '{config.Name}'." });
+        var details = $"{summary.Linked} linkado(s), {summary.Created} criado(s)"
+            + (summary.NeedsCostReview > 0 ? $" ({summary.NeedsCostReview} sem custo)" : "")
+            + (summary.Conflicts > 0 ? $", {summary.Conflicts} com conflito" : "");
+
+        return Ok(new
+        {
+            message = $"Sync de produtos concluída para '{config.Name}': {details}.",
+            summary.Linked,
+            summary.Created,
+            summary.Conflicts,
+            summary.NeedsCostReview,
+            summary.Total
+        });
     }
 
     /// <summary>

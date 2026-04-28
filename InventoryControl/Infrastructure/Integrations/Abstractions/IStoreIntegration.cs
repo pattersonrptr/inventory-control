@@ -9,4 +9,5 @@ public interface IStoreIntegration
     Task<ExternalProduct?> CreateProductAsync(string name, string? description, decimal price, string? sku, int stock);
     Task<IEnumerable<ExternalCategory>> GetCategoriesAsync();
     Task<ExternalCategory?> CreateCategoryAsync(string name);
+    Task SetProductPublishedAsync(string externalProductId, bool published);
 }

@@ -104,6 +104,16 @@ public class NuvemshopIntegration : IStoreIntegration
         };
     }
 
+    public async Task SetProductPublishedAsync(string externalProductId, bool published)
+    {
+        if (!long.TryParse(externalProductId, out var productId))
+            throw new ArgumentException(
+                $"External product id '{externalProductId}' is not a valid Nuvemshop id.",
+                nameof(externalProductId));
+
+        await _client.SetProductPublishedAsync(productId, published);
+    }
+
     private static ExternalOrder MapOrder(NuvemshopOrder o) => new()
     {
         ExternalOrderId = o.Id.ToString(),

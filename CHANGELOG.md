@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Archive/Unarchive products** (soft-delete pattern):
+  - `Product.IsArchived` + `ArchivedAt`, with `Archive(nowUtc)` / `Unarchive()` domain methods.
+  - `ProductArchivedException` thrown by `ApplyEntry` / `ApplyExit` so movements cannot land on an archived product.
+  - Archived products are excluded by default from product listings, the below-minimum query, dashboards, and profitability reports — visible only with the explicit `Mostrar arquivados` toggle (or `?includeArchived=true` on the API).
+  - REST API: `POST /api/v1/products/{id}/archive` and `/unarchive`; stock-movement endpoints return `409 ProductArchived` when the target is archived.
+  - MVC views: dedicated confirmation screens for both Archive and Unarchive flows; archived rows show a badge and reactivate button.
+- **External archive sync (Nuvemshop)** with eventual consistency:
+  - `IStoreIntegration.SetProductPublishedAsync(externalId, published)` — archive sets `published=false`, unarchive sets `published=true`.
+  - `ProductExternalMapping.SyncStatus` (`Synced` / `PendingArchive` / `PendingUnarchive`) + `LastSyncError` + `LastSyncAttemptAt` persist failures so the local archive is not blocked by an external API outage.
+  - `ProductArchiveService` orchestrates: applies the local change first, then best-effort pushes per mapping; failures flip the mapping to a pending state.
+  - `ArchiveSyncRetryService` (HostedService, every 15 min, configurable via `ArchiveSync:RetryIntervalMinutes`) retries pending publish/unpublish calls automatically.
+  - Banner on the products list shows `N produto(s) com status fora de sincronia` with a `Re-sincronizar agora` button for manual retry.
+- **Bidirectional product sync (puller)** — `POST /api/sync/products` now mirrors both directions:
+  - Existing matcher behavior preserved: external products that match a local SKU get linked.
+  - **Create-on-miss**: external products with no local SKU match are created locally with `CostPrice=0` (needs-review marker) and the external `Price` as `SellingPrice`; missing external category falls back to a `Sem categoria` row.
+  - **Conflict detection**: on already-linked mappings, divergent `Name` or `Price` flips `ProductExternalMapping.HasConflict=true` and stores a human-readable diff in `ConflictDetails`. The product list shows a `Divergente` badge with the details on hover.
+  - Sync response now returns `linked / created / conflicts / needsCostReview / total` and the toast surfaces all counters.
+- **Smoke tests**: 13 new integration tests (`ProductArchiveIntegrationTests` + `PullerSyncIntegrationTests`, the latter wired through a `FakeStoreIntegration` so the controller → factory → service path runs without HTTP).
+
+### Migrations
+
+- `20260428012546_ArchiveProductsAndExternalSyncStatus` — adds `Products.IsArchived/ArchivedAt`, `ProductExternalMappings.SyncStatus/LastSyncError/LastSyncAttemptAt` + index.
+- `20260428014635_ProductMappingConflictTracking` — adds `ProductExternalMappings.HasConflict/ConflictDetails` + index.
+- `20260426233344_FixExternalMappingSequences` — PostgreSQL: aligns identity sequences for the `ProductExternalMappings` table.
+
 ## [7.4.0] - 2026-04-26
 
 ### Added

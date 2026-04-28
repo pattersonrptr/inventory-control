@@ -248,6 +248,7 @@ builder.Services.AddHttpClient("Platform_nuvemshop")
 
 builder.Services.AddSingleton<PlatformRegistry>();
 builder.Services.AddScoped<SyncServiceFactory>();
+builder.Services.AddScoped<InventoryControl.Features.Products.ProductArchiveService>();
 
 // Background order sync runs for all enabled stores
 if (storesConfig.Any(s => s.Enabled))
@@ -263,6 +264,12 @@ if (builder.Configuration.GetValue<bool?>("EmailNotifications:Enabled") == true)
 
 // AuditLog retention cleanup (runs daily)
 builder.Services.AddHostedService<AuditLogCleanupService>();
+
+// Retries archive/unarchive publish-state syncs that previously failed
+if (storesConfig.Any(s => s.Enabled))
+{
+    builder.Services.AddHostedService<ArchiveSyncRetryService>();
+}
 
 // Manual database backup
 builder.Services.AddSingleton<IClock, InventoryControl.Infrastructure.SystemClock>();
@@ -388,6 +395,8 @@ static async Task ApplyMigrationsAsync(
                            ('ProcessedOrders','ProcessedAt','timestamp without time zone'),
                            ('SyncStates','LastProcessedAt','timestamp without time zone'),
                            ('StockMovements','Date','timestamp without time zone'),
+                           ('Products','ArchivedAt','timestamp without time zone'),
+                           ('ProductExternalMappings','LastSyncAttemptAt','timestamp without time zone'),
                            ('AspNetUsers','LockoutEnd','timestamp with time zone')
                 LOOP
                     IF EXISTS (
@@ -414,7 +423,9 @@ static async Task ApplyMigrationsAsync(
                            ('AspNetUsers','PhoneNumberConfirmed'),
                            ('AspNetUsers','TwoFactorEnabled'),
                            ('AspNetUsers','LockoutEnabled'),
-                           ('ProductImages','IsPrimary')
+                           ('ProductImages','IsPrimary'),
+                           ('Products','IsArchived'),
+                           ('ProductExternalMappings','HasConflict')
                 LOOP
                     IF EXISTS (
                         SELECT 1 FROM information_schema.columns
