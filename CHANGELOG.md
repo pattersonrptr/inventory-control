@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.5.0] - 2026-04-28
+
 ### Added
 
 - **Archive/Unarchive products** (soft-delete pattern):
@@ -27,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Conflict detection**: on already-linked mappings, divergent `Name` or `Price` flips `ProductExternalMapping.HasConflict=true` and stores a human-readable diff in `ConflictDetails`. The product list shows a `Divergente` badge with the details on hover.
   - Sync response now returns `linked / created / conflicts / needsCostReview / total` and the toast surfaces all counters.
 - **Smoke tests**: 13 new integration tests (`ProductArchiveIntegrationTests` + `PullerSyncIntegrationTests`, the latter wired through a `FakeStoreIntegration` so the controller → factory → service path runs without HTTP).
+- **Diagnostic log** in `SyncService.SyncProductsFromStoreAsync`: `"Pulled N external products from store X; M local product(s) currently exist."` so future sync issues are visible without code changes.
+
+### Fixed
+
+- **PostgreSQL boolean fixer in `Program.cs`** now `DROP DEFAULT` before `ALTER COLUMN ... TYPE boolean`, then `SET DEFAULT false`. The previous version failed on first install of the `Archive*` and `ProductMappingConflictTracking` migrations because their `defaultValue: false` shipped to PostgreSQL as `DEFAULT 0` (integer), which cannot auto-cast to boolean.
 
 ### Migrations
 
