@@ -125,6 +125,50 @@ public class SyncServiceTests
     }
 
     [Fact]
+    public async Task SyncProductsFromStoreAsync_ExistingMappingForSkulessExternal_LinksWithoutCreating()
+    {
+        // Reproduces the duplication bug: an external product without SKU was
+        // created locally on a previous sync; on re-sync it must match by mapping
+        // (ExternalId), not by SKU, otherwise a duplicate is created every run.
+        var existing = TestDataBuilder.CreateProduct(sku: null);
+        existing.Name = "Test Product";
+        existing.SellingPrice = 9.99m;
+        await SeedProductAsync(existing);
+
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = existing.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-no-sku",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
+
+        _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { existing });
+        _productRepoMock.Setup(r => r.AddAsync(It.IsAny<Product>()))
+            .Callback<Product>(p => { _context.Products.Add(p); _context.SaveChanges(); })
+            .Returns(Task.CompletedTask);
+
+        _storeMock.Setup(s => s.GetProductsAsync())
+            .ReturnsAsync(new[]
+            {
+                new ExternalProduct
+                {
+                    ExternalId = "ext-no-sku",
+                    Sku = "",
+                    Name = "Test Product",
+                    Price = 9.99m
+                }
+            });
+
+        var summary = await _sut.SyncProductsFromStoreAsync();
+
+        Assert.Equal(1, summary.Linked);
+        Assert.Equal(0, summary.Created);
+        _productRepoMock.Verify(r => r.AddAsync(It.IsAny<Product>()), Times.Never);
+    }
+
+    [Fact]
     public async Task SyncProductsFromStoreAsync_NewProductWithImages_TriggersImageDownload()
     {
         _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Product>());

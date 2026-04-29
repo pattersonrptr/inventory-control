@@ -66,6 +66,12 @@ public class SyncService
         var externalProducts = (await _store.GetProductsAsync()).ToList();
         var localProducts = (await _productRepo.GetAllAsync()).ToList();
 
+        // Pre-load mappings for this store so re-syncs of SKU-less external products
+        // don't create duplicates: the ExternalId is a stable identifier even when SKU is empty.
+        var mappingsByExternalId = await _dbContext.ProductExternalMappings
+            .Where(m => m.StoreName == _config.Name)
+            .ToDictionaryAsync(m => m.ExternalId, m => m.ProductId);
+
         _logger.LogInformation(
             "Product sync: pulled {ExternalCount} external products from store '{Store}'; {LocalCount} local product(s) currently exist.",
             externalProducts.Count, _config.Name, localProducts.Count);
@@ -75,11 +81,20 @@ public class SyncService
 
         foreach (var external in externalProducts)
         {
-            // Match by SKU when available
-            var local = !string.IsNullOrEmpty(external.Sku)
-                ? localProducts.FirstOrDefault(p =>
-                    !string.IsNullOrEmpty(p.Sku) && p.Sku == external.Sku)
-                : null;
+            // 1) Identity match via existing external mapping (handles SKU-less products on re-sync).
+            Product? local = null;
+            if (mappingsByExternalId.TryGetValue(external.ExternalId, out var mappedProductId))
+            {
+                local = localProducts.FirstOrDefault(p => p.Id == mappedProductId);
+                // If the mapping is orphaned (local product was deleted), fall through.
+            }
+
+            // 2) Fall back to SKU match.
+            if (local is null && !string.IsNullOrEmpty(external.Sku))
+            {
+                local = localProducts.FirstOrDefault(p =>
+                    !string.IsNullOrEmpty(p.Sku) && p.Sku == external.Sku);
+            }
 
             if (local is not null)
             {

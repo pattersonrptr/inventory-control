@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [7.6.0] - 2026-04-29
 
+### Fixed
+
+- **Puller no longer creates duplicate local products on every re-sync** when an external product has no SKU. The matcher now uses the existing `ProductExternalMapping` (by `ExternalId + StoreName`) as the primary identity check, falling back to SKU only when no mapping exists. Bug shipped in v7.5.0 but only manifested on the second sync of a SKU-less product. Defensive fallthrough handles the (cascade-protected) orphan-mapping case as well.
+
 ### Added
 
 - **Image sync — pull direction (Nuvemshop → IC)**:
