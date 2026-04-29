@@ -20,6 +20,7 @@ public class SyncService
     private readonly AppDbContext _dbContext;
     private readonly IntegrationConfig _config;
     private readonly ILogger<SyncService> _logger;
+    private readonly IProductImageDownloader _imageDownloader;
 
     /// <summary>
     /// Order statuses that indicate confirmed payment and should trigger stock deduction.
@@ -40,7 +41,8 @@ public class SyncService
         IProcessedOrderRepository processedOrderRepo,
         AppDbContext dbContext,
         IntegrationConfig config,
-        ILogger<SyncService> logger)
+        ILogger<SyncService> logger,
+        IProductImageDownloader imageDownloader)
     {
         _store = store;
         _productRepo = productRepo;
@@ -50,6 +52,7 @@ public class SyncService
         _dbContext = dbContext;
         _config = config;
         _logger = logger;
+        _imageDownloader = imageDownloader;
     }
 
     /// <summary>
@@ -102,6 +105,24 @@ public class SyncService
 
                 summary.Created++;
                 if (created.CostPrice == 0m) summary.NeedsCostReview++;
+
+                if (external.Images.Count > 0)
+                {
+                    try
+                    {
+                        var imagesSaved = await _imageDownloader.DownloadAndSaveAsync(created.Id, external.Images);
+                        summary.ImagesDownloaded += imagesSaved;
+                        _logger.LogInformation(
+                            "Downloaded {Count} image(s) for product {ProductName} (id={Id}).",
+                            imagesSaved, created.Name, created.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "Failed to download images for product {ProductName} (id={Id}); product was created without images.",
+                            created.Name, created.Id);
+                    }
+                }
 
                 _logger.LogInformation(
                     "Created local product {ProductName} (id={Id}) from external id {ExternalId}. CostPrice=0 (needs review).",
@@ -167,6 +188,45 @@ public class SyncService
         };
         await _productRepo.AddAsync(product);
         return product;
+    }
+
+    /// <summary>
+    /// Manually imports images from the external store for a product that is already
+    /// mapped (matched by SKU). Skipped automatically during normal sync to avoid
+    /// surprising users who may have curated their local images. Idempotent —
+    /// existing images linked by ExternalImageId are not re-downloaded.
+    /// </summary>
+    public async Task<int> ImportImagesForLinkedProductAsync(int productId)
+    {
+        var mapping = await _dbContext.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
+
+        if (mapping is null)
+        {
+            _logger.LogWarning(
+                "Cannot import images for product id={ProductId}: no mapping for store '{StoreName}'.",
+                productId, _config.Name);
+            return 0;
+        }
+
+        var allExternal = (await _store.GetProductsAsync()).ToList();
+        var external = allExternal.FirstOrDefault(p => p.ExternalId == mapping.ExternalId);
+
+        if (external is null)
+        {
+            _logger.LogWarning(
+                "Cannot import images for product id={ProductId}: external product {ExternalId} not found in store '{StoreName}'.",
+                productId, mapping.ExternalId, _config.Name);
+            return 0;
+        }
+
+        if (external.Images.Count == 0) return 0;
+
+        var saved = await _imageDownloader.DownloadAndSaveAsync(productId, external.Images);
+        _logger.LogInformation(
+            "Imported {Count} image(s) for product id={ProductId} from store '{StoreName}'.",
+            saved, productId, _config.Name);
+        return saved;
     }
 
     /// <summary>
@@ -524,5 +584,6 @@ public class ProductSyncSummary
     public int Created { get; set; }
     public int Conflicts { get; set; }
     public int NeedsCostReview { get; set; }
+    public int ImagesDownloaded { get; set; }
     public int Total => Linked + Created + Conflicts;
 }

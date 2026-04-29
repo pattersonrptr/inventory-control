@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.6.0] - 2026-04-29
+
+### Added
+
+- **Image sync — pull direction (Nuvemshop → IC)**:
+  - `ExternalProduct.Images` (new `ExternalImage` abstraction with `ExternalId`, `Url`, `Position`) so the integration contract can carry image metadata across platforms.
+  - `NuvemshopProduct.Images` mapped from the Nuvemshop product API response; `NuvemshopIntegration` populates `ExternalProduct.Images` ordered by position.
+  - `IProductImageDownloader` / `ProductImageDownloader`: downloads each image via a named `HttpClient`, validates content type (`jpeg/png/webp/gif` only) and size (≤ 8 MB), saves to `wwwroot/images/products/`, and creates a `ProductImage` record. The first image becomes `IsPrimary=true` only when the product has no existing images.
+  - `SyncService.SyncProductsFromStoreAsync` triggers image download **only on the puller path** (`Created` products). Linked products (matched by SKU) intentionally do NOT auto-import images — they may have curated local uploads.
+  - Manual import endpoint `POST /api/sync/import-images/{productId}` for already-linked products. Idempotent: existing `ProductImages` with the same `ExternalImageId` are skipped, so re-running won't duplicate.
+  - `ProductSyncSummary.ImagesDownloaded` counter; the sync response includes the count.
+- **`ProductImage.ExternalImageId` and `ExternalUrl`** (both nullable) for deduplication and future Phase 2 (push direction).
+
+### Migrations
+
+- `20260429201142_AddProductImageExternalRefs` — adds nullable `ExternalImageId` (max 64) and `ExternalUrl` (max 500) on `ProductImages`, replaces `IX_ProductImages_ProductId` with composite `IX_ProductImages_ProductId_ExternalImageId`. Both columns are strings, so no PostgreSQL boolean-default gotcha applies.
+
 ## [7.5.0] - 2026-04-28
 
 ### Added

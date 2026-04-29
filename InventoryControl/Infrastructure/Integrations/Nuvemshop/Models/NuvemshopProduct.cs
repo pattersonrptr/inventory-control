@@ -15,4 +15,7 @@ public class NuvemshopProduct
 
     [JsonPropertyName("variants")]
     public List<NuvemshopVariant> Variants { get; set; } = new();
+
+    [JsonPropertyName("images")]
+    public List<NuvemshopImage> Images { get; set; } = new();
 }

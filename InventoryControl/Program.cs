@@ -249,6 +249,8 @@ builder.Services.AddHttpClient("Platform_nuvemshop")
 builder.Services.AddSingleton<PlatformRegistry>();
 builder.Services.AddScoped<SyncServiceFactory>();
 builder.Services.AddScoped<InventoryControl.Features.Products.ProductArchiveService>();
+builder.Services.AddScoped<IProductImageDownloader, ProductImageDownloader>();
+builder.Services.AddHttpClient("ProductImageDownloader");
 
 // Background order sync runs for all enabled stores
 if (storesConfig.Any(s => s.Enabled))

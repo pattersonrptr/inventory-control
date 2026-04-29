@@ -104,6 +104,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.HasKey(pi => pi.Id);
             entity.Property(pi => pi.ImagePath).IsRequired().HasMaxLength(500);
             entity.Property(pi => pi.AltText).HasMaxLength(200);
+            entity.Property(pi => pi.ExternalImageId).HasMaxLength(64);
+            entity.Property(pi => pi.ExternalUrl).HasMaxLength(500);
+
+            entity.HasIndex(pi => new { pi.ProductId, pi.ExternalImageId });
 
             entity.HasOne(pi => pi.Product)
                   .WithMany(p => p.Images)

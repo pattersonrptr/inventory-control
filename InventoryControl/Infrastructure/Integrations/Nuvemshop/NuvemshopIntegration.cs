@@ -33,7 +33,16 @@ public class NuvemshopIntegration : IStoreIntegration
                 Sku = v.Sku,
                 Price = decimal.TryParse(v.Price, out var vPrice) ? vPrice : 0m,
                 Stock = v.Stock ?? 0
-            }).ToList()
+            }).ToList(),
+            Images = p.Images
+                .Where(img => !string.IsNullOrWhiteSpace(img.Src))
+                .OrderBy(img => img.Position)
+                .Select(img => new ExternalImage
+                {
+                    ExternalId = img.Id.ToString(),
+                    Url = img.Src!,
+                    Position = img.Position
+                }).ToList()
         });
     }
 
