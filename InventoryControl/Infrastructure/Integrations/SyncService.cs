@@ -195,7 +195,7 @@ public class SyncService
             Name = string.IsNullOrWhiteSpace(external.Name) ? $"Produto {external.ExternalId}" : external.Name,
             Description = external.Description,
             CostPrice = 0m,
-            SellingPrice = external.Price > 0 ? external.Price : 0.01m,
+            SellingPrice = external.Price,
             CurrentStock = external.Stock,
             MinimumStock = 0,
             Sku = string.IsNullOrWhiteSpace(external.Sku) ? null : external.Sku,
