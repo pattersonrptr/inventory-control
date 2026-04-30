@@ -13,10 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Image sync — push direction (IC → Nuvemshop)**:
   - `IStoreIntegration.UploadProductImageAsync` (raw bytes + filename + position) so each platform can encode as it requires; the Nuvemshop adapter wraps `NuvemshopClient.UploadProductImageAsync` which sends a base64 attachment via `POST /products/{id}/images`. Base64 was chosen so the IC can run on `localhost`/intranet without exposing image URLs publicly.
-  - `IProductImageUploader` / `ProductImageUploader`: reads each pending `ProductImage` from `wwwroot`, validates size (≤ 8 MB), uploads, and persists the platform-assigned `ExternalImageId` and `ExternalUrl`. Idempotent — images that already have `ExternalImageId` are skipped.
-  - `SyncService.PushImagesToStoreAsync(productId)` for already-linked products and `POST /api/sync/push-images/{productId}` to expose it via API.
-  - `SyncService.PushProductToStoreAsync` now uploads the product's images automatically right after the product is created on the store. Image upload errors are caught so a partial failure does not invalidate the product mapping; the user can retry via the new endpoint.
-  - "Enviar imagens" button on the products index for linked products (`bi-images` icon), parallel to the existing "Enviar para Loja" button on unlinked products.
+  - `IProductImageUploader` / `ProductImageUploader`: reads each pending `ProductImage` from `wwwroot`, validates size (≤ 8 MB), uploads, and persists the platform-assigned `ExternalImageId` and `ExternalUrl`. Idempotent — images that already have `ExternalImageId` are skipped. Returns a transparent `ImageUploadSummary(Uploaded, SkippedFileMissing, SkippedTooLarge, Failed)` so the UI can explain partial outcomes instead of just "0 imagens".
+  - `SyncService.PushProductToStoreAsync` now uploads the product's images automatically right after the product is created on the store. Image upload errors are caught so a partial failure does not invalidate the product mapping; the user can retry via the unified endpoint.
+  - **Unified push button** "Sincronizar com loja" replaces the previous split between "Enviar para Loja" (unlinked) and "Enviar imagens" (linked). The new `POST /api/sync/push-to-store/{productId}` endpoint dispatches internally — first call creates + uploads images, subsequent calls upload only new images.
+  - **Orphan-image admin tooling**: `GET /api/sync/orphan-images` reports how many `ProductImage` rows point to files that no longer exist on disk (e.g. after a container reset without a persistent volume). `POST /api/sync/cleanup-orphan-images` deletes those rows. Manual-only — orphans are never auto-removed during sync. The Products index shows a warning banner when orphans are detected.
+
+### Fixed
+
+- **`product-images` Docker volume**: `docker-compose.yml` now mounts a named `product-images` volume on `/app/wwwroot/images/products` so locally-uploaded images survive `docker compose down -v && docker compose build app --no-cache && docker compose up -d`. Previously the image files lived only inside the container's ephemeral filesystem; on every rebuild the database kept the `ProductImages` rows but the files vanished, leaving broken `<img>` tags and confusing "Nenhuma imagem nova" responses from the push endpoint (because `UploadPendingAsync` was silently skipping pending rows whose files were missing).
+- **Duplicate-SKU error in Create/Edit**: `ProductsController.Create` and `Edit` POST now catch `DbUpdateException` from the unique-SKU index and surface a friendly form error instead of letting the exception bubble up to a generic error page.
 
 ## [7.6.0] - 2026-04-30
 

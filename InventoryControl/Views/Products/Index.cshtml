@@ -35,6 +35,21 @@
     </div>
 }
 
+@if (ViewBag.IntegrationEnabled == true)
+{
+    <div id="orphanImagesBanner" class="alert alert-warning d-none d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong><span class="orphan-count">0</span> imagem(ns)</strong> com arquivo perdido no disco
+            (provavelmente após reset do container). Esses registros não conseguem ser sincronizados —
+            re-faça o upload no produto correspondente, ou limpe os registros órfãos.
+        </div>
+        <button type="button" class="btn btn-sm btn-warning" onclick="cleanupOrphanImages()">
+            <i class="bi bi-trash"></i> Limpar registros órfãos
+        </button>
+    </div>
+}
+
 <div class="card">
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
@@ -127,20 +142,12 @@
                                class="btn btn-sm btn-outline-danger" title="Excluir">
                                 <i class="bi bi-trash"></i>
                             </a>
-                            @if (ViewBag.IntegrationEnabled == true && !item.IsArchived && !item.ExternalMappings.Any())
+                            @if (ViewBag.IntegrationEnabled == true && !item.IsArchived)
                             {
                                 <button class="btn btn-sm btn-outline-success"
-                                        title="Enviar para Loja"
-                                        onclick="pushProduct(@item.Id, this)">
+                                        title="Sincronizar com loja (envia produto e imagens novas)"
+                                        onclick="pushToStore(@item.Id, this)">
                                     <i class="bi bi-cloud-upload"></i>
-                                </button>
-                            }
-                            @if (ViewBag.IntegrationEnabled == true && !item.IsArchived && item.ExternalMappings.Any())
-                            {
-                                <button class="btn btn-sm btn-outline-info"
-                                        title="Enviar imagens para loja"
-                                        onclick="pushImages(@item.Id, this)">
-                                    <i class="bi bi-images"></i>
                                 </button>
                             }
                         </td>
@@ -172,35 +179,48 @@
     </div>
 
     <script>
-        async function pushProduct(productId, btn) {
+        async function pushToStore(productId, btn) {
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
             try {
-                const res = await fetch(`/api/sync/push-product/${productId}`, { method: 'POST' });
-                const data = await res.json();
-                showPushToast(res.ok, data.message ?? (res.ok ? 'Enviado.' : 'Falhou.'));
-                if (res.ok) btn.closest('tr').querySelector('.btn-outline-success')?.remove();
-            } catch (e) {
-                showPushToast(false, 'Falha na requisição: ' + e.message);
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-cloud-upload"></i>';
-            }
-        }
-
-        async function pushImages(productId, btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
-            try {
-                const res = await fetch(`/api/sync/push-images/${productId}`, { method: 'POST' });
+                const res = await fetch(`/api/sync/push-to-store/${productId}`, { method: 'POST' });
                 const data = await res.json();
                 showPushToast(res.ok, data.message ?? (res.ok ? 'Enviado.' : 'Falhou.'));
             } catch (e) {
                 showPushToast(false, 'Falha na requisição: ' + e.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-images"></i>';
+                btn.innerHTML = '<i class="bi bi-cloud-upload"></i>';
             }
         }
+
+        async function cleanupOrphanImages() {
+            if (!confirm('Remover do banco os registros de imagem cujo arquivo não existe mais no disco? Esta ação não pode ser desfeita.')) return;
+            try {
+                const res = await fetch('/api/sync/cleanup-orphan-images', { method: 'POST' });
+                const data = await res.json();
+                showPushToast(res.ok, data.message ?? (res.ok ? 'Limpeza concluída.' : 'Falhou.'));
+                if (res.ok) document.getElementById('orphanImagesBanner')?.remove();
+            } catch (e) {
+                showPushToast(false, 'Falha na requisição: ' + e.message);
+            }
+        }
+
+        async function checkOrphanImages() {
+            try {
+                const res = await fetch('/api/sync/orphan-images');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.count > 0) {
+                    const banner = document.getElementById('orphanImagesBanner');
+                    if (banner) {
+                        banner.querySelector('.orphan-count').textContent = data.count;
+                        banner.classList.remove('d-none');
+                    }
+                }
+            } catch { /* ignore — banner just stays hidden */ }
+        }
+        document.addEventListener('DOMContentLoaded', checkOrphanImages);
 
         function showPushToast(success, message) {
             const toastEl = document.getElementById('pushToast');

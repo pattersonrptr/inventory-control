@@ -60,6 +60,7 @@ services:
       - Api__Keys__0__Role=Admin
     volumes:
       - rclone-config:/config/rclone:ro
+      - product-images:/app/wwwroot/images/products
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
       interval: 30s
@@ -95,7 +96,7 @@ services:
   offsite-backup:
     image: rclone/rclone
     container_name: inventory-offsite-backup
-    profiles: ["offsite"]
+    # profiles: ["offsite"]
     depends_on:
       - backup
     volumes:
@@ -120,3 +121,4 @@ volumes:
   db-data:
   backups:
   rclone-config:
+  product-images:

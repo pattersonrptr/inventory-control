@@ -368,7 +368,7 @@ public class SyncServiceTests
             .ReturnsAsync(new ExternalProduct { ExternalId = "ext-img" });
         _imageUploaderMock
             .Setup(u => u.UploadPendingAsync(product.Id, _storeMock.Object, "ext-img", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(2);
+            .ReturnsAsync(new ImageUploadSummary(Uploaded: 2, SkippedFileMissing: 0, SkippedTooLarge: 0, Failed: 0));
 
         await _sut.PushProductToStoreAsync(product.Id);
 
@@ -399,14 +399,15 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task PushImagesToStoreAsync_NoMapping_ReturnsZero()
+    public async Task PushImagesToStoreAsync_NoMapping_ReturnsEmpty()
     {
         var product = TestDataBuilder.CreateProduct();
         await SeedProductAsync(product);
 
-        var uploaded = await _sut.PushImagesToStoreAsync(product.Id);
+        var summary = await _sut.PushImagesToStoreAsync(product.Id);
 
-        Assert.Equal(0, uploaded);
+        Assert.Equal(0, summary.Uploaded);
+        Assert.Equal(0, summary.Total);
         _imageUploaderMock.Verify(u => u.UploadPendingAsync(
             It.IsAny<int>(), It.IsAny<IStoreIntegration>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -427,11 +428,59 @@ public class SyncServiceTests
         await _context.SaveChangesAsync();
         _imageUploaderMock
             .Setup(u => u.UploadPendingAsync(product.Id, _storeMock.Object, "ext-99", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(3);
+            .ReturnsAsync(new ImageUploadSummary(Uploaded: 3, SkippedFileMissing: 0, SkippedTooLarge: 0, Failed: 0));
 
-        var uploaded = await _sut.PushImagesToStoreAsync(product.Id);
+        var summary = await _sut.PushImagesToStoreAsync(product.Id);
 
-        Assert.Equal(3, uploaded);
+        Assert.Equal(3, summary.Uploaded);
+    }
+
+    [Fact]
+    public async Task PushToStoreAsync_NotMapped_CreatesProduct()
+    {
+        var product = TestDataBuilder.CreateProduct();
+        await SeedProductAsync(product);
+        _productRepoMock.Setup(r => r.GetByIdAsync(product.Id)).ReturnsAsync(product);
+        _storeMock.Setup(s => s.CreateProductAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<decimal>(),
+            It.IsAny<string?>(), It.IsAny<int>()))
+            .ReturnsAsync(new ExternalProduct { ExternalId = "ext-unified" });
+        _imageUploaderMock
+            .Setup(u => u.UploadPendingAsync(It.IsAny<int>(), It.IsAny<IStoreIntegration>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ImageUploadSummary.Empty);
+
+        var result = await _sut.PushToStoreAsync(product.Id);
+
+        Assert.True(result.WasNewlyCreated);
+        _storeMock.Verify(s => s.CreateProductAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<decimal>(),
+            It.IsAny<string?>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PushToStoreAsync_AlreadyMapped_OnlyUploadsImages()
+    {
+        var product = TestDataBuilder.CreateProduct();
+        await SeedProductAsync(product);
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = product.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-77",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
+        _imageUploaderMock
+            .Setup(u => u.UploadPendingAsync(product.Id, _storeMock.Object, "ext-77", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImageUploadSummary(Uploaded: 1, SkippedFileMissing: 0, SkippedTooLarge: 0, Failed: 0));
+
+        var result = await _sut.PushToStoreAsync(product.Id);
+
+        Assert.False(result.WasNewlyCreated);
+        Assert.Equal(1, result.ImageSummary.Uploaded);
+        _storeMock.Verify(s => s.CreateProductAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<decimal>(),
+            It.IsAny<string?>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]

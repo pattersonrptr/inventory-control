@@ -9,11 +9,22 @@ namespace InventoryControl.Infrastructure.Integrations;
 
 public interface IProductImageUploader
 {
-    Task<int> UploadPendingAsync(
+    Task<ImageUploadSummary> UploadPendingAsync(
         int productId,
         IStoreIntegration integration,
         string externalProductId,
         CancellationToken ct = default);
+}
+
+public sealed record ImageUploadSummary(
+    int Uploaded,
+    int SkippedFileMissing,
+    int SkippedTooLarge,
+    int Failed)
+{
+    public static ImageUploadSummary Empty { get; } = new(0, 0, 0, 0);
+    public int Total => Uploaded + SkippedFileMissing + SkippedTooLarge + Failed;
+    public bool HasIssues => SkippedFileMissing > 0 || SkippedTooLarge > 0 || Failed > 0;
 }
 
 /// <summary>
@@ -39,7 +50,7 @@ public class ProductImageUploader : IProductImageUploader
         _logger = logger;
     }
 
-    public async Task<int> UploadPendingAsync(
+    public async Task<ImageUploadSummary> UploadPendingAsync(
         int productId,
         IStoreIntegration integration,
         string externalProductId,
@@ -50,17 +61,23 @@ public class ProductImageUploader : IProductImageUploader
             .OrderBy(pi => pi.DisplayOrder)
             .ToListAsync(ct);
 
-        if (pending.Count == 0) return 0;
+        if (pending.Count == 0) return ImageUploadSummary.Empty;
 
         var uploaded = 0;
+        var skippedMissing = 0;
+        var skippedTooLarge = 0;
+        var failed = 0;
+
         foreach (var image in pending)
         {
             var fullPath = Path.Combine(_env.WebRootPath, image.ImagePath.TrimStart('/'));
             if (!File.Exists(fullPath))
             {
                 _logger.LogWarning(
-                    "Cannot upload image id={ImageId}: file not found at {Path}.",
+                    "Cannot upload image id={ImageId}: file not found at {Path}. " +
+                    "Use POST /api/sync/cleanup-orphan-images to remove DB rows pointing to missing files.",
                     image.Id, fullPath);
+                skippedMissing++;
                 continue;
             }
 
@@ -70,6 +87,7 @@ public class ProductImageUploader : IProductImageUploader
                 _logger.LogWarning(
                     "Skipping image id={ImageId} — size {Size} exceeds limit {Limit}.",
                     image.Id, fileInfo.Length, MaxBytes);
+                skippedTooLarge++;
                 continue;
             }
 
@@ -86,6 +104,7 @@ public class ProductImageUploader : IProductImageUploader
                     _logger.LogWarning(
                         "Upload of image id={ImageId} returned null for product {ProductId}.",
                         image.Id, productId);
+                    failed++;
                     continue;
                 }
 
@@ -98,10 +117,11 @@ public class ProductImageUploader : IProductImageUploader
                 _logger.LogWarning(ex,
                     "Failed to upload image id={ImageId} for product {ProductId}. Continuing with the rest.",
                     image.Id, productId);
+                failed++;
             }
         }
 
         if (uploaded > 0) await _db.SaveChangesAsync(ct);
-        return uploaded;
+        return new ImageUploadSummary(uploaded, skippedMissing, skippedTooLarge, failed);
     }
 }

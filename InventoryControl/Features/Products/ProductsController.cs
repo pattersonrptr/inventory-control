@@ -76,7 +76,17 @@ public class ProductsController : Controller
             product.Images = await SaveImagesAsync(images);
         }
 
-        await _productRepo.AddAsync(product);
+        try
+        {
+            await _productRepo.AddAsync(product);
+        }
+        catch (DbUpdateException ex) when (IsUniqueSkuViolation(ex, product.Sku))
+        {
+            ModelState.AddModelError(nameof(product.Sku),
+                $"Já existe um produto com o SKU '{product.Sku}'. Escolha outro.");
+            await PopulateDropdownsAsync(product.CategoryId);
+            return View(product);
+        }
         TempData["Success"] = "Produto criado com sucesso!";
         return RedirectToAction(nameof(Index));
     }
@@ -122,9 +132,29 @@ public class ProductsController : Controller
             await _context.SaveChangesAsync();
         }
 
-        await _productRepo.UpdateAsync(product);
+        try
+        {
+            await _productRepo.UpdateAsync(product);
+        }
+        catch (DbUpdateException ex) when (IsUniqueSkuViolation(ex, product.Sku))
+        {
+            ModelState.AddModelError(nameof(product.Sku),
+                $"Já existe outro produto com o SKU '{product.Sku}'. Escolha outro.");
+            await PopulateDropdownsAsync(product.CategoryId);
+            return View(product);
+        }
         TempData["Success"] = "Produto atualizado com sucesso!";
         return RedirectToAction(nameof(Index));
+    }
+
+    private static bool IsUniqueSkuViolation(DbUpdateException ex, string? sku)
+    {
+        if (string.IsNullOrEmpty(sku)) return false;
+        // PostgreSQL: SQLSTATE 23505; SQLite: error code 19/2067 (constraint).
+        // Inner message reliably mentions the SKU index name on both providers.
+        var msg = (ex.InnerException?.Message ?? ex.Message);
+        return msg.Contains("IX_Products_Sku", StringComparison.OrdinalIgnoreCase)
+            || msg.Contains("Products_Sku", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<IActionResult> Delete(int id)

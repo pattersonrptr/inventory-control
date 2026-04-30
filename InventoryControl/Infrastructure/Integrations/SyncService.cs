@@ -281,17 +281,18 @@ public class SyncService
 
         try
         {
-            var imagesUploaded = await _imageUploader.UploadPendingAsync(product.Id, _store, external.ExternalId);
-            if (imagesUploaded > 0)
+            var summary = await _imageUploader.UploadPendingAsync(product.Id, _store, external.ExternalId);
+            if (summary.Total > 0)
                 _logger.LogInformation(
-                    "Uploaded {Count} image(s) for product {ProductName} (id={Id}) on store '{StoreName}'.",
-                    imagesUploaded, product.Name, product.Id, _config.Name);
+                    "Image upload result for product {ProductName} (id={Id}) on store '{StoreName}': {Uploaded} uploaded, {Missing} missing, {TooLarge} too large, {Failed} failed.",
+                    product.Name, product.Id, _config.Name,
+                    summary.Uploaded, summary.SkippedFileMissing, summary.SkippedTooLarge, summary.Failed);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex,
-                "Product {ProductId} pushed but image upload failed; images can be retried via /api/sync/push-images/{ProductId}.",
-                product.Id, product.Id);
+                "Product {ProductId} pushed but image upload failed; images can be retried via the unified push endpoint.",
+                product.Id);
         }
     }
 
@@ -300,7 +301,7 @@ public class SyncService
     /// already-linked product to the external store. Idempotent — images already
     /// linked to an external id are skipped.
     /// </summary>
-    public async Task<int> PushImagesToStoreAsync(int productId)
+    public async Task<ImageUploadSummary> PushImagesToStoreAsync(int productId)
     {
         var mapping = await _dbContext.ProductExternalMappings
             .FirstOrDefaultAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
@@ -310,14 +311,75 @@ public class SyncService
             _logger.LogWarning(
                 "Cannot push images for product id={ProductId}: no mapping for store '{StoreName}'.",
                 productId, _config.Name);
-            return 0;
+            return ImageUploadSummary.Empty;
         }
 
-        var uploaded = await _imageUploader.UploadPendingAsync(productId, _store, mapping.ExternalId);
+        var summary = await _imageUploader.UploadPendingAsync(productId, _store, mapping.ExternalId);
         _logger.LogInformation(
-            "Pushed {Count} image(s) for product id={ProductId} to store '{StoreName}'.",
-            uploaded, productId, _config.Name);
-        return uploaded;
+            "Image push for product id={ProductId} to store '{StoreName}': {Uploaded} uploaded, {Missing} missing, {TooLarge} too large, {Failed} failed.",
+            productId, _config.Name,
+            summary.Uploaded, summary.SkippedFileMissing, summary.SkippedTooLarge, summary.Failed);
+        return summary;
+    }
+
+    /// <summary>
+    /// Unified "send this product to the store" entry point. Hides the difference
+    /// between first-time push (create product + upload images) and ongoing push
+    /// (upload only the new images) so the UI can offer one button.
+    /// </summary>
+    public async Task<UnifiedPushResult> PushToStoreAsync(int productId)
+    {
+        var alreadyMapped = await _dbContext.ProductExternalMappings
+            .AnyAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
+
+        if (!alreadyMapped)
+        {
+            await PushProductToStoreAsync(productId);
+            // After PushProductToStoreAsync the mapping should exist if the create
+            // call succeeded; image upload already ran inside it.
+            var nowMapped = await _dbContext.ProductExternalMappings
+                .AnyAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
+            return new UnifiedPushResult(WasNewlyCreated: nowMapped, ImageSummary: ImageUploadSummary.Empty);
+        }
+
+        var imageSummary = await PushImagesToStoreAsync(productId);
+        return new UnifiedPushResult(WasNewlyCreated: false, ImageSummary: imageSummary);
+    }
+
+    /// <summary>
+    /// Counts ProductImage rows whose file does not exist on disk anymore.
+    /// Used by the admin "show orphan images" warning so the user knows that
+    /// some images need re-uploading.
+    /// </summary>
+    public async Task<int> CountOrphanImagesAsync(string webRootPath, CancellationToken ct = default)
+    {
+        var images = await _dbContext.ProductImages
+            .Select(pi => new { pi.Id, pi.ImagePath })
+            .ToListAsync(ct);
+
+        return images.Count(i => !File.Exists(Path.Combine(webRootPath, i.ImagePath.TrimStart('/'))));
+    }
+
+    /// <summary>
+    /// Deletes ProductImage rows whose file is missing on disk. The user must
+    /// explicitly trigger this — orphans are NOT auto-removed during sync.
+    /// </summary>
+    public async Task<int> CleanupOrphanImagesAsync(string webRootPath, CancellationToken ct = default)
+    {
+        var allImages = await _dbContext.ProductImages.ToListAsync(ct);
+        var orphans = allImages
+            .Where(pi => !File.Exists(Path.Combine(webRootPath, pi.ImagePath.TrimStart('/'))))
+            .ToList();
+
+        if (orphans.Count == 0) return 0;
+
+        _dbContext.ProductImages.RemoveRange(orphans);
+        await _dbContext.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Removed {Count} orphan ProductImage row(s) whose files were missing on disk.",
+            orphans.Count);
+        return orphans.Count;
     }
 
     /// <summary>
@@ -646,3 +708,5 @@ public class ProductSyncSummary
     public int ImagesDownloaded { get; set; }
     public int Total => Linked + Created + Conflicts;
 }
+
+public sealed record UnifiedPushResult(bool WasNewlyCreated, ImageUploadSummary ImageSummary);
