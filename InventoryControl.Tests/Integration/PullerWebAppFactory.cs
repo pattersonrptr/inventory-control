@@ -132,6 +132,14 @@ public class FakeStoreIntegration : IStoreIntegration
         PublishedCalls.Add((externalProductId, published));
         return Task.CompletedTask;
     }
+
+    public Task<ExternalImage?> UploadProductImageAsync(
+        string externalProductId,
+        byte[] content,
+        string fileName,
+        int position,
+        CancellationToken ct = default)
+        => Task.FromResult<ExternalImage?>(null);
 }
 
 public class FakePlatformFactory : IPlatformFactory

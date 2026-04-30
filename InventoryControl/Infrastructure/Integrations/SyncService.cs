@@ -21,6 +21,7 @@ public class SyncService
     private readonly IntegrationConfig _config;
     private readonly ILogger<SyncService> _logger;
     private readonly IProductImageDownloader _imageDownloader;
+    private readonly IProductImageUploader _imageUploader;
 
     /// <summary>
     /// Order statuses that indicate confirmed payment and should trigger stock deduction.
@@ -42,7 +43,8 @@ public class SyncService
         AppDbContext dbContext,
         IntegrationConfig config,
         ILogger<SyncService> logger,
-        IProductImageDownloader imageDownloader)
+        IProductImageDownloader imageDownloader,
+        IProductImageUploader imageUploader)
     {
         _store = store;
         _productRepo = productRepo;
@@ -53,6 +55,7 @@ public class SyncService
         _config = config;
         _logger = logger;
         _imageDownloader = imageDownloader;
+        _imageUploader = imageUploader;
     }
 
     /// <summary>
@@ -246,6 +249,7 @@ public class SyncService
 
     /// <summary>
     /// Creates a local product in the external store, saving the returned ExternalId.
+    /// Also uploads any local images that have not been pushed yet.
     /// </summary>
     public async Task PushProductToStoreAsync(int productId)
     {
@@ -274,6 +278,46 @@ public class SyncService
         _logger.LogInformation(
             "Pushed product {ProductName} (id={Id}) to store '{StoreName}', externalId={ExternalId}.",
             product.Name, product.Id, _config.Name, external.ExternalId);
+
+        try
+        {
+            var imagesUploaded = await _imageUploader.UploadPendingAsync(product.Id, _store, external.ExternalId);
+            if (imagesUploaded > 0)
+                _logger.LogInformation(
+                    "Uploaded {Count} image(s) for product {ProductName} (id={Id}) on store '{StoreName}'.",
+                    imagesUploaded, product.Name, product.Id, _config.Name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Product {ProductId} pushed but image upload failed; images can be retried via /api/sync/push-images/{ProductId}.",
+                product.Id, product.Id);
+        }
+    }
+
+    /// <summary>
+    /// Uploads any pending local images (those with no ExternalImageId) of an
+    /// already-linked product to the external store. Idempotent — images already
+    /// linked to an external id are skipped.
+    /// </summary>
+    public async Task<int> PushImagesToStoreAsync(int productId)
+    {
+        var mapping = await _dbContext.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
+
+        if (mapping is null)
+        {
+            _logger.LogWarning(
+                "Cannot push images for product id={ProductId}: no mapping for store '{StoreName}'.",
+                productId, _config.Name);
+            return 0;
+        }
+
+        var uploaded = await _imageUploader.UploadPendingAsync(productId, _store, mapping.ExternalId);
+        _logger.LogInformation(
+            "Pushed {Count} image(s) for product id={ProductId} to store '{StoreName}'.",
+            uploaded, productId, _config.Name);
+        return uploaded;
     }
 
     /// <summary>

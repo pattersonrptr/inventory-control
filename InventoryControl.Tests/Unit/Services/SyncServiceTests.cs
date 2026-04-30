@@ -17,6 +17,7 @@ public class SyncServiceTests
     private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
     private readonly Mock<IProcessedOrderRepository> _processedOrderRepoMock = new();
     private readonly Mock<IProductImageDownloader> _imageDownloaderMock = new();
+    private readonly Mock<IProductImageUploader> _imageUploaderMock = new();
     private readonly IntegrationConfig _config = new() { Name = "test-store", Enabled = true, Platform = "test-platform" };
     private readonly DatabaseFixture _fixture = new();
     private readonly AppDbContext _context;
@@ -34,7 +35,8 @@ public class SyncServiceTests
             _context,
             _config,
             Mock.Of<ILogger<SyncService>>(),
-            _imageDownloaderMock.Object);
+            _imageDownloaderMock.Object,
+            _imageUploaderMock.Object);
     }
 
     private async Task SeedProductAsync(Product product)
@@ -353,6 +355,83 @@ public class SyncServiceTests
             .FirstOrDefaultAsync(m => m.ProductId == product.Id && m.StoreName == "test-store");
         Assert.NotNull(mapping);
         Assert.Equal("ext-new", mapping.ExternalId);
+    }
+
+    [Fact]
+    public async Task PushProductToStoreAsync_Success_AlsoUploadsImages()
+    {
+        var product = TestDataBuilder.CreateProduct();
+        await SeedProductAsync(product);
+        _productRepoMock.Setup(r => r.GetByIdAsync(product.Id)).ReturnsAsync(product);
+        _storeMock.Setup(s => s.CreateProductAsync(
+            product.Name, product.Description, product.SellingPrice, product.Sku, product.CurrentStock))
+            .ReturnsAsync(new ExternalProduct { ExternalId = "ext-img" });
+        _imageUploaderMock
+            .Setup(u => u.UploadPendingAsync(product.Id, _storeMock.Object, "ext-img", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        await _sut.PushProductToStoreAsync(product.Id);
+
+        _imageUploaderMock.Verify(u => u.UploadPendingAsync(
+            product.Id, _storeMock.Object, "ext-img", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task PushProductToStoreAsync_ImageUploadThrows_DoesNotPropagate()
+    {
+        var product = TestDataBuilder.CreateProduct();
+        await SeedProductAsync(product);
+        _productRepoMock.Setup(r => r.GetByIdAsync(product.Id)).ReturnsAsync(product);
+        _storeMock.Setup(s => s.CreateProductAsync(
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<decimal>(),
+            It.IsAny<string?>(), It.IsAny<int>()))
+            .ReturnsAsync(new ExternalProduct { ExternalId = "ext-img2" });
+        _imageUploaderMock
+            .Setup(u => u.UploadPendingAsync(It.IsAny<int>(), It.IsAny<IStoreIntegration>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("upload failed"));
+
+        await _sut.PushProductToStoreAsync(product.Id);
+
+        var mapping = await _context.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == product.Id);
+        Assert.NotNull(mapping);
+        Assert.Equal("ext-img2", mapping.ExternalId);
+    }
+
+    [Fact]
+    public async Task PushImagesToStoreAsync_NoMapping_ReturnsZero()
+    {
+        var product = TestDataBuilder.CreateProduct();
+        await SeedProductAsync(product);
+
+        var uploaded = await _sut.PushImagesToStoreAsync(product.Id);
+
+        Assert.Equal(0, uploaded);
+        _imageUploaderMock.Verify(u => u.UploadPendingAsync(
+            It.IsAny<int>(), It.IsAny<IStoreIntegration>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task PushImagesToStoreAsync_WithMapping_DelegatesToUploader()
+    {
+        var product = TestDataBuilder.CreateProduct();
+        await SeedProductAsync(product);
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = product.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-99",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
+        _imageUploaderMock
+            .Setup(u => u.UploadPendingAsync(product.Id, _storeMock.Object, "ext-99", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(3);
+
+        var uploaded = await _sut.PushImagesToStoreAsync(product.Id);
+
+        Assert.Equal(3, uploaded);
     }
 
     [Fact]

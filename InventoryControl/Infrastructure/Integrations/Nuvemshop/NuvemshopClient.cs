@@ -121,4 +121,29 @@ public class NuvemshopClient
         var response = await _http.PutAsync($"products/{productId}", content);
         response.EnsureSuccessStatusCode();
     }
+
+    /// <summary>
+    /// Uploads a product image via base64 attachment. Nuvemshop returns the new image
+    /// metadata (id, CDN src, final position).
+    /// </summary>
+    public async Task<NuvemshopImage?> UploadProductImageAsync(
+        long productId,
+        byte[] content,
+        string fileName,
+        int position,
+        CancellationToken ct = default)
+    {
+        var body = new
+        {
+            attachment = Convert.ToBase64String(content),
+            filename = fileName,
+            position
+        };
+        var payload = JsonSerializer.Serialize(body);
+        var httpContent = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+        var response = await _http.PostAsync($"products/{productId}/images", httpContent, ct);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<NuvemshopImage>(json, JsonOptions);
+    }
 }

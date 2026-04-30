@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.7.0] - 2026-04-30
+
+### Added
+
+- **Image sync — push direction (IC → Nuvemshop)**:
+  - `IStoreIntegration.UploadProductImageAsync` (raw bytes + filename + position) so each platform can encode as it requires; the Nuvemshop adapter wraps `NuvemshopClient.UploadProductImageAsync` which sends a base64 attachment via `POST /products/{id}/images`. Base64 was chosen so the IC can run on `localhost`/intranet without exposing image URLs publicly.
+  - `IProductImageUploader` / `ProductImageUploader`: reads each pending `ProductImage` from `wwwroot`, validates size (≤ 8 MB), uploads, and persists the platform-assigned `ExternalImageId` and `ExternalUrl`. Idempotent — images that already have `ExternalImageId` are skipped.
+  - `SyncService.PushImagesToStoreAsync(productId)` for already-linked products and `POST /api/sync/push-images/{productId}` to expose it via API.
+  - `SyncService.PushProductToStoreAsync` now uploads the product's images automatically right after the product is created on the store. Image upload errors are caught so a partial failure does not invalidate the product mapping; the user can retry via the new endpoint.
+  - "Enviar imagens" button on the products index for linked products (`bi-images` icon), parallel to the existing "Enviar para Loja" button on unlinked products.
+
 ## [7.6.0] - 2026-04-30
 
 ### Fixed

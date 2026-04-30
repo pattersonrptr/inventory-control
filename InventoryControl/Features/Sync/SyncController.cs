@@ -156,6 +156,54 @@ public class SyncController : ControllerBase
     }
 
     /// <summary>
+    /// Pushes any local product images that have not been uploaded yet (no
+    /// ExternalImageId) to the external store. Idempotent — re-running uploads
+    /// only the new ones. Returns 404 if the product or its mapping is missing.
+    /// </summary>
+    [HttpPost("push-images/{productId:int}")]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> PushImages(int productId, [FromQuery] string? store)
+    {
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
+
+        var product = await _productRepo.GetByIdAsync(productId);
+        if (product is null)
+            return NotFound(new { message = $"Product {productId} not found." });
+
+        var hasMapping = await _dbContext.ProductExternalMappings
+            .AnyAsync(m => m.ProductId == productId && m.StoreName == config.Name);
+
+        if (!hasMapping)
+            return NotFound(new { message = $"Product {productId} has no linked external ID for store '{config.Name}'. Push the product first." });
+
+        _logger.LogInformation("Manual image push triggered for product id={ProductId} on store '{Store}'.", productId, config.Name);
+        int uploaded;
+        try
+        {
+            uploaded = await syncService.PushImagesToStoreAsync(productId);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Image push failed for product id={ProductId} on store '{Store}': external API unreachable.", productId, config.Name);
+            return StatusCode(502, new { error = "ExternalApiError", message = $"Failed to push images for product {productId}: could not reach the external store API.", status = 502 });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Image push failed for product id={ProductId} on store '{Store}'.", productId, config.Name);
+            return StatusCode(500, new { error = "InternalError", message = $"Failed to push images for product {productId} due to an internal error.", status = 500 });
+        }
+
+        return Ok(new
+        {
+            message = uploaded == 0
+                ? $"Nenhuma imagem nova para o produto {productId} na loja '{config.Name}'."
+                : $"{uploaded} imagem(ns) enviada(s) para o produto {productId} na loja '{config.Name}'.",
+            uploaded
+        });
+    }
+
+    /// <summary>
     /// Pushes the current stock of a local product to the external store.
     /// Returns 404 if the product does not exist or has no linked external ID.
     /// </summary>

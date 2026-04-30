@@ -135,6 +135,14 @@
                                     <i class="bi bi-cloud-upload"></i>
                                 </button>
                             }
+                            @if (ViewBag.IntegrationEnabled == true && !item.IsArchived && item.ExternalMappings.Any())
+                            {
+                                <button class="btn btn-sm btn-outline-info"
+                                        title="Enviar imagens para loja"
+                                        onclick="pushImages(@item.Id, this)">
+                                    <i class="bi bi-images"></i>
+                                </button>
+                            }
                         </td>
                     </tr>
                 }
@@ -176,6 +184,21 @@
                 showPushToast(false, 'Falha na requisição: ' + e.message);
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-cloud-upload"></i>';
+            }
+        }
+
+        async function pushImages(productId, btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+            try {
+                const res = await fetch(`/api/sync/push-images/${productId}`, { method: 'POST' });
+                const data = await res.json();
+                showPushToast(res.ok, data.message ?? (res.ok ? 'Enviado.' : 'Falhou.'));
+            } catch (e) {
+                showPushToast(false, 'Falha na requisição: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-images"></i>';
             }
         }
 

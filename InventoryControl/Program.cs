@@ -252,6 +252,7 @@ builder.Services.AddScoped<InventoryControl.Features.Products.ProductArchiveServ
 builder.Services.AddScoped<InventoryControl.Domain.Products.IProductArchiveRetrier>(sp =>
     sp.GetRequiredService<InventoryControl.Features.Products.ProductArchiveService>());
 builder.Services.AddScoped<IProductImageDownloader, ProductImageDownloader>();
+builder.Services.AddScoped<IProductImageUploader, ProductImageUploader>();
 builder.Services.AddHttpClient("ProductImageDownloader");
 
 // Background order sync runs for all enabled stores
