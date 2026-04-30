@@ -3,6 +3,7 @@ using InventoryControl.Infrastructure.Integrations;
 using InventoryControl.Infrastructure.Integrations.Abstractions;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ public class SyncController : ControllerBase
     private readonly PlatformRegistry _registry;
     private readonly IProductRepository _productRepo;
     private readonly AppDbContext _dbContext;
+    private readonly IWebHostEnvironment _env;
     private readonly ILogger<SyncController> _logger;
 
     public SyncController(
@@ -24,12 +26,14 @@ public class SyncController : ControllerBase
         PlatformRegistry registry,
         IProductRepository productRepo,
         AppDbContext dbContext,
+        IWebHostEnvironment env,
         ILogger<SyncController> logger)
     {
         _syncFactory = syncFactory;
         _registry = registry;
         _productRepo = productRepo;
         _dbContext = dbContext;
+        _env = env;
         _logger = logger;
     }
 
@@ -152,6 +156,112 @@ public class SyncController : ControllerBase
                 ? $"Nenhuma imagem nova para o produto {productId} na loja '{config.Name}'."
                 : $"{saved} imagem(ns) importada(s) para o produto {productId} da loja '{config.Name}'.",
             saved
+        });
+    }
+
+    /// <summary>
+    /// Unified "send this product to the store" endpoint — replaces the older split
+    /// between push-product (for unlinked) and push-images (for linked) so the UI
+    /// can show a single button.
+    /// First call on a new product: creates it on the store and uploads its images.
+    /// Subsequent calls: uploads only any newly-added local images.
+    /// </summary>
+    [HttpPost("push-to-store/{productId:int}")]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> PushToStore(int productId, [FromQuery] string? store)
+    {
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
+
+        var product = await _productRepo.GetByIdAsync(productId);
+        if (product is null)
+            return NotFound(new { message = $"Product {productId} not found." });
+
+        _logger.LogInformation("Unified push triggered for product id={ProductId} on store '{Store}'.", productId, config.Name);
+        UnifiedPushResult result;
+        try
+        {
+            result = await syncService.PushToStoreAsync(productId);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Unified push failed for product id={ProductId} on store '{Store}': external API unreachable.", productId, config.Name);
+            return StatusCode(502, new { error = "ExternalApiError", message = $"Falha ao sincronizar produto {productId}: API da loja inacessível.", status = 502 });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unified push failed for product id={ProductId} on store '{Store}'.", productId, config.Name);
+            return StatusCode(500, new { error = "InternalError", message = $"Falha ao sincronizar produto {productId}.", status = 500 });
+        }
+
+        var img = result.ImageSummary;
+        string message;
+        if (result.WasNewlyCreated)
+        {
+            message = $"Produto enviado para a loja '{config.Name}'.";
+        }
+        else if (img.Uploaded > 0)
+        {
+            message = $"{img.Uploaded} imagem(ns) nova(s) enviada(s) para a loja '{config.Name}'.";
+        }
+        else
+        {
+            message = $"Nada novo a enviar para a loja '{config.Name}' — produto e imagens já estão sincronizados.";
+        }
+
+        if (img.HasIssues)
+        {
+            var issues = new List<string>();
+            if (img.SkippedFileMissing > 0) issues.Add($"{img.SkippedFileMissing} com arquivo perdido");
+            if (img.SkippedTooLarge > 0) issues.Add($"{img.SkippedTooLarge} grande(s) demais");
+            if (img.Failed > 0) issues.Add($"{img.Failed} com falha de upload");
+            message += " (" + string.Join(", ", issues) + " — veja os logs ou /api/sync/cleanup-orphan-images).";
+        }
+
+        return Ok(new
+        {
+            message,
+            wasNewlyCreated = result.WasNewlyCreated,
+            uploaded = img.Uploaded,
+            skippedFileMissing = img.SkippedFileMissing,
+            skippedTooLarge = img.SkippedTooLarge,
+            failed = img.Failed
+        });
+    }
+
+    /// <summary>
+    /// Returns how many ProductImage rows exist whose file is missing on disk.
+    /// The UI uses this to show a warning banner.
+    /// </summary>
+    [HttpGet("orphan-images")]
+    public async Task<IActionResult> CountOrphanImages([FromQuery] string? store)
+    {
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
+
+        var count = await syncService.CountOrphanImagesAsync(_env.WebRootPath);
+        return Ok(new { count });
+    }
+
+    /// <summary>
+    /// Deletes ProductImage rows whose file is missing on disk. Manual-only;
+    /// orphans are never removed automatically during sync.
+    /// </summary>
+    [HttpPost("cleanup-orphan-images")]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> CleanupOrphanImages([FromQuery] string? store)
+    {
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
+
+        _logger.LogInformation("Manual orphan-image cleanup triggered.");
+        var removed = await syncService.CleanupOrphanImagesAsync(_env.WebRootPath);
+        return Ok(new
+        {
+            message = removed == 0
+                ? "Nenhuma imagem órfã encontrada."
+                : $"{removed} registro(s) de imagem com arquivo faltando foram removidos do banco.",
+            removed
         });
     }
 

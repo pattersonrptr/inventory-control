@@ -32,10 +32,11 @@ public class SyncWorkflowTests
         var config = new IntegrationConfig { Name = "test-store", Enabled = true, Platform = "test" };
 
         var imageDownloaderMock = new Mock<IProductImageDownloader>();
+        var imageUploaderMock = new Mock<IProductImageUploader>();
         var syncService = new SyncService(
             storeMock.Object, productRepo, movementRepo, categoryRepo,
             processedOrderRepo, context, config, Mock.Of<ILogger<SyncService>>(),
-            imageDownloaderMock.Object);
+            imageDownloaderMock.Object, imageUploaderMock.Object);
 
         // Step 1: Sync products — links external ID by SKU
         storeMock.Setup(s => s.GetProductsAsync())

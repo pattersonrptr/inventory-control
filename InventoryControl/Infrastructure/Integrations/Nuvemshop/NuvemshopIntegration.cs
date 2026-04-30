@@ -132,6 +132,29 @@ public class NuvemshopIntegration : IStoreIntegration
         await _client.SetProductPublishedAsync(productId, published);
     }
 
+    public async Task<ExternalImage?> UploadProductImageAsync(
+        string externalProductId,
+        byte[] content,
+        string fileName,
+        int position,
+        CancellationToken ct = default)
+    {
+        if (!long.TryParse(externalProductId, out var productId))
+            throw new ArgumentException(
+                $"External product id '{externalProductId}' is not a valid Nuvemshop id.",
+                nameof(externalProductId));
+
+        var uploaded = await _client.UploadProductImageAsync(productId, content, fileName, position, ct);
+        if (uploaded is null) return null;
+
+        return new ExternalImage
+        {
+            ExternalId = uploaded.Id.ToString(),
+            Url = uploaded.Src ?? string.Empty,
+            Position = uploaded.Position
+        };
+    }
+
     private static ExternalOrder MapOrder(NuvemshopOrder o) => new()
     {
         ExternalOrderId = o.Id.ToString(),
