@@ -249,6 +249,8 @@ builder.Services.AddHttpClient("Platform_nuvemshop")
 builder.Services.AddSingleton<PlatformRegistry>();
 builder.Services.AddScoped<SyncServiceFactory>();
 builder.Services.AddScoped<InventoryControl.Features.Products.ProductArchiveService>();
+builder.Services.AddScoped<InventoryControl.Domain.Products.IProductArchiveRetrier>(sp =>
+    sp.GetRequiredService<InventoryControl.Features.Products.ProductArchiveService>());
 builder.Services.AddScoped<IProductImageDownloader, ProductImageDownloader>();
 builder.Services.AddHttpClient("ProductImageDownloader");
 

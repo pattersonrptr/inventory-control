@@ -1,4 +1,4 @@
-using InventoryControl.Features.Products;
+using InventoryControl.Domain.Products;
 
 namespace InventoryControl.Infrastructure.BackgroundJobs;
 
@@ -47,9 +47,9 @@ public class ArchiveSyncRetryService : BackgroundService
         try
         {
             await using var scope = _scopeFactory.CreateAsyncScope();
-            var archiveService = scope.ServiceProvider.GetRequiredService<ProductArchiveService>();
+            var retrier = scope.ServiceProvider.GetRequiredService<IProductArchiveRetrier>();
 
-            var resolved = await archiveService.RetryPendingSyncsAsync(ct);
+            var resolved = await retrier.RetryPendingSyncsAsync(ct);
 
             if (resolved > 0)
                 _logger.LogInformation(

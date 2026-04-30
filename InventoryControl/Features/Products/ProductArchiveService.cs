@@ -1,3 +1,4 @@
+using InventoryControl.Domain.Products;
 using InventoryControl.Infrastructure;
 using InventoryControl.Infrastructure.Integrations;
 using InventoryControl.Infrastructure.Persistence;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InventoryControl.Features.Products;
 
-public class ProductArchiveService
+public class ProductArchiveService : IProductArchiveRetrier
 {
     private readonly AppDbContext _dbContext;
     private readonly PlatformRegistry _registry;
