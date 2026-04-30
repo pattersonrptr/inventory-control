@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.6.0] - 2026-04-30
+
+### Fixed
+
+- **Puller no longer creates duplicate local products on every re-sync** when an external product has no SKU. The matcher now uses the existing `ProductExternalMapping` (by `ExternalId + StoreName`) as the primary identity check, falling back to SKU only when no mapping exists. Bug shipped in v7.5.0 but only manifested on the second sync of a SKU-less product. Defensive fallthrough handles the (cascade-protected) orphan-mapping case as well.
+- **Puller no longer forges price conflicts on re-sync** of products with `external.Price=0`. Previous behavior stored `SellingPrice=0.01` locally as a "needs review" marker, which then diverged from `0.00` on every conflict check. The DTO validator already accepts `SellingPrice >= 0`, so the fallback was unnecessary.
+- **Nuvemshop price parsing now uses `InvariantCulture`**. Nuvemshop returns prices as strings with `.` as decimal separator (e.g. `"1.00"`); the previous `decimal.TryParse(s, out _)` used the host culture. On pt-BR machines `.` is the thousands separator, so `"1.00"` was being parsed as `100`. Affected `GetProductsAsync`, `CreateProductAsync` (returned variant prices), and `MapOrder` (order item unit prices). All three now go through a single `ParsePrice` helper. This was the root cause of products pushed at e.g. R$ 1,00 coming back as R$ 100,00 on the next pull, falsely flagged as conflicts.
+
+### Added
+
+- **Image sync — pull direction (Nuvemshop → IC)**:
+  - `ExternalProduct.Images` (new `ExternalImage` abstraction with `ExternalId`, `Url`, `Position`) so the integration contract can carry image metadata across platforms.
+  - `NuvemshopProduct.Images` mapped from the Nuvemshop product API response; `NuvemshopIntegration` populates `ExternalProduct.Images` ordered by position.
+  - `IProductImageDownloader` / `ProductImageDownloader`: downloads each image via a named `HttpClient`, validates content type (`jpeg/png/webp/gif` only) and size (≤ 8 MB), saves to `wwwroot/images/products/`, and creates a `ProductImage` record. The first image becomes `IsPrimary=true` only when the product has no existing images.
+  - `SyncService.SyncProductsFromStoreAsync` triggers image download **only on the puller path** (`Created` products). Linked products (matched by SKU) intentionally do NOT auto-import images — they may have curated local uploads.
+  - Manual import endpoint `POST /api/sync/import-images/{productId}` for already-linked products. Idempotent: existing `ProductImages` with the same `ExternalImageId` are skipped, so re-running won't duplicate.
+  - `ProductSyncSummary.ImagesDownloaded` counter; the sync response includes the count.
+- **`ProductImage.ExternalImageId` and `ExternalUrl`** (both nullable) for deduplication and future Phase 2 (push direction).
+
+### Migrations
+
+- `20260429201142_AddProductImageExternalRefs` — adds nullable `ExternalImageId` (max 64) and `ExternalUrl` (max 500) on `ProductImages`, replaces `IX_ProductImages_ProductId` with composite `IX_ProductImages_ProductId_ExternalImageId`. Both columns are strings, so no PostgreSQL boolean-default gotcha applies.
+
+### Refactored
+
+- **Extracted `IProductArchiveRetrier`** (in `Domain.Products`) so `ArchiveSyncRetryService` (Infrastructure) no longer references `ProductArchiveService` (Features) directly. Restores the `Infrastructure_MustNotDependOn_Features` architecture invariant that had been broken since v7.5.0.
+
+## [7.5.0] - 2026-04-28
+
+### Added
+
+- **Archive/Unarchive products** (soft-delete pattern):
+  - `Product.IsArchived` + `ArchivedAt`, with `Archive(nowUtc)` / `Unarchive()` domain methods.
+  - `ProductArchivedException` thrown by `ApplyEntry` / `ApplyExit` so movements cannot land on an archived product.
+  - Archived products are excluded by default from product listings, the below-minimum query, dashboards, and profitability reports — visible only with the explicit `Mostrar arquivados` toggle (or `?includeArchived=true` on the API).
+  - REST API: `POST /api/v1/products/{id}/archive` and `/unarchive`; stock-movement endpoints return `409 ProductArchived` when the target is archived.
+  - MVC views: dedicated confirmation screens for both Archive and Unarchive flows; archived rows show a badge and reactivate button.
+- **External archive sync (Nuvemshop)** with eventual consistency:
+  - `IStoreIntegration.SetProductPublishedAsync(externalId, published)` — archive sets `published=false`, unarchive sets `published=true`.
+  - `ProductExternalMapping.SyncStatus` (`Synced` / `PendingArchive` / `PendingUnarchive`) + `LastSyncError` + `LastSyncAttemptAt` persist failures so the local archive is not blocked by an external API outage.
+  - `ProductArchiveService` orchestrates: applies the local change first, then best-effort pushes per mapping; failures flip the mapping to a pending state.
+  - `ArchiveSyncRetryService` (HostedService, every 15 min, configurable via `ArchiveSync:RetryIntervalMinutes`) retries pending publish/unpublish calls automatically.
+  - Banner on the products list shows `N produto(s) com status fora de sincronia` with a `Re-sincronizar agora` button for manual retry.
+- **Bidirectional product sync (puller)** — `POST /api/sync/products` now mirrors both directions:
+  - Existing matcher behavior preserved: external products that match a local SKU get linked.
+  - **Create-on-miss**: external products with no local SKU match are created locally with `CostPrice=0` (needs-review marker) and the external `Price` as `SellingPrice`; missing external category falls back to a `Sem categoria` row.
+  - **Conflict detection**: on already-linked mappings, divergent `Name` or `Price` flips `ProductExternalMapping.HasConflict=true` and stores a human-readable diff in `ConflictDetails`. The product list shows a `Divergente` badge with the details on hover.
+  - Sync response now returns `linked / created / conflicts / needsCostReview / total` and the toast surfaces all counters.
+- **Smoke tests**: 13 new integration tests (`ProductArchiveIntegrationTests` + `PullerSyncIntegrationTests`, the latter wired through a `FakeStoreIntegration` so the controller → factory → service path runs without HTTP).
+- **Diagnostic log** in `SyncService.SyncProductsFromStoreAsync`: `"Pulled N external products from store X; M local product(s) currently exist."` so future sync issues are visible without code changes.
+
+### Fixed
+
+- **PostgreSQL boolean fixer in `Program.cs`** now `DROP DEFAULT` before `ALTER COLUMN ... TYPE boolean`, then `SET DEFAULT false`. The previous version failed on first install of the `Archive*` and `ProductMappingConflictTracking` migrations because their `defaultValue: false` shipped to PostgreSQL as `DEFAULT 0` (integer), which cannot auto-cast to boolean.
+
+### Migrations
+
+- `20260428012546_ArchiveProductsAndExternalSyncStatus` — adds `Products.IsArchived/ArchivedAt`, `ProductExternalMappings.SyncStatus/LastSyncError/LastSyncAttemptAt` + index.
+- `20260428014635_ProductMappingConflictTracking` — adds `ProductExternalMappings.HasConflict/ConflictDetails` + index.
+- `20260426233344_FixExternalMappingSequences` — PostgreSQL: aligns identity sequences for the `ProductExternalMappings` table.
+
 ## [7.4.0] - 2026-04-26
 
 ### Added

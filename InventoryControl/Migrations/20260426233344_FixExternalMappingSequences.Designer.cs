@@ -3,6 +3,7 @@ using System;
 using InventoryControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InventoryControl.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260426233344_FixExternalMappingSequences")]
+    partial class FixExternalMappingSequences
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.4");
@@ -284,9 +287,6 @@ namespace InventoryControl.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime?>("ArchivedAt")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Brand")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
@@ -303,9 +303,6 @@ namespace InventoryControl.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsArchived")
-                        .HasColumnType("INTEGER");
 
                     b.Property<int>("MinimumStock")
                         .HasColumnType("INTEGER");
@@ -343,23 +340,9 @@ namespace InventoryControl.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("ConflictDetails")
-                        .HasMaxLength(2000)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("ExternalId")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("HasConflict")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("LastSyncAttemptAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("LastSyncError")
-                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Platform")
@@ -375,14 +358,7 @@ namespace InventoryControl.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("SyncStatus")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("HasConflict");
-
-                    b.HasIndex("SyncStatus");
 
                     b.HasIndex("ProductId", "StoreName")
                         .IsUnique();
@@ -405,14 +381,6 @@ namespace InventoryControl.Migrations
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("ExternalImageId")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ExternalUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("ImagePath")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -426,7 +394,7 @@ namespace InventoryControl.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId", "ExternalImageId");
+                    b.HasIndex("ProductId");
 
                     b.ToTable("ProductImages");
                 });

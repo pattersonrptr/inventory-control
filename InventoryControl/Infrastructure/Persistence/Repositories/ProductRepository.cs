@@ -15,6 +15,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<IEnumerable<Product>> GetAllAsync()
         => await _context.Products
+            .Where(p => !p.IsArchived)
             .Include(p => p.Category)
             .Include(p => p.Images)
             .Include(p => p.ExternalMappings)
@@ -23,7 +24,9 @@ public class ProductRepository : IProductRepository
 
     public async Task<PagedResult<Product>> GetAllAsync(int page, int pageSize)
     {
-        var baseQuery = _context.Products.OrderBy(p => p.Name);
+        var baseQuery = _context.Products
+            .Where(p => !p.IsArchived)
+            .OrderBy(p => p.Name);
         var totalCount = await baseQuery.CountAsync();
         var items = await baseQuery
             .Include(p => p.Category)
@@ -37,12 +40,17 @@ public class ProductRepository : IProductRepository
         return new PagedResult<Product>(items, totalCount, page, pageSize);
     }
 
-    public async Task<PagedResult<Product>> GetAllForListAsync(int page, int pageSize)
+    public async Task<PagedResult<Product>> GetAllForListAsync(int page, int pageSize, bool includeArchived = false)
     {
-        var baseQuery = _context.Products.OrderBy(p => p.Name);
+        var query = _context.Products.AsQueryable();
+        if (!includeArchived)
+            query = query.Where(p => !p.IsArchived);
+
+        var baseQuery = query.OrderBy(p => p.Name);
         var totalCount = await baseQuery.CountAsync();
         var items = await baseQuery
             .Include(p => p.Category)
+            .Include(p => p.ExternalMappings)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -60,6 +68,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<IEnumerable<Product>> GetBelowMinimumAsync()
         => await _context.Products
+            .Where(p => !p.IsArchived)
             .Include(p => p.Category)
             .Include(p => p.Images)
             .Where(p => p.CurrentStock <= p.MinimumStock)
@@ -100,4 +109,14 @@ public class ProductRepository : IProductRepository
             await _context.SaveChangesAsync();
         }
     }
+
+    public Task<int> CountPendingSyncAsync()
+        => _context.ProductExternalMappings
+            .CountAsync(m => m.SyncStatus != ExternalSyncStatus.Synced);
+
+    public async Task<IEnumerable<Product>> GetWithPendingSyncAsync()
+        => await _context.Products
+            .Include(p => p.ExternalMappings)
+            .Where(p => p.ExternalMappings.Any(m => m.SyncStatus != ExternalSyncStatus.Synced))
+            .ToListAsync();
 }

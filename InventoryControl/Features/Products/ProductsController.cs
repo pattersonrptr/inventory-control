@@ -15,25 +15,30 @@ public class ProductsController : Controller
     private readonly PlatformRegistry _registry;
     private readonly IWebHostEnvironment _environment;
     private readonly AppDbContext _context;
+    private readonly ProductArchiveService _archiveService;
 
     public ProductsController(
         IProductRepository productRepo,
         ICategoryRepository categoryRepo,
         IWebHostEnvironment environment,
         PlatformRegistry registry,
-        AppDbContext context)
+        AppDbContext context,
+        ProductArchiveService archiveService)
     {
         _productRepo = productRepo;
         _categoryRepo = categoryRepo;
         _environment = environment;
         _registry = registry;
         _context = context;
+        _archiveService = archiveService;
     }
 
-    public async Task<IActionResult> Index(int page = 1, int pageSize = 20)
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 20, bool showArchived = false)
     {
         ViewBag.IntegrationEnabled = _registry.GetEnabledStores().Count > 0;
-        return View(await _productRepo.GetAllForListAsync(page, pageSize));
+        ViewBag.ShowArchived = showArchived;
+        ViewBag.PendingSyncCount = await _productRepo.CountPendingSyncAsync();
+        return View(await _productRepo.GetAllForListAsync(page, pageSize, includeArchived: showArchived));
     }
 
     public async Task<IActionResult> Details(int id)
@@ -140,8 +145,83 @@ public class ProductsController : Controller
         }
         catch (DbUpdateException)
         {
-            TempData["Error"] = "Não é possível excluir este produto porque existem movimentações de estoque vinculadas a ele.";
+            TempData["Error"] = "Não é possível excluir este produto porque existem movimentações de estoque vinculadas a ele. Considere arquivar.";
         }
+        return RedirectToAction(nameof(Index));
+    }
+
+    public async Task<IActionResult> Archive(int id)
+    {
+        var product = await _productRepo.GetByIdAsync(id);
+        if (product is null) return NotFound();
+        if (product.IsArchived)
+        {
+            TempData["Info"] = "Este produto já está arquivado.";
+            return RedirectToAction(nameof(Index));
+        }
+        return View(product);
+    }
+
+    [HttpPost, ActionName("Archive")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ArchiveConfirmed(int id)
+    {
+        var result = await _archiveService.ArchiveAsync(id);
+        if (!result.Found) return NotFound();
+
+        if (result.FullySynced)
+            TempData["Success"] = "Produto arquivado com sucesso.";
+        else
+            TempData["Warning"] = "Produto arquivado localmente, mas falhou ao despublicar em: "
+                + string.Join(", ", result.FailedStores)
+                + ". Será tentado novamente em segundo plano.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    public async Task<IActionResult> Unarchive(int id)
+    {
+        var product = await _productRepo.GetByIdAsync(id);
+        if (product is null) return NotFound();
+        if (!product.IsArchived)
+        {
+            TempData["Info"] = "Este produto já está ativo.";
+            return RedirectToAction(nameof(Index));
+        }
+        return View(product);
+    }
+
+    [HttpPost, ActionName("Unarchive")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UnarchiveConfirmed(int id)
+    {
+        var result = await _archiveService.UnarchiveAsync(id);
+        if (!result.Found) return NotFound();
+
+        if (result.FullySynced)
+            TempData["Success"] = "Produto reativado com sucesso.";
+        else
+            TempData["Warning"] = "Produto reativado localmente, mas falhou ao publicar em: "
+                + string.Join(", ", result.FailedStores)
+                + ". Será tentado novamente em segundo plano.";
+
+        return RedirectToAction(nameof(Index), new { showArchived = true });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResyncPending()
+    {
+        var resolved = await _archiveService.RetryPendingSyncsAsync();
+        var remaining = await _productRepo.CountPendingSyncAsync();
+
+        if (resolved == 0 && remaining == 0)
+            TempData["Info"] = "Nenhuma sincronização pendente.";
+        else if (remaining == 0)
+            TempData["Success"] = $"Sincronização concluída ({resolved} item(s) resolvido(s)).";
+        else
+            TempData["Warning"] = $"{resolved} item(s) resolvido(s), {remaining} ainda pendente(s).";
+
         return RedirectToAction(nameof(Index));
     }
 

@@ -22,14 +22,26 @@ services:
       retries: 5
     restart: unless-stopped
 
+  db-migrate:
+    image: pattersonrptr/inventory-control:latest
+    container_name: inventory-migrate
+    command: ["dotnet", "InventoryControl.dll", "migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=caramelo_inventory;Username=caramelo;Password=<YOUR_DB_PASSWORD>
+    restart: "no"
+
   app:
     image: pattersonrptr/inventory-control:latest
     container_name: inventory-control
     ports:
       - "9080:8080"
     depends_on:
-      db:
-        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=caramelo_inventory;Username=caramelo;Password=<YOUR_DB_PASSWORD>
@@ -39,12 +51,14 @@ services:
       - Stores__0__StoreId=<YOUR_NUVEMSHOP_STORE_ID>
       - Stores__0__AccessToken=<YOUR_NUVEMSHOP_ACCESS_TOKEN>
       - Stores__0__OrderSyncIntervalMinutes=15
+      - Api__Keys__0__Key=<YOUR_API_KEY>
+      - Api__Keys__0__Role=Admin
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     restart: unless-stopped
 
   backup:

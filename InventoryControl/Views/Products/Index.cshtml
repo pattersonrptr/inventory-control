@@ -1,14 +1,39 @@
 @model PagedResult<Product>
 @{
     ViewData["Title"] = "Produtos";
+    var showArchived = ViewBag.ShowArchived == true;
+    var pendingSync = ViewBag.PendingSyncCount as int? ?? 0;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0"><i class="bi bi-box-seam"></i> Produtos</h1>
-    <a asp-action="Create" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Novo Produto
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-action="Index" asp-route-showArchived="@(!showArchived)"
+           class="btn @(showArchived ? "btn-secondary" : "btn-outline-secondary")">
+            <i class="bi @(showArchived ? "bi-eye-slash" : "bi-archive")"></i>
+            @(showArchived ? "Ocultar arquivados" : "Mostrar arquivados")
+        </a>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Novo Produto
+        </a>
+    </div>
 </div>
+
+@if (pendingSync > 0)
+{
+    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+        <div>
+            <i class="bi bi-cloud-slash"></i>
+            <strong>@pendingSync produto(s)</strong> com status fora de sincronia com a loja externa.
+            Será tentado novamente em segundo plano.
+        </div>
+        <form asp-action="ResyncPending" method="post" class="m-0">
+            <button type="submit" class="btn btn-sm btn-warning">
+                <i class="bi bi-arrow-clockwise"></i> Re-sincronizar agora
+            </button>
+        </form>
+    </div>
+}
 
 <div class="card">
     <div class="card-body p-0">
@@ -28,7 +53,9 @@
             <tbody>
                 @foreach (var item in Model.Items)
                 {
-                    <tr class="@(item.IsBelowMinimumStock ? "table-warning" : "")">
+                    var hasPendingSync = item.ExternalMappings.Any(m => m.SyncStatus != ExternalSyncStatus.Synced);
+                    var conflictMapping = item.ExternalMappings.FirstOrDefault(m => m.HasConflict);
+                    <tr class="@(item.IsArchived ? "table-secondary text-muted" : item.IsBelowMinimumStock ? "table-warning" : "")">
                         <td>
                             @if (item.PrimaryImagePath is not null)
                             {
@@ -41,10 +68,28 @@
                         </td>
                         <td class="fw-semibold">
                             @item.Name
-                            @if (item.IsBelowMinimumStock)
+                            @if (item.IsArchived)
+                            {
+                                <span class="badge bg-secondary ms-1" title="Arquivado">
+                                    <i class="bi bi-archive-fill"></i> Arquivado
+                                </span>
+                            }
+                            else if (item.IsBelowMinimumStock)
                             {
                                 <span class="badge bg-danger ms-1" title="Abaixo do estoque mínimo">
                                     <i class="bi bi-exclamation-triangle-fill"></i>
+                                </span>
+                            }
+                            @if (hasPendingSync)
+                            {
+                                <span class="badge bg-warning text-dark ms-1" title="Sincronização com loja pendente">
+                                    <i class="bi bi-cloud-slash"></i>
+                                </span>
+                            }
+                            @if (conflictMapping is not null)
+                            {
+                                <span class="badge bg-info text-dark ms-1" title="Divergente da loja: @conflictMapping.ConflictDetails">
+                                    <i class="bi bi-exclamation-diamond"></i> Divergente
                                 </span>
                             }
                         </td>
@@ -52,7 +97,7 @@
                         <td class="text-muted">@(item.Brand ?? "—")</td>
                         <td class="text-end">@item.CostPrice.ToString("C")</td>
                         <td class="text-end">@item.SellingPrice.ToString("C")</td>
-                        <td class="text-center fw-bold @(item.IsBelowMinimumStock ? "text-danger" : "")">
+                        <td class="text-center fw-bold @(!item.IsArchived && item.IsBelowMinimumStock ? "text-danger" : "")">
                             @item.CurrentStock
                         </td>
                         <td class="text-end">
@@ -64,11 +109,25 @@
                                class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            @if (item.IsArchived)
+                            {
+                                <a asp-action="Unarchive" asp-route-id="@item.Id"
+                                   class="btn btn-sm btn-outline-success" title="Reativar">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-action="Archive" asp-route-id="@item.Id"
+                                   class="btn btn-sm btn-outline-warning" title="Arquivar">
+                                    <i class="bi bi-archive"></i>
+                                </a>
+                            }
                             <a asp-action="Delete" asp-route-id="@item.Id"
                                class="btn btn-sm btn-outline-danger" title="Excluir">
                                 <i class="bi bi-trash"></i>
                             </a>
-                            @if (ViewBag.IntegrationEnabled == true && !item.ExternalMappings.Any())
+                            @if (ViewBag.IntegrationEnabled == true && !item.IsArchived && !item.ExternalMappings.Any())
                             {
                                 <button class="btn btn-sm btn-outline-success"
                                         title="Enviar para Loja"

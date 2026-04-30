@@ -20,6 +20,7 @@ public class SyncService
     private readonly AppDbContext _dbContext;
     private readonly IntegrationConfig _config;
     private readonly ILogger<SyncService> _logger;
+    private readonly IProductImageDownloader _imageDownloader;
 
     /// <summary>
     /// Order statuses that indicate confirmed payment and should trigger stock deduction.
@@ -40,7 +41,8 @@ public class SyncService
         IProcessedOrderRepository processedOrderRepo,
         AppDbContext dbContext,
         IntegrationConfig config,
-        ILogger<SyncService> logger)
+        ILogger<SyncService> logger,
+        IProductImageDownloader imageDownloader)
     {
         _store = store;
         _productRepo = productRepo;
@@ -50,37 +52,196 @@ public class SyncService
         _dbContext = dbContext;
         _config = config;
         _logger = logger;
+        _imageDownloader = imageDownloader;
     }
 
     /// <summary>
-    /// Pulls products from the external store and syncs SKU / ExternalId fields
-    /// on matching local products.
+    /// Pulls products from the external store. Existing local products (matched by SKU)
+    /// only get linked / conflict-checked — fields are never overwritten. External products
+    /// without a local SKU match are CREATED locally with CostPrice=0 (needs-review marker)
+    /// and assigned to a fallback "Sem categoria" so the user can curate them later.
     /// </summary>
-    public async Task SyncProductsFromStoreAsync()
+    public async Task<ProductSyncSummary> SyncProductsFromStoreAsync()
     {
-        var externalProducts = await _store.GetProductsAsync();
-        var localProducts = await _productRepo.GetAllAsync();
+        var externalProducts = (await _store.GetProductsAsync()).ToList();
+        var localProducts = (await _productRepo.GetAllAsync()).ToList();
+
+        // Pre-load mappings for this store so re-syncs of SKU-less external products
+        // don't create duplicates: the ExternalId is a stable identifier even when SKU is empty.
+        var mappingsByExternalId = await _dbContext.ProductExternalMappings
+            .Where(m => m.StoreName == _config.Name)
+            .ToDictionaryAsync(m => m.ExternalId, m => m.ProductId);
+
+        _logger.LogInformation(
+            "Product sync: pulled {ExternalCount} external products from store '{Store}'; {LocalCount} local product(s) currently exist.",
+            externalProducts.Count, _config.Name, localProducts.Count);
+
+        var summary = new ProductSyncSummary();
+        Category? fallbackCategory = null;
 
         foreach (var external in externalProducts)
         {
-            // Match by SKU when available
-            var local = localProducts.FirstOrDefault(p =>
-                !string.IsNullOrEmpty(p.Sku) && p.Sku == external.Sku);
+            // 1) Identity match via existing external mapping (handles SKU-less products on re-sync).
+            Product? local = null;
+            if (mappingsByExternalId.TryGetValue(external.ExternalId, out var mappedProductId))
+            {
+                local = localProducts.FirstOrDefault(p => p.Id == mappedProductId);
+                // If the mapping is orphaned (local product was deleted), fall through.
+            }
+
+            // 2) Fall back to SKU match.
+            if (local is null && !string.IsNullOrEmpty(external.Sku))
+            {
+                local = localProducts.FirstOrDefault(p =>
+                    !string.IsNullOrEmpty(p.Sku) && p.Sku == external.Sku);
+            }
 
             if (local is not null)
             {
                 await UpsertProductMappingAsync(local.Id, external.ExternalId);
+                var conflict = DetectConflict(local, external);
+                await SetMappingConflictAsync(local.Id, conflict);
+
+                if (conflict is not null)
+                    summary.Conflicts++;
+                else
+                    summary.Linked++;
+
                 _logger.LogInformation(
-                    "Synced product {ProductName} (id={Id}) with external id {ExternalId} from store '{StoreName}'.",
-                    local.Name, local.Id, external.ExternalId, _config.Name);
+                    "Linked product {ProductName} (id={Id}) with external id {ExternalId}{ConflictNote}.",
+                    local.Name, local.Id, external.ExternalId,
+                    conflict is null ? "" : $" (conflict: {conflict})");
             }
             else
             {
-                _logger.LogDebug(
-                    "No local product matched external SKU '{Sku}' (externalId={ExternalId}).",
-                    external.Sku, external.ExternalId);
+                fallbackCategory ??= await EnsureFallbackCategoryAsync();
+                var created = await CreateLocalFromExternalAsync(external, fallbackCategory.Id);
+                await UpsertProductMappingAsync(created.Id, external.ExternalId);
+
+                summary.Created++;
+                if (created.CostPrice == 0m) summary.NeedsCostReview++;
+
+                if (external.Images.Count > 0)
+                {
+                    try
+                    {
+                        var imagesSaved = await _imageDownloader.DownloadAndSaveAsync(created.Id, external.Images);
+                        summary.ImagesDownloaded += imagesSaved;
+                        _logger.LogInformation(
+                            "Downloaded {Count} image(s) for product {ProductName} (id={Id}).",
+                            imagesSaved, created.Name, created.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "Failed to download images for product {ProductName} (id={Id}); product was created without images.",
+                            created.Name, created.Id);
+                    }
+                }
+
+                _logger.LogInformation(
+                    "Created local product {ProductName} (id={Id}) from external id {ExternalId}. CostPrice=0 (needs review).",
+                    created.Name, created.Id, external.ExternalId);
             }
         }
+
+        return summary;
+    }
+
+    private static string? DetectConflict(Product local, ExternalProduct external)
+    {
+        var diffs = new List<string>();
+
+        if (!string.Equals(local.Name?.Trim(), external.Name?.Trim(), StringComparison.Ordinal))
+            diffs.Add($"Name: '{local.Name}' vs '{external.Name}'");
+
+        if (local.SellingPrice != external.Price)
+            diffs.Add($"Price: {local.SellingPrice:F2} vs {external.Price:F2}");
+
+        return diffs.Count > 0 ? string.Join("; ", diffs) : null;
+    }
+
+    private async Task SetMappingConflictAsync(int productId, string? conflictDetails)
+    {
+        var mapping = await _dbContext.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
+        if (mapping is null) return;
+
+        mapping.HasConflict = conflictDetails is not null;
+        mapping.ConflictDetails = conflictDetails;
+        await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task<Category> EnsureFallbackCategoryAsync()
+    {
+        const string fallbackName = "Sem categoria";
+        var existing = await _dbContext.Categories
+            .FirstOrDefaultAsync(c => c.Name == fallbackName && c.ParentId == null);
+        if (existing is not null) return existing;
+
+        var created = new Category
+        {
+            Name = fallbackName,
+            Description = "Produtos puxados de lojas externas sem categoria mapeada. Curar manualmente."
+        };
+        await _categoryRepo.AddAsync(created);
+        return created;
+    }
+
+    private async Task<Product> CreateLocalFromExternalAsync(ExternalProduct external, int fallbackCategoryId)
+    {
+        var product = new Product
+        {
+            Name = string.IsNullOrWhiteSpace(external.Name) ? $"Produto {external.ExternalId}" : external.Name,
+            Description = external.Description,
+            CostPrice = 0m,
+            SellingPrice = external.Price,
+            CurrentStock = external.Stock,
+            MinimumStock = 0,
+            Sku = string.IsNullOrWhiteSpace(external.Sku) ? null : external.Sku,
+            CategoryId = fallbackCategoryId
+        };
+        await _productRepo.AddAsync(product);
+        return product;
+    }
+
+    /// <summary>
+    /// Manually imports images from the external store for a product that is already
+    /// mapped (matched by SKU). Skipped automatically during normal sync to avoid
+    /// surprising users who may have curated their local images. Idempotent —
+    /// existing images linked by ExternalImageId are not re-downloaded.
+    /// </summary>
+    public async Task<int> ImportImagesForLinkedProductAsync(int productId)
+    {
+        var mapping = await _dbContext.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == productId && m.StoreName == _config.Name);
+
+        if (mapping is null)
+        {
+            _logger.LogWarning(
+                "Cannot import images for product id={ProductId}: no mapping for store '{StoreName}'.",
+                productId, _config.Name);
+            return 0;
+        }
+
+        var allExternal = (await _store.GetProductsAsync()).ToList();
+        var external = allExternal.FirstOrDefault(p => p.ExternalId == mapping.ExternalId);
+
+        if (external is null)
+        {
+            _logger.LogWarning(
+                "Cannot import images for product id={ProductId}: external product {ExternalId} not found in store '{StoreName}'.",
+                productId, mapping.ExternalId, _config.Name);
+            return 0;
+        }
+
+        if (external.Images.Count == 0) return 0;
+
+        var saved = await _imageDownloader.DownloadAndSaveAsync(productId, external.Images);
+        _logger.LogInformation(
+            "Imported {Count} image(s) for product id={ProductId} from store '{StoreName}'.",
+            saved, productId, _config.Name);
+        return saved;
     }
 
     /// <summary>
@@ -430,4 +591,14 @@ public class SyncService
 
         await _dbContext.SaveChangesAsync();
     }
+}
+
+public class ProductSyncSummary
+{
+    public int Linked { get; set; }
+    public int Created { get; set; }
+    public int Conflicts { get; set; }
+    public int NeedsCostReview { get; set; }
+    public int ImagesDownloaded { get; set; }
+    public int Total => Linked + Created + Conflicts;
 }

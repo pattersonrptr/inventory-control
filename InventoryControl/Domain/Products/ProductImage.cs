@@ -24,4 +24,10 @@ public class ProductImage
 
     [Display(Name = "Imagem Principal")]
     public bool IsPrimary { get; set; }
+
+    [StringLength(64)]
+    public string? ExternalImageId { get; set; }
+
+    [StringLength(500)]
+    public string? ExternalUrl { get; set; }
 }

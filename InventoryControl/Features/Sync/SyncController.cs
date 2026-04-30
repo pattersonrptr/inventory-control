@@ -72,9 +72,10 @@ public class SyncController : ControllerBase
         if (error is not null) return error;
 
         _logger.LogInformation("Manual product sync triggered for store '{Store}'.", config.Name);
+        ProductSyncSummary summary;
         try
         {
-            await syncService.SyncProductsFromStoreAsync();
+            summary = await syncService.SyncProductsFromStoreAsync();
         }
         catch (HttpRequestException ex)
         {
@@ -87,7 +88,71 @@ public class SyncController : ControllerBase
             return StatusCode(500, new { error = "InternalError", message = "Product sync failed due to an internal error.", status = 500 });
         }
 
-        return Ok(new { message = $"Product sync completed for store '{config.Name}'." });
+        var details = $"{summary.Linked} linkado(s), {summary.Created} criado(s)"
+            + (summary.NeedsCostReview > 0 ? $" ({summary.NeedsCostReview} sem custo)" : "")
+            + (summary.Conflicts > 0 ? $", {summary.Conflicts} com conflito" : "")
+            + (summary.ImagesDownloaded > 0 ? $", {summary.ImagesDownloaded} imagem(ns)" : "");
+
+        return Ok(new
+        {
+            message = $"Sync de produtos concluída para '{config.Name}': {details}.",
+            summary.Linked,
+            summary.Created,
+            summary.Conflicts,
+            summary.NeedsCostReview,
+            summary.ImagesDownloaded,
+            summary.Total
+        });
+    }
+
+    /// <summary>
+    /// Manually imports product images from the external store for a product
+    /// that is already mapped (matched by SKU). This is intentionally a separate
+    /// action because the regular sync only auto-imports images when CREATING a
+    /// new local product (puller path), to avoid surprising users who may have
+    /// curated their local images.
+    /// </summary>
+    [HttpPost("import-images/{productId:int}")]
+    [IgnoreAntiforgeryToken]
+    public async Task<IActionResult> ImportImages(int productId, [FromQuery] string? store)
+    {
+        var error = ResolveStore(store, out var config, out var syncService);
+        if (error is not null) return error;
+
+        var product = await _productRepo.GetByIdAsync(productId);
+        if (product is null)
+            return NotFound(new { message = $"Product {productId} not found." });
+
+        var hasMapping = await _dbContext.ProductExternalMappings
+            .AnyAsync(m => m.ProductId == productId && m.StoreName == config.Name);
+
+        if (!hasMapping)
+            return NotFound(new { message = $"Product {productId} has no linked external ID for store '{config.Name}'. Run a product sync first." });
+
+        _logger.LogInformation("Manual image import triggered for product id={ProductId} on store '{Store}'.", productId, config.Name);
+        int saved;
+        try
+        {
+            saved = await syncService.ImportImagesForLinkedProductAsync(productId);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Image import failed for product id={ProductId} on store '{Store}': external API unreachable.", productId, config.Name);
+            return StatusCode(502, new { error = "ExternalApiError", message = $"Failed to import images for product {productId}: could not reach the external store API.", status = 502 });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Image import failed for product id={ProductId} on store '{Store}'.", productId, config.Name);
+            return StatusCode(500, new { error = "InternalError", message = $"Failed to import images for product {productId} due to an internal error.", status = 500 });
+        }
+
+        return Ok(new
+        {
+            message = saved == 0
+                ? $"Nenhuma imagem nova para o produto {productId} na loja '{config.Name}'."
+                : $"{saved} imagem(ns) importada(s) para o produto {productId} da loja '{config.Name}'.",
+            saved
+        });
     }
 
     /// <summary>

@@ -14,6 +14,7 @@ public class SyncServiceFactory
     private readonly IProcessedOrderRepository _processedOrderRepo;
     private readonly AppDbContext _dbContext;
     private readonly ILogger<SyncService> _logger;
+    private readonly IProductImageDownloader _imageDownloader;
 
     public SyncServiceFactory(
         PlatformRegistry registry,
@@ -22,7 +23,8 @@ public class SyncServiceFactory
         ICategoryRepository categoryRepo,
         IProcessedOrderRepository processedOrderRepo,
         AppDbContext dbContext,
-        ILogger<SyncService> logger)
+        ILogger<SyncService> logger,
+        IProductImageDownloader imageDownloader)
     {
         _registry = registry;
         _productRepo = productRepo;
@@ -31,6 +33,7 @@ public class SyncServiceFactory
         _processedOrderRepo = processedOrderRepo;
         _dbContext = dbContext;
         _logger = logger;
+        _imageDownloader = imageDownloader;
     }
 
     public SyncService Create(IntegrationConfig storeConfig)
@@ -44,6 +47,7 @@ public class SyncServiceFactory
             _processedOrderRepo,
             _dbContext,
             storeConfig,
-            _logger);
+            _logger,
+            _imageDownloader);
     }
 }

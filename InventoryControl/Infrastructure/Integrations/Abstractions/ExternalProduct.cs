@@ -9,4 +9,5 @@ public class ExternalProduct
     public decimal Price { get; set; }
     public int Stock { get; set; }
     public List<ExternalProductVariant> Variants { get; set; } = new();
+    public List<ExternalImage> Images { get; set; } = new();
 }

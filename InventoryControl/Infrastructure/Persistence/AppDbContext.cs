@@ -104,6 +104,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.HasKey(pi => pi.Id);
             entity.Property(pi => pi.ImagePath).IsRequired().HasMaxLength(500);
             entity.Property(pi => pi.AltText).HasMaxLength(200);
+            entity.Property(pi => pi.ExternalImageId).HasMaxLength(64);
+            entity.Property(pi => pi.ExternalUrl).HasMaxLength(500);
+
+            entity.HasIndex(pi => new { pi.ProductId, pi.ExternalImageId });
 
             entity.HasOne(pi => pi.Product)
                   .WithMany(p => p.Images)
@@ -164,9 +168,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(m => m.StoreName).IsRequired().HasMaxLength(100);
             entity.Property(m => m.ExternalId).IsRequired().HasMaxLength(200);
             entity.Property(m => m.Platform).IsRequired().HasMaxLength(50);
+            entity.Property(m => m.SyncStatus).HasConversion<int>();
+            entity.Property(m => m.LastSyncError).HasMaxLength(1000);
+            entity.Property(m => m.ConflictDetails).HasMaxLength(2000);
 
             entity.HasIndex(m => new { m.ProductId, m.StoreName }).IsUnique();
             entity.HasIndex(m => new { m.StoreName, m.ExternalId });
+            entity.HasIndex(m => m.SyncStatus);
+            entity.HasIndex(m => m.HasConflict);
 
             entity.HasOne(m => m.Product)
                   .WithMany(p => p.ExternalMappings)

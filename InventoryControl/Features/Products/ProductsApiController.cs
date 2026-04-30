@@ -12,16 +12,18 @@ namespace InventoryControl.Features.Products;
 public class ProductsApiController : ControllerBase
 {
     private readonly IProductRepository _repo;
+    private readonly ProductArchiveService _archiveService;
 
-    public ProductsApiController(IProductRepository repo)
+    public ProductsApiController(IProductRepository repo, ProductArchiveService archiveService)
     {
         _repo = repo;
+        _archiveService = archiveService;
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResult<object>>> GetAll(int page = 1, int pageSize = 20)
+    public async Task<ActionResult<PagedResult<object>>> GetAll(int page = 1, int pageSize = 20, bool includeArchived = false)
     {
-        var result = await _repo.GetAllForListAsync(page, pageSize);
+        var result = await _repo.GetAllForListAsync(page, pageSize, includeArchived);
         var mapped = new PagedResult<object>(
             result.Items.Select(p => MapProduct(p)).ToList(),
             result.TotalCount, result.Page, result.PageSize);
@@ -54,6 +56,7 @@ public class ProductsApiController : ControllerBase
             SellingPrice = dto.SellingPrice,
             MinimumStock = dto.MinimumStock,
             Sku = dto.Sku,
+            Brand = dto.Brand,
             CategoryId = dto.CategoryId
         };
 
@@ -73,6 +76,7 @@ public class ProductsApiController : ControllerBase
         product.SellingPrice = dto.SellingPrice;
         product.MinimumStock = dto.MinimumStock;
         product.Sku = dto.Sku;
+        product.Brand = dto.Brand;
         product.CategoryId = dto.CategoryId;
 
         await _repo.UpdateAsync(product);
@@ -99,6 +103,40 @@ public class ProductsApiController : ControllerBase
         return Ok(new { message = "Stock updated.", productId = id, newQuantity = dto.Quantity });
     }
 
+    [HttpPost("{id}/archive")]
+    public async Task<IActionResult> Archive(int id)
+    {
+        var result = await _archiveService.ArchiveAsync(id);
+        if (!result.Found) return NotFound(new { error = "Product not found." });
+
+        return Ok(new
+        {
+            message = result.FullySynced
+                ? "Product archived."
+                : "Product archived locally. External sync pending.",
+            productId = id,
+            fullySynced = result.FullySynced,
+            failedStores = result.FailedStores
+        });
+    }
+
+    [HttpPost("{id}/unarchive")]
+    public async Task<IActionResult> Unarchive(int id)
+    {
+        var result = await _archiveService.UnarchiveAsync(id);
+        if (!result.Found) return NotFound(new { error = "Product not found." });
+
+        return Ok(new
+        {
+            message = result.FullySynced
+                ? "Product reactivated."
+                : "Product reactivated locally. External sync pending.",
+            productId = id,
+            fullySynced = result.FullySynced,
+            failedStores = result.FailedStores
+        });
+    }
+
     private static object MapProduct(Product p) => new
     {
         p.Id,
@@ -113,9 +151,11 @@ public class ProductsApiController : ControllerBase
         ImagePath = p.PrimaryImagePath,
         p.CategoryId,
         CategoryName = p.Category?.Name,
-        ExternalMappings = p.ExternalMappings.Select(m => new { m.StoreName, m.ExternalId, m.Platform }),
+        ExternalMappings = p.ExternalMappings.Select(m => new { m.StoreName, m.ExternalId, m.Platform, SyncStatus = m.SyncStatus.ToString() }),
         IsBelowMinimumStock = p.IsBelowMinimumStock,
-        Margin = p.Margin
+        Margin = p.Margin,
+        p.IsArchived,
+        p.ArchivedAt
     };
 }
 
@@ -127,6 +167,7 @@ public class ProductCreateDto
     public decimal SellingPrice { get; set; }
     public int MinimumStock { get; set; }
     public string? Sku { get; set; }
+    public string? Brand { get; set; }
     public int CategoryId { get; set; }
 }
 
@@ -138,6 +179,7 @@ public class ProductUpdateDto
     public decimal SellingPrice { get; set; }
     public int MinimumStock { get; set; }
     public string? Sku { get; set; }
+    public string? Brand { get; set; }
     public int CategoryId { get; set; }
 }
 

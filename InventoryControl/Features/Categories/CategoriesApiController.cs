@@ -38,10 +38,14 @@ public class CategoriesApiController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<object>> Create([FromBody] CategoryDto dto)
     {
+        if (dto.ParentId is not null && !await _repo.ExistsAsync(dto.ParentId.Value))
+            return BadRequest(new { error = "Parent category not found." });
+
         var category = new Category
         {
             Name = dto.Name,
-            Description = dto.Description
+            Description = dto.Description,
+            ParentId = dto.ParentId
         };
 
         await _repo.AddAsync(category);
@@ -54,8 +58,15 @@ public class CategoriesApiController : ControllerBase
         var category = await _repo.GetByIdAsync(id);
         if (category is null) return NotFound(new { error = "Category not found." });
 
+        if (dto.ParentId == id)
+            return BadRequest(new { error = "A category cannot be its own parent." });
+
+        if (dto.ParentId is not null && !await _repo.ExistsAsync(dto.ParentId.Value))
+            return BadRequest(new { error = "Parent category not found." });
+
         category.Name = dto.Name;
         category.Description = dto.Description;
+        category.ParentId = dto.ParentId;
 
         await _repo.UpdateAsync(category);
         return Ok(MapCategory(category));
@@ -76,6 +87,8 @@ public class CategoriesApiController : ControllerBase
         c.Id,
         c.Name,
         c.Description,
+        c.ParentId,
+        ParentName = c.Parent?.Name,
         ExternalMappings = c.ExternalMappings.Select(m => new { m.StoreName, m.ExternalId, m.Platform }),
         ProductCount = c.Products?.Count ?? 0
     };
@@ -85,4 +98,5 @@ public class CategoryDto
 {
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public int? ParentId { get; set; }
 }

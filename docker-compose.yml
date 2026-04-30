@@ -50,6 +50,14 @@ services:
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=caramelo_inventory;Username=caramelo;Password=${DB_PASSWORD:-#Caramelo123}
       - OffsiteBackup__RcloneConfigPath=/config/rclone/rclone.conf
       - OffsiteBackup__RemotePath=${RCLONE_REMOTE:-gdrive:inventory-control-backups/manual}
+      - Stores__0__Name=${STORE_NAME:-My Nuvemshop}
+      - Stores__0__Enabled=${STORE_ENABLED:-false}
+      - Stores__0__Platform=${STORE_PLATFORM:-nuvemshop}
+      - Stores__0__StoreId=${STORE_ID:-}
+      - Stores__0__AccessToken=${STORE_ACCESS_TOKEN:-}
+      - Stores__0__OrderSyncIntervalMinutes=${STORE_SYNC_INTERVAL_MINUTES:-15}
+      - Api__Keys__0__Key=${API_KEY:-}
+      - Api__Keys__0__Role=Admin
     volumes:
       - rclone-config:/config/rclone:ro
     healthcheck:

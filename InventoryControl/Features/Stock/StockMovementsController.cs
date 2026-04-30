@@ -53,7 +53,19 @@ public class StockMovementsController : Controller
         var product = await _productRepo.GetByIdAsync(movement.ProductId);
         if (product is null) return NotFound();
 
-        product.ApplyEntry(movement.Quantity);
+        try
+        {
+            product.ApplyEntry(movement.Quantity);
+        }
+        catch (ProductArchivedException)
+        {
+            ModelState.AddModelError(nameof(StockMovement.ProductId),
+                $"\"{product.Name}\" está arquivado. Reative-o antes de movimentar estoque.");
+            await PopulateProductDropdownAsync(movement.ProductId);
+            await PopulateSupplierDropdownAsync(movement.SupplierId);
+            return View(movement);
+        }
+
         _dbContext.StockMovements.Add(movement);
         await _dbContext.SaveChangesAsync();
 
@@ -94,6 +106,13 @@ public class StockMovementsController : Controller
         {
             ModelState.AddModelError(nameof(StockMovement.Quantity),
                 $"Estoque insuficiente. Disponível: {ex.Available} unidade(s).");
+            await PopulateProductDropdownAsync(movement.ProductId);
+            return View(movement);
+        }
+        catch (ProductArchivedException)
+        {
+            ModelState.AddModelError(nameof(StockMovement.ProductId),
+                $"\"{product.Name}\" está arquivado. Reative-o antes de movimentar estoque.");
             await PopulateProductDropdownAsync(movement.ProductId);
             return View(movement);
         }

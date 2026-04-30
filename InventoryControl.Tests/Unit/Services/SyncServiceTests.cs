@@ -16,6 +16,7 @@ public class SyncServiceTests
     private readonly Mock<IStockMovementRepository> _movementRepoMock = new();
     private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
     private readonly Mock<IProcessedOrderRepository> _processedOrderRepoMock = new();
+    private readonly Mock<IProductImageDownloader> _imageDownloaderMock = new();
     private readonly IntegrationConfig _config = new() { Name = "test-store", Enabled = true, Platform = "test-platform" };
     private readonly DatabaseFixture _fixture = new();
     private readonly AppDbContext _context;
@@ -32,7 +33,8 @@ public class SyncServiceTests
             _processedOrderRepoMock.Object,
             _context,
             _config,
-            Mock.Of<ILogger<SyncService>>());
+            Mock.Of<ILogger<SyncService>>(),
+            _imageDownloaderMock.Object);
     }
 
     private async Task SeedProductAsync(Product product)
@@ -69,16 +71,258 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task SyncProductsFromStoreAsync_NoSkuMatch_DoesNotCreateMapping()
+    public async Task SyncProductsFromStoreAsync_NoSkuMatch_CreatesLocalProductAndMapping()
     {
         _productRepoMock.Setup(r => r.GetAllAsync())
             .ReturnsAsync(new[] { TestDataBuilder.CreateProduct(sku: "SKU-A") });
+        _productRepoMock.Setup(r => r.AddAsync(It.IsAny<Product>()))
+            .Callback<Product>(p =>
+            {
+                _context.Products.Add(p);
+                _context.SaveChanges();
+            })
+            .Returns(Task.CompletedTask);
+        _categoryRepoMock.Setup(r => r.AddAsync(It.IsAny<Category>()))
+            .Callback<Category>(c =>
+            {
+                _context.Categories.Add(c);
+                _context.SaveChanges();
+            })
+            .Returns(Task.CompletedTask);
+
         _storeMock.Setup(s => s.GetProductsAsync())
-            .ReturnsAsync(new[] { new ExternalProduct { ExternalId = "ext-1", Sku = "SKU-B" } });
+            .ReturnsAsync(new[]
+            {
+                new ExternalProduct
+                {
+                    ExternalId = "ext-1",
+                    Sku = "SKU-B",
+                    Name = "Pulled Product",
+                    Price = 19.90m,
+                    Stock = 5
+                }
+            });
+
+        var summary = await _sut.SyncProductsFromStoreAsync();
+
+        Assert.Equal(1, summary.Created);
+        Assert.Equal(1, summary.NeedsCostReview);
+
+        var created = await _context.Products.FirstOrDefaultAsync(p => p.Sku == "SKU-B");
+        Assert.NotNull(created);
+        Assert.Equal("Pulled Product", created.Name);
+        Assert.Equal(0m, created.CostPrice);
+        Assert.Equal(19.90m, created.SellingPrice);
+        Assert.Equal(5, created.CurrentStock);
+
+        var mapping = await _context.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ExternalId == "ext-1");
+        Assert.NotNull(mapping);
+        Assert.Equal(created.Id, mapping.ProductId);
+
+        var fallback = await _context.Categories.FirstOrDefaultAsync(c => c.Name == "Sem categoria");
+        Assert.NotNull(fallback);
+    }
+
+    [Fact]
+    public async Task SyncProductsFromStoreAsync_ExistingMappingForSkulessExternal_LinksWithoutCreating()
+    {
+        // Reproduces the duplication bug: an external product without SKU was
+        // created locally on a previous sync; on re-sync it must match by mapping
+        // (ExternalId), not by SKU, otherwise a duplicate is created every run.
+        var existing = TestDataBuilder.CreateProduct(sku: null);
+        existing.Name = "Test Product";
+        existing.SellingPrice = 9.99m;
+        await SeedProductAsync(existing);
+
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = existing.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-no-sku",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
+
+        _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { existing });
+        _productRepoMock.Setup(r => r.AddAsync(It.IsAny<Product>()))
+            .Callback<Product>(p => { _context.Products.Add(p); _context.SaveChanges(); })
+            .Returns(Task.CompletedTask);
+
+        _storeMock.Setup(s => s.GetProductsAsync())
+            .ReturnsAsync(new[]
+            {
+                new ExternalProduct
+                {
+                    ExternalId = "ext-no-sku",
+                    Sku = "",
+                    Name = "Test Product",
+                    Price = 9.99m
+                }
+            });
+
+        var summary = await _sut.SyncProductsFromStoreAsync();
+
+        Assert.Equal(1, summary.Linked);
+        Assert.Equal(0, summary.Created);
+        _productRepoMock.Verify(r => r.AddAsync(It.IsAny<Product>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncProductsFromStoreAsync_NewProductWithImages_TriggersImageDownload()
+    {
+        _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Product>());
+        _productRepoMock.Setup(r => r.AddAsync(It.IsAny<Product>()))
+            .Callback<Product>(p => { _context.Products.Add(p); _context.SaveChanges(); })
+            .Returns(Task.CompletedTask);
+        _categoryRepoMock.Setup(r => r.AddAsync(It.IsAny<Category>()))
+            .Callback<Category>(c => { _context.Categories.Add(c); _context.SaveChanges(); })
+            .Returns(Task.CompletedTask);
+
+        var images = new List<ExternalImage>
+        {
+            new() { ExternalId = "img-1", Url = "https://store.example/a.jpg", Position = 1 },
+            new() { ExternalId = "img-2", Url = "https://store.example/b.jpg", Position = 2 }
+        };
+
+        _storeMock.Setup(s => s.GetProductsAsync())
+            .ReturnsAsync(new[]
+            {
+                new ExternalProduct
+                {
+                    ExternalId = "ext-img",
+                    Sku = "SKU-IMG",
+                    Name = "With Images",
+                    Price = 9.99m,
+                    Stock = 1,
+                    Images = images
+                }
+            });
+
+        _imageDownloaderMock
+            .Setup(d => d.DownloadAndSaveAsync(It.IsAny<int>(), It.IsAny<IEnumerable<ExternalImage>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        var summary = await _sut.SyncProductsFromStoreAsync();
+
+        Assert.Equal(2, summary.ImagesDownloaded);
+        _imageDownloaderMock.Verify(d => d.DownloadAndSaveAsync(
+            It.IsAny<int>(),
+            It.Is<IEnumerable<ExternalImage>>(imgs => imgs.Count() == 2),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SyncProductsFromStoreAsync_LinkedExistingProduct_DoesNotImportImages()
+    {
+        var local = TestDataBuilder.CreateProduct(sku: "SKU-LINKED");
+        await SeedProductAsync(local);
+        _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { local });
+
+        _storeMock.Setup(s => s.GetProductsAsync())
+            .ReturnsAsync(new[]
+            {
+                new ExternalProduct
+                {
+                    ExternalId = "ext-linked",
+                    Sku = "SKU-LINKED",
+                    Name = local.Name,
+                    Price = local.SellingPrice,
+                    Images = new List<ExternalImage>
+                    {
+                        new() { ExternalId = "img-x", Url = "https://store.example/x.jpg" }
+                    }
+                }
+            });
 
         await _sut.SyncProductsFromStoreAsync();
 
-        Assert.Empty(await _context.ProductExternalMappings.ToListAsync());
+        _imageDownloaderMock.Verify(d => d.DownloadAndSaveAsync(
+            It.IsAny<int>(),
+            It.IsAny<IEnumerable<ExternalImage>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportImagesForLinkedProductAsync_NoMapping_ReturnsZero()
+    {
+        var product = TestDataBuilder.CreateProduct(sku: "SKU-NM");
+        await SeedProductAsync(product);
+
+        var saved = await _sut.ImportImagesForLinkedProductAsync(product.Id);
+
+        Assert.Equal(0, saved);
+        _imageDownloaderMock.Verify(d => d.DownloadAndSaveAsync(
+            It.IsAny<int>(),
+            It.IsAny<IEnumerable<ExternalImage>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportImagesForLinkedProductAsync_WithMapping_DownloadsImages()
+    {
+        var product = TestDataBuilder.CreateProduct(sku: "SKU-WM");
+        await SeedProductAsync(product);
+        _context.ProductExternalMappings.Add(new ProductExternalMapping
+        {
+            ProductId = product.Id,
+            StoreName = "test-store",
+            ExternalId = "ext-555",
+            Platform = "test-platform"
+        });
+        await _context.SaveChangesAsync();
+
+        var images = new List<ExternalImage>
+        {
+            new() { ExternalId = "img-99", Url = "https://store.example/99.png", Position = 1 }
+        };
+
+        _storeMock.Setup(s => s.GetProductsAsync())
+            .ReturnsAsync(new[]
+            {
+                new ExternalProduct { ExternalId = "ext-555", Sku = "SKU-WM", Images = images }
+            });
+
+        _imageDownloaderMock
+            .Setup(d => d.DownloadAndSaveAsync(product.Id, It.IsAny<IEnumerable<ExternalImage>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        var saved = await _sut.ImportImagesForLinkedProductAsync(product.Id);
+
+        Assert.Equal(1, saved);
+    }
+
+    [Fact]
+    public async Task SyncProductsFromStoreAsync_MatchingSkuWithDivergentName_FlagsConflict()
+    {
+        var local = TestDataBuilder.CreateProduct(sku: "SKU-X");
+        local.Name = "Local Name";
+        local.SellingPrice = 10m;
+        await SeedProductAsync(local);
+
+        _productRepoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { local });
+        _storeMock.Setup(s => s.GetProductsAsync())
+            .ReturnsAsync(new[]
+            {
+                new ExternalProduct
+                {
+                    ExternalId = "ext-9",
+                    Sku = "SKU-X",
+                    Name = "External Name",
+                    Price = 12m
+                }
+            });
+
+        var summary = await _sut.SyncProductsFromStoreAsync();
+
+        Assert.Equal(1, summary.Conflicts);
+
+        var mapping = await _context.ProductExternalMappings
+            .FirstOrDefaultAsync(m => m.ProductId == local.Id);
+        Assert.NotNull(mapping);
+        Assert.True(mapping.HasConflict);
+        Assert.Contains("Name", mapping.ConflictDetails);
+        Assert.Contains("Price", mapping.ConflictDetails);
     }
 
     [Fact]
