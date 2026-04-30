@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Puller no longer creates duplicate local products on every re-sync** when an external product has no SKU. The matcher now uses the existing `ProductExternalMapping` (by `ExternalId + StoreName`) as the primary identity check, falling back to SKU only when no mapping exists. Bug shipped in v7.5.0 but only manifested on the second sync of a SKU-less product. Defensive fallthrough handles the (cascade-protected) orphan-mapping case as well.
 - **Puller no longer forges price conflicts on re-sync** of products with `external.Price=0`. Previous behavior stored `SellingPrice=0.01` locally as a "needs review" marker, which then diverged from `0.00` on every conflict check. The DTO validator already accepts `SellingPrice >= 0`, so the fallback was unnecessary.
+- **Nuvemshop price parsing now uses `InvariantCulture`**. Nuvemshop returns prices as strings with `.` as decimal separator (e.g. `"1.00"`); the previous `decimal.TryParse(s, out _)` used the host culture. On pt-BR machines `.` is the thousands separator, so `"1.00"` was being parsed as `100`. Affected `GetProductsAsync`, `CreateProductAsync` (returned variant prices), and `MapOrder` (order item unit prices). All three now go through a single `ParsePrice` helper. This was the root cause of products pushed at e.g. R$ 1,00 coming back as R$ 100,00 on the next pull, falsely flagged as conflicts.
 
 ### Added
 

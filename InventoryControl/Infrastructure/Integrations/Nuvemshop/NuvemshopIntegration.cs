@@ -1,3 +1,4 @@
+using System.Globalization;
 using InventoryControl.Infrastructure.Integrations.Abstractions;
 using InventoryControl.Infrastructure.Integrations.Nuvemshop.Models;
 
@@ -15,6 +16,14 @@ public class NuvemshopIntegration : IStoreIntegration
         _client = client;
     }
 
+    /// <summary>
+    /// Nuvemshop returns prices as strings with '.' as decimal separator (e.g. "1.00").
+    /// Must parse with InvariantCulture; default culture in pt-BR locales would treat
+    /// "1.00" as 100 (because '.' is the thousands separator there).
+    /// </summary>
+    private static decimal ParsePrice(string? raw, decimal fallback = 0m) =>
+        decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var v) ? v : fallback;
+
     public async Task<IEnumerable<ExternalProduct>> GetProductsAsync()
     {
         var nuvemshopProducts = await _client.GetProductsAsync();
@@ -25,13 +34,13 @@ public class NuvemshopIntegration : IStoreIntegration
             Name = p.Name?.GetValueOrDefault("en") ?? p.Name?.GetValueOrDefault("pt") ?? p.Name?.Values.FirstOrDefault() ?? string.Empty,
             Description = p.Description?.GetValueOrDefault("en") ?? p.Description?.GetValueOrDefault("pt") ?? p.Description?.Values.FirstOrDefault(),
             Sku = p.Variants.FirstOrDefault()?.Sku ?? string.Empty,
-            Price = decimal.TryParse(p.Variants.FirstOrDefault()?.Price, out var price) ? price : 0m,
+            Price = ParsePrice(p.Variants.FirstOrDefault()?.Price),
             Stock = p.Variants.FirstOrDefault()?.Stock ?? 0,
             Variants = p.Variants.Select(v => new ExternalProductVariant
             {
                 ExternalId = v.Id.ToString(),
                 Sku = v.Sku,
-                Price = decimal.TryParse(v.Price, out var vPrice) ? vPrice : 0m,
+                Price = ParsePrice(v.Price),
                 Stock = v.Stock ?? 0
             }).ToList(),
             Images = p.Images
@@ -86,7 +95,7 @@ public class NuvemshopIntegration : IStoreIntegration
             {
                 ExternalId = v.Id.ToString(),
                 Sku = v.Sku,
-                Price = decimal.TryParse(v.Price, out var vPrice) ? vPrice : price,
+                Price = ParsePrice(v.Price, fallback: price),
                 Stock = v.Stock ?? stock
             }).ToList()
         };
@@ -134,7 +143,7 @@ public class NuvemshopIntegration : IStoreIntegration
             ExternalProductId = p.ProductId.ToString(),
             Sku = p.Sku,
             Quantity = p.Quantity,
-            UnitPrice = decimal.TryParse(p.Price, out var price) ? price : 0m
+            UnitPrice = ParsePrice(p.Price)
         }).ToList()
     };
 }
