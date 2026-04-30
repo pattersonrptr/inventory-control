@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [7.6.0] - 2026-04-29
+## [7.6.0] - 2026-04-30
 
 ### Fixed
 
@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Migrations
 
 - `20260429201142_AddProductImageExternalRefs` — adds nullable `ExternalImageId` (max 64) and `ExternalUrl` (max 500) on `ProductImages`, replaces `IX_ProductImages_ProductId` with composite `IX_ProductImages_ProductId_ExternalImageId`. Both columns are strings, so no PostgreSQL boolean-default gotcha applies.
+
+### Refactored
+
+- **Extracted `IProductArchiveRetrier`** (in `Domain.Products`) so `ArchiveSyncRetryService` (Infrastructure) no longer references `ProductArchiveService` (Features) directly. Restores the `Infrastructure_MustNotDependOn_Features` architecture invariant that had been broken since v7.5.0.
 
 ## [7.5.0] - 2026-04-28
 
